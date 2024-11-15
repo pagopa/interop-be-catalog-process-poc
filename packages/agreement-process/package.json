@@ -25,7 +25,7 @@
     "@types/express": "4.17.21",
     "@types/node": "20.14.6",
     "cpx2": "7.0.1",
-    "openapi-zod-client": "1.18.1",
+    "openapi-zod-client": "1.18.2",
     "pagopa-interop-commons-test": "workspace:*",
     "pg-promise": "11.8.0",
     "prettier": "2.8.8",
