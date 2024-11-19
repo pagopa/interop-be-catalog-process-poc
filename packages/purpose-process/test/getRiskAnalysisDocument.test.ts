@@ -4,6 +4,7 @@ import {
   getMockPurposeVersion,
   getMockPurpose,
   writeInReadmodel,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   Purpose,
@@ -29,6 +30,7 @@ import {
   eservices,
   purposeService,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("getRiskAnalysisDocument", () => {
   it("should get the purpose version document", async () => {
@@ -48,14 +50,20 @@ describe("getRiskAnalysisDocument", () => {
     await addOnePurpose(mockPurpose2);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    const result = await purposeService.getRiskAnalysisDocument({
-      purposeId: mockPurpose1.id,
-      versionId: mockPurposeVersion.id,
-      documentId: mockDocument.id,
-      organizationId: mockEService.producerId,
-      logger: genericLogger,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes/:purposeId/versions/:versionId/documents/:documentId",
+      pathParams: {
+        purposeId: mockPurpose1.id,
+        versionId: mockPurposeVersion.id,
+        documentId: mockDocument.id,
+      },
+      authData: getMockAuthData(mockEService.producerId),
     });
-    expect(result).toEqual(mockDocument);
+
+    expect(result).toEqual({
+      ...mockDocument,
+      createdAt: mockDocument.createdAt.toISOString(),
+    });
   });
   it("should throw purposeNotFound if the purpose doesn't exist", async () => {
     const notExistingId: PurposeId = generateId();

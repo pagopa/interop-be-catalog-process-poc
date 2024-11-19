@@ -14,6 +14,7 @@ import {
   getMockValidRiskAnalysis,
   writeInReadmodel,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test/index.js";
 import {
   tenantKind,
@@ -32,6 +33,7 @@ import {
   RiskAnalysis,
   eserviceMode,
   toReadModelTenant,
+  fromPurposeV2,
 } from "pagopa-interop-models";
 import { purposeApi } from "pagopa-interop-api-clients";
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
@@ -47,6 +49,7 @@ import {
   riskAnalysisValidationFailed,
   duplicatedPurposeTitle,
 } from "../src/model/domain/errors.js";
+import { purposeToApiPurpose } from "../src/model/domain/apiConverter.js";
 import {
   getMockEService,
   buildRiskAnalysisSeed,
@@ -57,6 +60,7 @@ import {
   purposeService,
   tenants,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("updatePurpose and updateReversePurpose", () => {
   const tenantType = randomArrayItem(Object.values(tenantKind));
@@ -114,15 +118,18 @@ describe("updatePurpose and updateReversePurpose", () => {
     validRiskAnalysis = getMockValidRiskAnalysis(tenantType);
 
     purposeUpdateContent = {
-      title: "test",
+      title: "test for the purposeUpdateContent ",
       dailyCalls: 10,
-      description: "test",
+      description: "test for the purposeUpdateContent",
       isFreeOfCharge: false,
       riskAnalysisForm: buildRiskAnalysisSeed(validRiskAnalysis),
     };
 
     reversePurposeUpdateContent = {
-      ...purposeUpdateContent,
+      title: "test for the reversePurposeUpdateContent ",
+      dailyCalls: 10,
+      description: "test for the reversePurposeUpdateContent",
+      isFreeOfCharge: false,
     };
   });
 
@@ -135,15 +142,12 @@ describe("updatePurpose and updateReversePurpose", () => {
     await writeInReadmodel(toReadModelEService(eServiceDeliver), eservices);
     await writeInReadmodel(toReadModelTenant(tenant), tenants);
 
-    const { purpose, isRiskAnalysisValid } = await purposeService.updatePurpose(
-      {
-        purposeId: purposeForDeliver.id,
-        purposeUpdateContent,
-        organizationId: tenant.id,
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/purposes/:id",
+      pathParams: { id: purposeForDeliver.id },
+      body: { ...purposeUpdateContent },
+      authData: getMockAuthData(tenant.id),
+    });
 
     const writtenEvent = await readLastPurposeEvent(purposeForDeliver.id);
 
@@ -167,8 +171,10 @@ describe("updatePurpose and updateReversePurpose", () => {
     );
 
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toBe(true);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), true)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(true);
   });
 
   it("Should write on event store for the update of a purpose of an e-service in mode DELIVER (no title change)", async () => {
@@ -181,15 +187,12 @@ describe("updatePurpose and updateReversePurpose", () => {
       title: purposeForDeliver.title,
     };
 
-    const { purpose, isRiskAnalysisValid } = await purposeService.updatePurpose(
-      {
-        purposeId: purposeForDeliver.id,
-        purposeUpdateContent: updateContentWithoutTitle,
-        organizationId: tenant.id,
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/purposes/:id",
+      pathParams: { id: purposeForDeliver.id },
+      body: { ...updateContentWithoutTitle },
+      authData: getMockAuthData(tenant.id),
+    });
 
     const writtenEvent = await readLastPurposeEvent(purposeForDeliver.id);
 
@@ -213,22 +216,22 @@ describe("updatePurpose and updateReversePurpose", () => {
     );
 
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toBe(true);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), true)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(true);
   });
   it("Should write on event store for the update of a purpose of an e-service in mode RECEIVE (including title change)", async () => {
     await addOnePurpose(purposeForReceive);
     await writeInReadmodel(toReadModelEService(eServiceReceive), eservices);
     await writeInReadmodel(toReadModelTenant(tenant), tenants);
 
-    const { purpose, isRiskAnalysisValid } =
-      await purposeService.updateReversePurpose({
-        purposeId: purposeForReceive.id,
-        reversePurposeUpdateContent,
-        organizationId: tenant.id,
-        correlationId: generateId(),
-        logger: genericLogger,
-      });
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/reverse/purposes/:id",
+      pathParams: { id: purposeForReceive.id },
+      body: { ...reversePurposeUpdateContent },
+      authData: getMockAuthData(tenant.id),
+    });
 
     const writtenEvent = await readLastPurposeEvent(purposeForReceive.id);
     expect(writtenEvent).toMatchObject({
@@ -251,8 +254,10 @@ describe("updatePurpose and updateReversePurpose", () => {
     );
 
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toBe(true);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), true)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(true);
   });
   it("Should throw purposeNotFound if the purpose doesn't exist", async () => {
     await writeInReadmodel(toReadModelEService(eServiceDeliver), eservices);

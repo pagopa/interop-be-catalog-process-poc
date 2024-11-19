@@ -3,6 +3,7 @@
 import {
   decodeProtobufPayload,
   getMockAgreement,
+  getMockAuthData,
   getMockEService,
   getMockPurpose,
   getMockPurposeVersion,
@@ -20,6 +21,7 @@ import {
   toReadModelAgreement,
   unsafeBrandId,
   toReadModelTenant,
+  fromPurposeV2,
 } from "pagopa-interop-models";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -32,6 +34,7 @@ import {
   purposeNotFound,
   tenantKindNotFound,
 } from "../src/model/domain/errors.js";
+import { purposeToApiPurpose } from "../src/model/domain/apiConverter.js";
 import {
   addOnePurpose,
   agreements,
@@ -39,6 +42,7 @@ import {
   readLastPurposeEvent,
   tenants,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("clonePurpose", async () => {
   beforeAll(() => {
@@ -72,17 +76,14 @@ describe("clonePurpose", async () => {
     await writeInReadmodel(toReadModelTenant(mockTenant), tenants);
     await writeInReadmodel(toReadModelAgreement(mockAgreement), agreements);
 
-    const { purpose, isRiskAnalysisValid } = await purposeService.clonePurpose({
-      purposeId: mockPurpose.id,
-      organizationId: mockTenant.id,
-      seed: {
-        eserviceId: mockEService.id,
-      },
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/clone",
+      pathParams: { purposeId: mockPurpose.id },
+      body: { eserviceId: mockEService.id },
+      authData: getMockAuthData(mockTenant.id),
     });
 
-    const writtenEvent = await readLastPurposeEvent(purpose.id);
+    const writtenEvent = await readLastPurposeEvent(unsafeBrandId(purpose.id));
 
     expect(writtenEvent).toMatchObject({
       stream_id: purpose.id,
@@ -114,8 +115,10 @@ describe("clonePurpose", async () => {
     };
 
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toBe(false);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), false)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(false);
   });
   it("should write on event-store for the cloning of a purpose, making sure the title is cut to 60 characters", async () => {
     const mockTenant = {
@@ -142,17 +145,14 @@ describe("clonePurpose", async () => {
     await writeInReadmodel(toReadModelTenant(mockTenant), tenants);
     await writeInReadmodel(toReadModelAgreement(mockAgreement), agreements);
 
-    const { purpose, isRiskAnalysisValid } = await purposeService.clonePurpose({
-      purposeId: mockPurpose.id,
-      organizationId: mockTenant.id,
-      seed: {
-        eserviceId: mockEService.id,
-      },
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/clone",
+      pathParams: { purposeId: mockPurpose.id },
+      body: { eserviceId: mockEService.id },
+      authData: getMockAuthData(mockTenant.id),
     });
 
-    const writtenEvent = await readLastPurposeEvent(purpose.id);
+    const writtenEvent = await readLastPurposeEvent(unsafeBrandId(purpose.id));
 
     expect(writtenEvent).toMatchObject({
       stream_id: purpose.id,
@@ -185,8 +185,10 @@ describe("clonePurpose", async () => {
 
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
     expect(expectedPurpose.title.length).toBe(60);
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toBe(false);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), false)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(false);
   });
   it("should throw purposeNotFound if the purpose to clone doesn't exist", async () => {
     const mockTenant = {

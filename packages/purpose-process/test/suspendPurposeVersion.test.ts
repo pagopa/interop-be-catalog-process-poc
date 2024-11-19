@@ -5,6 +5,7 @@ import {
   getMockPurpose,
   writeInReadmodel,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   PurposeVersion,
@@ -27,6 +28,7 @@ import {
   organizationNotAllowed,
   notValidVersionState,
 } from "../src/model/domain/errors.js";
+import { apiPurposeVersionToPurposeVersion } from "../src/model/domain/apiConverter.js";
 import {
   addOnePurpose,
   eservices,
@@ -34,6 +36,7 @@ import {
   purposeService,
   readLastPurposeEvent,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("suspendPurposeVersion", () => {
   it("should write on event-store for the suspension of a purpose version by the consumer", async () => {
@@ -53,12 +56,13 @@ describe("suspendPurposeVersion", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    const returnedPurposeVersion = await purposeService.suspendPurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion1.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/suspend",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion1.id,
+      },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -94,7 +98,11 @@ describe("suspendPurposeVersion", () => {
       writtenPayload.purpose?.versions.find(
         (v) => v.id === returnedPurposeVersion.id
       )
-    ).toEqual(toPurposeVersionV2(returnedPurposeVersion));
+    ).toEqual(
+      toPurposeVersionV2(
+        apiPurposeVersionToPurposeVersion(returnedPurposeVersion)
+      )
+    );
 
     vi.useRealTimers();
   });
@@ -115,12 +123,13 @@ describe("suspendPurposeVersion", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    const returnedPurposeVersion = await purposeService.suspendPurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion1.id,
-      organizationId: mockEService.producerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/suspend",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion1.id,
+      },
+      authData: getMockAuthData(mockEService.producerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -156,7 +165,11 @@ describe("suspendPurposeVersion", () => {
       writtenPayload.purpose?.versions.find(
         (v) => v.id === returnedPurposeVersion.id
       )
-    ).toEqual(toPurposeVersionV2(returnedPurposeVersion));
+    ).toEqual(
+      toPurposeVersionV2(
+        apiPurposeVersionToPurposeVersion(returnedPurposeVersion)
+      )
+    );
 
     vi.useRealTimers();
   });
@@ -178,12 +191,13 @@ describe("suspendPurposeVersion", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    const returnedPurposeVersion = await purposeService.suspendPurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion1.id,
-      organizationId: mockEService.producerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/suspend",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion1.id,
+      },
+      authData: getMockAuthData(mockEService.producerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -219,7 +233,11 @@ describe("suspendPurposeVersion", () => {
       writtenPayload.purpose?.versions.find(
         (v) => v.id === returnedPurposeVersion.id
       )
-    ).toEqual(toPurposeVersionV2(returnedPurposeVersion));
+    ).toEqual(
+      toPurposeVersionV2(
+        apiPurposeVersionToPurposeVersion(returnedPurposeVersion)
+      )
+    );
 
     vi.useRealTimers();
   });

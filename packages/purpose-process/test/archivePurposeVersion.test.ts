@@ -3,6 +3,7 @@ import {
   getMockPurposeVersion,
   getMockPurpose,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   PurposeVersion,
@@ -24,11 +25,13 @@ import {
   purposeVersionNotFound,
   notValidVersionState,
 } from "../src/model/domain/errors.js";
+import { apiPurposeVersionToPurposeVersion } from "../src/model/domain/apiConverter.js";
 import {
   addOnePurpose,
   purposeService,
   readLastPurposeEvent,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("archivePurposeVersion", () => {
   it("should write on event-store for the archiving of a purpose version", async () => {
@@ -45,12 +48,13 @@ describe("archivePurposeVersion", () => {
     };
     await addOnePurpose(mockPurpose);
 
-    const returnedPurposeVersion = await purposeService.archivePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/archive",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -84,7 +88,11 @@ describe("archivePurposeVersion", () => {
       writtenPayload.purpose?.versions.find(
         (v) => v.id === returnedPurposeVersion.id
       )
-    ).toEqual(toPurposeVersionV2(returnedPurposeVersion));
+    ).toEqual(
+      toPurposeVersionV2(
+        apiPurposeVersionToPurposeVersion(returnedPurposeVersion)
+      )
+    );
 
     vi.useRealTimers();
   });
@@ -106,12 +114,13 @@ describe("archivePurposeVersion", () => {
     };
     await addOnePurpose(mockPurpose);
 
-    const returnedPurposeVersion = await purposeService.archivePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion1.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/archive",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion1.id,
+      },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -145,7 +154,11 @@ describe("archivePurposeVersion", () => {
       writtenPayload.purpose?.versions.find(
         (v) => v.id === returnedPurposeVersion.id
       )
-    ).toEqual(toPurposeVersionV2(returnedPurposeVersion));
+    ).toEqual(
+      toPurposeVersionV2(
+        apiPurposeVersionToPurposeVersion(returnedPurposeVersion)
+      )
+    );
 
     vi.useRealTimers();
   });

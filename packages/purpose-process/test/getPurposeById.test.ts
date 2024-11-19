@@ -3,6 +3,7 @@ import {
   getMockTenant,
   getMockPurpose,
   writeInReadmodel,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   tenantKind,
@@ -22,6 +23,7 @@ import {
   tenantNotFound,
   tenantKindNotFound,
 } from "../src/model/domain/errors.js";
+import { purposeToApiPurpose } from "../src/model/domain/apiConverter.js";
 import {
   getMockEService,
   addOnePurpose,
@@ -29,6 +31,7 @@ import {
   purposeService,
   tenants,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("getPurposeById", () => {
   it("should get the purpose if it exists", async () => {
@@ -52,15 +55,14 @@ describe("getPurposeById", () => {
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
     await writeInReadmodel(toReadModelTenant(mockTenant), tenants);
 
-    const result = await purposeService.getPurposeById(
-      mockPurpose1.id,
-      mockTenant.id,
-      genericLogger
-    );
-    expect(result).toMatchObject({
-      purpose: mockPurpose1,
-      isRiskAnalysisValid: false,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes/:id",
+      pathParams: { id: mockPurpose1.id },
+      authData: getMockAuthData(mockTenant.id),
     });
+
+    expect(result).toEqual(purposeToApiPurpose(mockPurpose1, false));
+    expect(result.isRiskAnalysisValid).toBe(false);
   });
   it("should throw purposeNotFound if the purpose doesn't exist", async () => {
     const notExistingId: PurposeId = generateId();

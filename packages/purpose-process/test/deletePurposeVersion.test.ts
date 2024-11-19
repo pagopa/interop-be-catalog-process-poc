@@ -5,6 +5,7 @@ import {
   getMockPurpose,
   writeInReadmodel,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   purposeVersionState,
@@ -30,6 +31,7 @@ import {
   purposeService,
   readLastPurposeEvent,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("deletePurposeVersion", () => {
   it("should write in event-store for the deletion of a purpose version", async () => {
@@ -52,12 +54,13 @@ describe("deletePurposeVersion", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    await purposeService.deletePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion1.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockPurposeRouterRequest.delete({
+      path: "/purposes/:purposeId/versions/:versionId",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion1.id,
+      },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {
+  getMockAuthData,
   getMockTenant,
   writeInReadmodel,
 } from "pagopa-interop-commons-test/index.js";
@@ -20,7 +21,9 @@ import {
   tenantNotFound,
   riskAnalysisConfigLatestVersionNotFound,
 } from "../src/model/domain/errors.js";
+import { riskAnalysisFormConfigToApiRiskAnalysisFormConfig } from "../src/model/domain/apiConverter.js";
 import { tenants, purposeService } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("retrieveLatestRiskAnalysisConfiguration", async () => {
   it.each(Object.values(tenantKind))(
@@ -32,14 +35,18 @@ describe("retrieveLatestRiskAnalysisConfiguration", async () => {
       };
       await writeInReadmodel(toReadModelTenant(mockTenant), tenants);
 
-      const result =
-        await purposeService.retrieveLatestRiskAnalysisConfiguration({
-          tenantKind: kind,
-          organizationId: mockTenant.id,
-          logger: genericLogger,
-        });
+      const result = await mockPurposeRouterRequest.get({
+        path: "/purposes/riskAnalysis/latest",
+        queryParams: { tenantKind: kind },
+        authData: getMockAuthData(mockTenant.id),
+      });
 
-      expect(result).toEqual(getLatestVersionFormRules(kind));
+      expect(result).toEqual(
+        riskAnalysisFormConfigToApiRiskAnalysisFormConfig(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          getLatestVersionFormRules(kind)!
+        )
+      );
     }
   );
   it("should throw tenantNotFound if the tenant doesn't exist", async () => {

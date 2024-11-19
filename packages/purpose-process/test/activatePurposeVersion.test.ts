@@ -13,6 +13,7 @@ import {
   writeInReadmodel,
   readLastEventByStreamId,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   PurposeVersion,
@@ -54,6 +55,7 @@ import {
   tenantNotFound,
   agreementNotFound,
 } from "../src/model/domain/errors.js";
+import { apiPurposeVersionToPurposeVersion } from "../src/model/domain/apiConverter.js";
 import {
   agreements,
   eservices,
@@ -62,6 +64,7 @@ import {
   tenants,
 } from "./utils.js";
 import { addOnePurpose } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("activatePurposeVersion", () => {
   let mockConsumer: Tenant;
@@ -130,12 +133,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockProducer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockProducer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -153,7 +157,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       updatedAt: new Date(),
     };
 
@@ -184,12 +188,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -207,7 +212,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       suspendedByConsumer: false,
       suspendedByProducer: false,
       updatedAt: new Date(),
@@ -240,12 +245,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockProducer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockProducer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -263,7 +269,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       suspendedByConsumer: false,
       suspendedByProducer: false,
       updatedAt: new Date(),
@@ -297,12 +303,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -320,7 +327,10 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersionMock, purposeVersion],
+      versions: [
+        purposeVersionMock,
+        apiPurposeVersionToPurposeVersion(purposeVersion),
+      ],
       suspendedByConsumer: true,
       suspendedByProducer: false,
       updatedAt: new Date(),
@@ -354,12 +364,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -377,7 +388,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       suspendedByConsumer: false,
       suspendedByProducer: true,
       updatedAt: new Date(),
@@ -409,12 +420,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -432,7 +444,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       updatedAt: new Date(),
     };
 
@@ -460,12 +472,13 @@ describe("activatePurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const purposeVersion = await purposeService.activatePurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const purposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/activate",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -483,7 +496,7 @@ describe("activatePurposeVersion", () => {
 
     const expectedPurpose: Purpose = {
       ...mockPurpose,
-      versions: [purposeVersion],
+      versions: [apiPurposeVersionToPurposeVersion(purposeVersion)],
       updatedAt: new Date(),
     };
 
@@ -519,7 +532,7 @@ describe("activatePurposeVersion", () => {
     }).rejects.toThrowError(organizationIsNotTheProducer(mockConsumer.id));
   });
 
-  it("should organizationIsNotTheConsumer if the caller is the producer trying to activate a draft purpose version", async () => {
+  it("should throw organizationIsNotTheConsumer if the caller is the producer trying to activate a draft purpose version", async () => {
     const purposeVersion: PurposeVersion = {
       ...mockPurposeVersion,
       state: purposeVersionState.draft,

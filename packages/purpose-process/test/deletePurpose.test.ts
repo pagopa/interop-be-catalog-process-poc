@@ -16,6 +16,7 @@ import {
   writeInReadmodel,
   decodeProtobufPayload,
   getMockPurposeVersion,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import { genericLogger } from "pagopa-interop-commons";
 import {
@@ -30,6 +31,7 @@ import {
   purposeService,
   readLastPurposeEvent,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("deletePurpose", () => {
   it("should write on event-store for the deletion of a purpose (no versions)", async () => {
@@ -43,11 +45,10 @@ describe("deletePurpose", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    await purposeService.deletePurpose({
-      purposeId: mockPurpose.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockPurposeRouterRequest.delete({
+      path: "/purposes/:id",
+      pathParams: { id: mockPurpose.id },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -78,11 +79,10 @@ describe("deletePurpose", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    await purposeService.deletePurpose({
-      purposeId: mockPurpose.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockPurposeRouterRequest.delete({
+      path: "/purposes/:id",
+      pathParams: { id: mockPurpose.id },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -115,11 +115,10 @@ describe("deletePurpose", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    await purposeService.deletePurpose({
-      purposeId: mockPurpose.id,
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockPurposeRouterRequest.delete({
+      path: "/purposes/:id",
+      pathParams: { id: mockPurpose.id },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);

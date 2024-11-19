@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {
+  getMockAuthData,
   getMockEService,
   getMockTenant,
   randomArrayItem,
@@ -22,7 +24,9 @@ import {
   tenantKindNotFound,
   tenantNotFound,
 } from "../src/model/domain/errors.js";
+import { riskAnalysisFormConfigToApiRiskAnalysisFormConfig } from "../src/model/domain/apiConverter.js";
 import { eservices, tenants, purposeService } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("retrieveRiskAnalysisConfigurationByVersion", async () => {
   it("should retrieve risk analysis configuration by version (Eservice mode: deliver)", async () => {
@@ -37,15 +41,18 @@ describe("retrieveRiskAnalysisConfigurationByVersion", async () => {
 
     const riskAnalysisVersion = "1.0";
 
-    const result =
-      await purposeService.retrieveRiskAnalysisConfigurationByVersion({
-        eserviceId: mockEservice.id,
-        riskAnalysisVersion,
-        organizationId: mockTenant.id,
-        logger: genericLogger,
-      });
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes/riskAnalysis/version/:riskAnalysisVersion",
+      queryParams: { eserviceId: mockEservice.id },
+      pathParams: { riskAnalysisVersion },
+      authData: getMockAuthData(mockTenant.id),
+    });
 
-    expect(result).toEqual(getFormRulesByVersion(kind, riskAnalysisVersion));
+    expect(result).toEqual(
+      riskAnalysisFormConfigToApiRiskAnalysisFormConfig(
+        getFormRulesByVersion(kind, riskAnalysisVersion)!
+      )
+    );
   });
   it("should retrieve risk analysis configuration by version (Eservice mode: receive)", async () => {
     const mockEservice = { ...getMockEService(), mode: eserviceMode.receive };
@@ -59,15 +66,18 @@ describe("retrieveRiskAnalysisConfigurationByVersion", async () => {
 
     const riskAnalysisVersion = "1.0";
 
-    const result =
-      await purposeService.retrieveRiskAnalysisConfigurationByVersion({
-        eserviceId: mockEservice.id,
-        riskAnalysisVersion,
-        organizationId: mockTenant.id,
-        logger: genericLogger,
-      });
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes/riskAnalysis/version/:riskAnalysisVersion",
+      queryParams: { eserviceId: mockEservice.id },
+      pathParams: { riskAnalysisVersion },
+      authData: getMockAuthData(mockTenant.id),
+    });
 
-    expect(result).toEqual(getFormRulesByVersion(kind, riskAnalysisVersion));
+    expect(result).toEqual(
+      riskAnalysisFormConfigToApiRiskAnalysisFormConfig(
+        getFormRulesByVersion(kind, riskAnalysisVersion)!
+      )
+    );
   });
   it("should throw eserviceNotFound if the eservice doesn't exist", async () => {
     const mockTenant = getMockTenant();

@@ -756,6 +756,7 @@ components:
         - PA
         - PRIVATE
         - GSP
+        - SCP
     RiskAnalysisFormConfigResponse:
       type: object
       additionalProperties: false

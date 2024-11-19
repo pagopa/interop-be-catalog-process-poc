@@ -4,6 +4,7 @@ import {
   getMockPurpose,
   writeInReadmodel,
   decodeProtobufPayload,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   purposeVersionState,
@@ -32,6 +33,7 @@ import {
   eservices,
   purposeService,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("rejectPurposeVersion", () => {
   it("should write on event-store for the rejection of a purpose version", async () => {
@@ -52,13 +54,16 @@ describe("rejectPurposeVersion", () => {
     await addOnePurpose(mockPurpose);
     await writeInReadmodel(toReadModelEService(mockEService), eservices);
 
-    await purposeService.rejectPurposeVersion({
-      purposeId: mockPurpose.id,
-      versionId: mockPurposeVersion.id,
-      rejectionReason: "test",
-      organizationId: mockEService.producerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions/:versionId/reject",
+      pathParams: {
+        purposeId: mockPurpose.id,
+        versionId: mockPurposeVersion.id,
+      },
+      body: {
+        rejectionReason: "the reason for the rejection is because it is a test",
+      },
+      authData: getMockAuthData(mockEService.producerId),
     });
 
     const writtenEvent = await readLastPurposeEvent(mockPurpose.id);
@@ -78,7 +83,7 @@ describe("rejectPurposeVersion", () => {
     const expectedPurposeVersion: PurposeVersion = {
       ...mockPurposeVersion,
       state: purposeVersionState.rejected,
-      rejectionReason: "test",
+      rejectionReason: "the reason for the rejection is because it is a test",
       updatedAt: new Date(),
     };
     const expectedPurpose: Purpose = {

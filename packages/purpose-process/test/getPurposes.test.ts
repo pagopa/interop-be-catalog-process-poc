@@ -13,15 +13,17 @@ import {
   getMockPurpose,
   writeInReadmodel,
   getMockValidRiskAnalysisForm,
+  getMockAuthData,
 } from "pagopa-interop-commons-test/index.js";
-import { genericLogger } from "pagopa-interop-commons";
+import { purposeApi } from "pagopa-interop-api-clients";
+import { purposeToApiPurpose } from "../src/model/domain/apiConverter.js";
 import {
   addOnePurpose,
   eservices,
   getMockEService,
-  purposeService,
   purposes,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("getPurposes", async () => {
   const producerId1: TenantId = generateId();
@@ -125,130 +127,135 @@ describe("getPurposes", async () => {
   });
 
   it("should get the purposes if they exist (parameters: name)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        title: "test",
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
-        excludeDraft: undefined,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        name: "test",
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(3);
-    expect(result.results).toEqual([mockPurpose1, mockPurpose6, mockPurpose7]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose6, false),
+      purposeToApiPurpose(mockPurpose7, false),
+    ]);
   });
   it("should get the purposes if they exist (parameters: eservicesIds)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         eservicesIds: [mockEService1ByTenant1.id],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockPurpose1, mockPurpose2]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose2, false),
+    ]);
   });
   it("should get the purposes if they exist (parameters: consumersIds)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         consumersIds: [consumerId1],
-        producersIds: [],
-        states: [],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(3);
-    expect(result.results).toEqual([mockPurpose1, mockPurpose5, mockPurpose6]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose5, false),
+      purposeToApiPurpose(mockPurpose6, false),
+    ]);
   });
   it("should get the purposes if they exist (parameters: eservicesIds, producerIds)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         eservicesIds: [mockEService1ByTenant1.id],
-        consumersIds: [],
         producersIds: [producerId1, producerId2],
-        states: [],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockPurpose1, mockPurpose2]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose2, false),
+    ]);
   });
   it("should get the purposes if they exist (parameters: producersIds)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         producersIds: [producerId2],
-        states: [],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockPurpose4, mockPurpose6]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose4, false),
+      purposeToApiPurpose(mockPurpose6, false),
+    ]);
   });
   it("should get the purposes if they exist (parameters: states)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [purposeVersionState.rejected, purposeVersionState.active],
-        excludeDraft: undefined,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        states: [
+          purposeApi.PurposeVersionState.Values.ACTIVE,
+          purposeApi.PurposeVersionState.Values.REJECTED,
+        ],
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(4);
     expect(result.results).toEqual([
-      mockPurpose3,
-      mockPurpose4,
-      mockPurpose5,
-      mockPurpose6,
+      purposeToApiPurpose(mockPurpose3, false),
+      purposeToApiPurpose(mockPurpose4, false),
+      purposeToApiPurpose(mockPurpose5, false),
+      purposeToApiPurpose(mockPurpose6, false),
     ]);
   });
   it("should get the purposes if they exist (parameters: states, archived and non-archived)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         states: [
-          purposeVersionState.archived,
-          purposeVersionState.active,
-          purposeVersionState.rejected,
+          purposeApi.PurposeVersionState.Values.ARCHIVED,
+          purposeApi.PurposeVersionState.Values.ACTIVE,
+          purposeApi.PurposeVersionState.Values.REJECTED,
         ],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(4);
     expect(result.results).toEqual([
-      mockPurpose3,
-      mockPurpose4,
-      mockPurpose5,
-      mockPurpose6,
+      purposeToApiPurpose(mockPurpose3, false),
+      purposeToApiPurpose(mockPurpose4, false),
+      purposeToApiPurpose(mockPurpose5, false),
+      purposeToApiPurpose(mockPurpose6, false),
     ]);
   });
   it("should get the purposes with only archived versions (and exclude the ones with both archived and non-archived versions)", async () => {
@@ -272,145 +279,139 @@ describe("getPurposes", async () => {
     await addOnePurpose(mockArchivedPurpose);
     await addOnePurpose(mockArchivedAndActivePurpose);
 
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [purposeVersionState.archived],
-        excludeDraft: undefined,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        states: [purposeApi.PurposeVersionState.Values.ARCHIVED],
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
+
     expect(result.totalCount).toBe(1);
-    expect(result.results).toEqual([mockArchivedPurpose]);
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockArchivedPurpose, false),
+    ]);
   });
   it("should not include purpose without versions or with one draft version (excludeDraft = true)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         excludeDraft: true,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(4);
     expect(result.results).toEqual([
-      mockPurpose3,
-      mockPurpose4,
-      mockPurpose5,
-      mockPurpose6,
+      purposeToApiPurpose(mockPurpose3, false),
+      purposeToApiPurpose(mockPurpose4, false),
+      purposeToApiPurpose(mockPurpose5, false),
+      purposeToApiPurpose(mockPurpose6, false),
     ]);
   });
   it("should include purpose without versions or with one draft version (excludeDraft = false)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         excludeDraft: false,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(7);
     expect(result.results).toEqual([
-      mockPurpose1,
-      mockPurpose2,
-      mockPurpose3,
-      mockPurpose4,
-      mockPurpose5,
-      mockPurpose6,
-      mockPurpose7,
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose2, false),
+      purposeToApiPurpose(mockPurpose3, false),
+      purposeToApiPurpose(mockPurpose4, false),
+      purposeToApiPurpose(mockPurpose5, false),
+      purposeToApiPurpose(mockPurpose6, false),
+      purposeToApiPurpose(mockPurpose7, false),
     ]);
   });
   it("should get the purposes if they exist (pagination: offset)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
-        excludeDraft: undefined,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        offset: 5,
+        limit: 50,
       },
-      { offset: 5, limit: 50 },
-      genericLogger
-    );
-    expect(result.results).toEqual([mockPurpose6, mockPurpose7]);
+      authData: getMockAuthData(producerId1),
+    });
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose6, false),
+      purposeToApiPurpose(mockPurpose7, false),
+    ]);
   });
   it("should get the purposes if they exist (pagination: limit)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
-        excludeDraft: undefined,
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        offset: 0,
+        limit: 3,
       },
-      { offset: 0, limit: 3 },
-      genericLogger
-    );
-    expect(result.results).toEqual([mockPurpose1, mockPurpose2, mockPurpose3]);
+      authData: getMockAuthData(producerId1),
+    });
+    expect(result.results).toEqual([
+      purposeToApiPurpose(mockPurpose1, false),
+      purposeToApiPurpose(mockPurpose2, false),
+      purposeToApiPurpose(mockPurpose3, false),
+    ]);
   });
   it("should not get the purposes if they don't exist", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        name: "test",
         eservicesIds: [generateId()],
-        consumersIds: [],
         producersIds: [generateId()],
-        states: [],
-        excludeDraft: undefined,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(0);
     expect(result.results).toEqual([]);
   });
   it("should get the purposes if they exist (parameters: name, eservicesIds, consumersIds, producersIds, states; exlcudeDraft = true)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        title: "test",
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        name: "test",
         eservicesIds: [mockEService3ByTenant2.id],
         consumersIds: [consumerId1],
         producersIds: [producerId2],
-        states: [purposeVersionState.active],
+        states: [purposeApi.PurposeVersionState.Values.ACTIVE],
         excludeDraft: true,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(1);
-    expect(result.results).toEqual([mockPurpose6]);
+    expect(result.results).toEqual([purposeToApiPurpose(mockPurpose6, false)]);
   });
   it("should get the purposes if they exist (parameters: name, eservicesIds, consumersIds, producersIds, states; exlcudeDraft = false)", async () => {
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        title: "test",
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
+        name: "test",
         eservicesIds: [mockEService1ByTenant1.id],
         consumersIds: [consumerId1],
         producersIds: [producerId1],
-        states: [purposeVersionState.draft],
+        states: [purposeApi.PurposeVersionState.Values.DRAFT],
         excludeDraft: false,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(1);
-    expect(result.results).toEqual([mockPurpose1]);
+    expect(result.results).toEqual([purposeToApiPurpose(mockPurpose1, false)]);
   });
   it("should not include the riskAnalysisForm if the requester is not the producer nor the consumer", async () => {
     const mockPurpose8: Purpose = {
@@ -421,29 +422,26 @@ describe("getPurposes", async () => {
     };
     await addOnePurpose(mockPurpose8);
 
-    const result = await purposeService.getPurposes(
-      generateId(),
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         excludeDraft: false,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(result.totalCount).toBe(8);
     expect(result.results).toEqual(
       [
-        mockPurpose1,
-        mockPurpose2,
-        mockPurpose3,
-        mockPurpose4,
-        mockPurpose5,
-        mockPurpose6,
-        mockPurpose7,
-        mockPurpose8,
+        purposeToApiPurpose(mockPurpose1, false),
+        purposeToApiPurpose(mockPurpose2, false),
+        purposeToApiPurpose(mockPurpose3, false),
+        purposeToApiPurpose(mockPurpose4, false),
+        purposeToApiPurpose(mockPurpose5, false),
+        purposeToApiPurpose(mockPurpose6, false),
+        purposeToApiPurpose(mockPurpose7, false),
+        purposeToApiPurpose(mockPurpose8, false),
       ].map((p) => ({ ...p, riskAnalysisForm: undefined }))
     );
   });
@@ -466,22 +464,22 @@ describe("getPurposes", async () => {
     };
     await addOnePurpose(mockPurpose9);
 
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
-        producersIds: [],
-        states: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         excludeDraft: false,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(2);
     expect(result.results).toEqual([
-      mockPurpose8,
-      { ...mockPurpose9, riskAnalysisForm: undefined },
+      purposeToApiPurpose(mockPurpose8, false),
+      purposeToApiPurpose(
+        { ...mockPurpose9, riskAnalysisForm: undefined },
+        false
+      ),
     ]);
   });
   it("should get the correct purpose if the producersIds param is passed but the caller has no e-service", async () => {
@@ -498,18 +496,16 @@ describe("getPurposes", async () => {
     };
     await addOnePurpose(mockPurpose8);
 
-    const result = await purposeService.getPurposes(
-      producerId1,
-      {
-        eservicesIds: [],
-        consumersIds: [],
+    const result = await mockPurposeRouterRequest.get({
+      path: "/purposes",
+      queryParams: {
         producersIds: [producerId1],
-        states: [],
         excludeDraft: false,
+        offset: 0,
+        limit: 50,
       },
-      { offset: 0, limit: 50 },
-      genericLogger
-    );
+      authData: getMockAuthData(producerId1),
+    });
     expect(result.totalCount).toBe(0);
     expect(result.results).toEqual([]);
   });

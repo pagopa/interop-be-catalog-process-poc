@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable sonarjs/no-identical-functions */
 /* eslint-disable functional/no-let */
 /* eslint-disable @typescript-eslint/no-floating-promises */
@@ -13,6 +14,7 @@ import {
   getMockPurpose,
   getMockValidRiskAnalysisForm,
   writeInReadmodel,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   purposeVersionState,
@@ -31,6 +33,7 @@ import {
   NewPurposeVersionActivatedV2,
   NewPurposeVersionWaitingForApprovalV2,
   toReadModelTenant,
+  unsafeBrandId,
 } from "pagopa-interop-models";
 import { genericLogger } from "pagopa-interop-commons";
 import {
@@ -43,6 +46,7 @@ import {
   tenantNotFound,
   unchangedDailyCalls,
 } from "../src/model/domain/errors.js";
+import { apiPurposeVersionToPurposeVersion } from "../src/model/domain/apiConverter.js";
 import {
   agreements,
   eservices,
@@ -51,6 +55,7 @@ import {
   tenants,
 } from "./utils.js";
 import { addOnePurpose } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("createPurposeVersion", () => {
   let mockConsumer: Tenant;
@@ -121,14 +126,11 @@ describe("createPurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const returnedPurposeVersion = await purposeService.createPurposeVersion({
-      purposeId: mockPurpose.id,
-      seed: {
-        dailyCalls: 24,
-      },
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions",
+      pathParams: { purposeId: mockPurpose.id },
+      body: { dailyCalls: 24 },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -145,12 +147,17 @@ describe("createPurposeVersion", () => {
     });
 
     const expectedPurposeVersion: PurposeVersion = {
-      id: returnedPurposeVersion.id,
+      id: unsafeBrandId(returnedPurposeVersion.id),
       createdAt: new Date(),
       firstActivationAt: new Date(),
       state: purposeVersionState.active,
       dailyCalls: 24,
-      riskAnalysis: returnedPurposeVersion.riskAnalysis,
+      riskAnalysis: {
+        path: returnedPurposeVersion.riskAnalysis!.path,
+        id: unsafeBrandId(returnedPurposeVersion.riskAnalysis!.id),
+        contentType: returnedPurposeVersion.riskAnalysis!.contentType,
+        createdAt: new Date(),
+      },
     };
 
     const expectedPurpose: Purpose = {
@@ -171,7 +178,9 @@ describe("createPurposeVersion", () => {
       payload: writtenEvent.data,
     });
 
-    expect(returnedPurposeVersion).toEqual(expectedPurposeVersion);
+    expect(apiPurposeVersionToPurposeVersion(returnedPurposeVersion)).toEqual(
+      expectedPurposeVersion
+    );
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
   });
 
@@ -182,14 +191,11 @@ describe("createPurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const returnedPurposeVersion = await purposeService.createPurposeVersion({
-      purposeId: mockPurpose.id,
-      seed: {
-        dailyCalls: 4,
-      },
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions",
+      pathParams: { purposeId: mockPurpose.id },
+      body: { dailyCalls: 4 },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -206,12 +212,17 @@ describe("createPurposeVersion", () => {
     });
 
     const expectedPurposeVersion: PurposeVersion = {
-      id: returnedPurposeVersion.id,
+      id: unsafeBrandId(returnedPurposeVersion.id),
       createdAt: new Date(),
       firstActivationAt: new Date(),
       state: purposeVersionState.active,
       dailyCalls: 4,
-      riskAnalysis: returnedPurposeVersion.riskAnalysis,
+      riskAnalysis: {
+        path: returnedPurposeVersion.riskAnalysis!.path,
+        id: unsafeBrandId(returnedPurposeVersion.riskAnalysis!.id),
+        contentType: returnedPurposeVersion.riskAnalysis!.contentType,
+        createdAt: new Date(),
+      },
     };
 
     const expectedPurpose: Purpose = {
@@ -232,7 +243,9 @@ describe("createPurposeVersion", () => {
       payload: writtenEvent.data,
     });
 
-    expect(returnedPurposeVersion).toEqual(expectedPurposeVersion);
+    expect(apiPurposeVersionToPurposeVersion(returnedPurposeVersion)).toEqual(
+      expectedPurposeVersion
+    );
     expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
   });
 
@@ -249,14 +262,11 @@ describe("createPurposeVersion", () => {
     await writeInReadmodel(toReadModelTenant(mockConsumer), tenants);
     await writeInReadmodel(toReadModelTenant(mockProducer), tenants);
 
-    const returnedPurposeVersion = await purposeService.createPurposeVersion({
-      purposeId: mockPurpose.id,
-      seed: {
-        dailyCalls: 30,
-      },
-      organizationId: mockPurpose.consumerId,
-      correlationId: generateId(),
-      logger: genericLogger,
+    const returnedPurposeVersion = await mockPurposeRouterRequest.post({
+      path: "/purposes/:purposeId/versions",
+      pathParams: { purposeId: mockPurpose.id },
+      body: { dailyCalls: 30 },
+      authData: getMockAuthData(mockPurpose.consumerId),
     });
 
     const writtenEvent = await readLastEventByStreamId(
@@ -273,7 +283,7 @@ describe("createPurposeVersion", () => {
     });
 
     const expectedPurposeVersion: PurposeVersion = {
-      id: returnedPurposeVersion.id,
+      id: unsafeBrandId(returnedPurposeVersion.id),
       createdAt: new Date(),
       state: purposeVersionState.waitingForApproval,
       dailyCalls: 30,
@@ -290,11 +300,14 @@ describe("createPurposeVersion", () => {
       payload: writtenEvent.data,
     });
 
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(returnedPurposeVersion).toEqual(expectedPurposeVersion);
-    expect(returnedPurposeVersion.state).toEqual(
-      purposeVersionState.waitingForApproval
+    expect(apiPurposeVersionToPurposeVersion(returnedPurposeVersion)).toEqual(
+      expectedPurposeVersion
     );
+    expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
+
+    expect(
+      apiPurposeVersionToPurposeVersion(returnedPurposeVersion).state
+    ).toEqual(purposeVersionState.waitingForApproval);
   });
 
   it("should throw unchangedDailyCalls if the new request daily calls are the same of the previous version", async () => {

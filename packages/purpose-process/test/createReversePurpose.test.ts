@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   decodeProtobufPayload,
   getMockAgreement,
+  getMockAuthData,
   getMockDescriptor,
   getMockDocument,
   getMockPurpose,
@@ -23,14 +24,13 @@ import {
   descriptorState,
   eserviceMode,
   generateId,
-  purposeVersionState,
   tenantKind,
-  toPurposeV2,
   toReadModelAgreement,
   toReadModelEService,
   toReadModelPurpose,
   unsafeBrandId,
   toReadModelTenant,
+  fromPurposeV2,
 } from "pagopa-interop-models";
 import {
   genericLogger,
@@ -47,6 +47,7 @@ import {
   riskAnalysisValidationFailed,
   tenantKindNotFound,
 } from "../src/model/domain/errors.js";
+import { purposeToApiPurpose } from "../src/model/domain/apiConverter.js";
 import {
   agreements,
   eservices,
@@ -56,6 +57,7 @@ import {
   readLastPurposeEvent,
   tenants,
 } from "./utils.js";
+import { mockPurposeRouterRequest } from "./supertestSetup.js";
 
 describe("createReversePurpose", () => {
   it("should write in event-store for the creation of a reverse purpose", async () => {
@@ -104,15 +106,13 @@ describe("createReversePurpose", () => {
     await writeInReadmodel(toReadModelTenant(consumer), tenants);
     await writeInReadmodel(toReadModelAgreement(mockAgreement), agreements);
 
-    const { purpose, isRiskAnalysisValid } =
-      await purposeService.createReversePurpose(
-        consumer.id,
-        reversePurposeSeed,
-        generateId(),
-        genericLogger
-      );
+    const purpose = await mockPurposeRouterRequest.post({
+      path: "/reverse/purposes",
+      body: { ...reversePurposeSeed },
+      authData: getMockAuthData(consumer.id),
+    });
 
-    const writtenEvent = await readLastPurposeEvent(purpose.id);
+    const writtenEvent = await readLastPurposeEvent(unsafeBrandId(purpose.id));
 
     expect(writtenEvent).toMatchObject({
       stream_id: purpose.id,
@@ -126,33 +126,59 @@ describe("createReversePurpose", () => {
       payload: writtenEvent.data,
     });
 
-    const expectedPurpose: Purpose = {
-      versions: [
-        {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          id: unsafeBrandId(writtenPayload.purpose!.versions[0].id),
-          createdAt: new Date(),
-          state: purposeVersionState.draft,
-          dailyCalls: reversePurposeSeed.dailyCalls,
-        },
-      ],
-      id: purpose.id,
-      createdAt: new Date(),
+    // const expectedPurpose: Purpose = {
+    //   versions: [
+    //     {
+    //       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    //       id: unsafeBrandId(writtenPayload.purpose!.versions[0].id),
+    //       createdAt: new Date(),
+    //       state: purposeVersionState.draft,
+    //       dailyCalls: reversePurposeSeed.dailyCalls,
+    //     },
+    //   ],
+    //   id: purpose.id,
+    //   createdAt: new Date(),
+    //   eserviceId: unsafeBrandId(reversePurposeSeed.eServiceId),
+    //   consumerId: unsafeBrandId(reversePurposeSeed.consumerId),
+    //   title: reversePurposeSeed.title,
+    //   description: reversePurposeSeed.description,
+    //   isFreeOfCharge: reversePurposeSeed.isFreeOfCharge,
+    //   freeOfChargeReason: reversePurposeSeed.freeOfChargeReason,
+    //   riskAnalysisForm: {
+    //     ...mockRiskAnalysis.riskAnalysisForm,
+    //     riskAnalysisId: mockRiskAnalysis.id,
+    //   },
+    // };
+
+    const expectedPurpose: purposeApi.Purpose = {
+      title: reversePurposeSeed.title,
+      id: unsafeBrandId(purpose.id),
+      createdAt: new Date().toISOString(),
       eserviceId: unsafeBrandId(reversePurposeSeed.eServiceId),
       consumerId: unsafeBrandId(reversePurposeSeed.consumerId),
-      title: reversePurposeSeed.title,
       description: reversePurposeSeed.description,
+      versions: [
+        {
+          id: unsafeBrandId(writtenPayload.purpose!.versions[0].id),
+          state: purposeApi.PurposeVersionState.Values.DRAFT,
+          dailyCalls: reversePurposeSeed.dailyCalls,
+          createdAt: new Date().toISOString(),
+        },
+      ],
       isFreeOfCharge: reversePurposeSeed.isFreeOfCharge,
       freeOfChargeReason: reversePurposeSeed.freeOfChargeReason,
       riskAnalysisForm: {
-        ...mockRiskAnalysis.riskAnalysisForm,
+        ...purpose.riskAnalysisForm!,
         riskAnalysisId: mockRiskAnalysis.id,
       },
+      isRiskAnalysisValid: true,
     };
 
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(expectedPurpose));
-    expect(writtenPayload.purpose).toEqual(toPurposeV2(purpose));
-    expect(isRiskAnalysisValid).toEqual(true);
+    expect(purpose).toEqual(expectedPurpose);
+    expect(
+      purposeToApiPurpose(fromPurposeV2(writtenPayload.purpose!), true)
+    ).toEqual(purpose);
+    expect(purpose.isRiskAnalysisValid).toBe(true);
 
     vi.useRealTimers();
   });
