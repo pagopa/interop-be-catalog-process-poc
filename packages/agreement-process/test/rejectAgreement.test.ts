@@ -39,6 +39,7 @@ import {
   operationNotAllowed,
   tenantNotFound,
 } from "../src/model/domain/errors.js";
+import { agreementToApiAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneEService,
@@ -46,6 +47,7 @@ import {
   agreementService,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("reject agreement", () => {
   it("should succeed when requester is Producer and the Agreement is in a rejectable state", async () => {
@@ -170,16 +172,14 @@ describe("reject agreement", () => {
     await addOneAgreement(agreement);
 
     const authData = getRandomAuthData(agreement.producerId);
-    const returnedAgreement = await agreementService.rejectAgreement(
-      agreement.id,
-      "Rejected by producer due to test reasons",
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const returnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/reject",
+      pathParams: { agreementId: agreement.id },
+      body: {
+        reason: "Rejected by producer due to test reasons",
+      },
+      authData,
+    });
 
     const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -220,7 +220,9 @@ describe("reject agreement", () => {
     expect(actualAgreementRejected).toMatchObject(
       toAgreementV2(expectedAgreemenentRejected)
     );
-    expect(actualAgreementRejected).toEqual(toAgreementV2(returnedAgreement));
+    expect(agreementToApiAgreement(expectedAgreemenentRejected)).toEqual(
+      returnedAgreement
+    );
     vi.useRealTimers();
   });
 

@@ -31,13 +31,16 @@ import {
   toAgreementV2,
 } from "pagopa-interop-models";
 import { describe, expect, it } from "vitest";
-import { genericLogger, userRoles } from "pagopa-interop-commons";
+import { userRoles } from "pagopa-interop-commons";
+import { agreementApi } from "pagopa-interop-api-clients";
 import {
   addOneAgreement,
   addOneEService,
-  agreementService,
+  getMockApiTenantDeclaredAttribute,
+  getMockApiTenantVerifiedAttribute,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("compute Agreements state by attribute", () => {
   describe("when the given attribute is not satisfied", async () => {
@@ -54,12 +57,32 @@ describe("compute Agreements state by attribute", () => {
       ...getMockCertifiedTenantAttribute(),
       revocationTimestamp: new Date(),
     };
+
+    const apiInvalidCertifiedAttribute: agreementApi.TenantAttribute = {
+      certified: {
+        id: invalidCertifiedAttribute.id,
+        assignmentTimestamp:
+          invalidCertifiedAttribute.assignmentTimestamp.toISOString(),
+        revocationTimestamp:
+          invalidCertifiedAttribute.revocationTimestamp?.toISOString(),
+      },
+    };
+
     const consumer: Tenant = {
       ...getMockTenant(),
       attributes: [
         invalidCertifiedAttribute,
         getMockDeclaredTenantAttribute(),
         getMockVerifiedTenantAttribute(),
+      ],
+    };
+
+    const apiConsumer: agreementApi.CompactTenant = {
+      id: consumer.id,
+      attributes: [
+        apiInvalidCertifiedAttribute,
+        getMockApiTenantDeclaredAttribute(),
+        getMockApiTenantVerifiedAttribute(),
       ],
     };
 
@@ -89,16 +112,14 @@ describe("compute Agreements state by attribute", () => {
 
       await addOneAgreement(updatableActiveAgreement);
 
-      await agreementService.computeAgreementsStateByAttribute(
-        invalidCertifiedAttribute.id,
-        consumer,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
+      await mockAgreementRouterRequest.post({
+        path: "/compute/agreementsState",
+        body: {
+          attributeId: invalidCertifiedAttribute.id,
+          consumer: apiConsumer,
+        },
+        authData,
+      });
 
       const agreementStateUpdateEvent = await readLastAgreementEvent(
         updatableActiveAgreement.id
@@ -139,16 +160,14 @@ describe("compute Agreements state by attribute", () => {
 
         await addOneAgreement(updatableDraftOrPendingAgreement);
 
-        await agreementService.computeAgreementsStateByAttribute(
-          invalidCertifiedAttribute.id,
-          consumer,
-          {
-            authData,
-            serviceName: "",
-            correlationId: generateId(),
-            logger: genericLogger,
-          }
-        );
+        await mockAgreementRouterRequest.post({
+          path: "/compute/agreementsState",
+          body: {
+            attributeId: invalidCertifiedAttribute.id,
+            consumer: apiConsumer,
+          },
+          authData,
+        });
 
         const agreementStateUpdateEvent = await readLastAgreementEvent(
           updatableDraftOrPendingAgreement.id
@@ -194,16 +213,14 @@ describe("compute Agreements state by attribute", () => {
 
       await addOneAgreement(updatableSuspendedAgreement);
 
-      await agreementService.computeAgreementsStateByAttribute(
-        invalidCertifiedAttribute.id,
-        consumer,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
+      await mockAgreementRouterRequest.post({
+        path: "/compute/agreementsState",
+        body: {
+          attributeId: invalidCertifiedAttribute.id,
+          consumer: apiConsumer,
+        },
+        authData,
+      });
 
       const agreementStateUpdateEvent = await readLastAgreementEvent(
         updatableSuspendedAgreement.id
@@ -264,12 +281,62 @@ describe("compute Agreements state by attribute", () => {
       ],
     };
 
+    const apiTenantCertifiedAttribute: agreementApi.TenantAttribute = {
+      certified: {
+        id: tenantCertifiedAttribute.id,
+        assignmentTimestamp:
+          tenantCertifiedAttribute.assignmentTimestamp.toISOString(),
+        revocationTimestamp:
+          tenantCertifiedAttribute.revocationTimestamp?.toISOString(),
+      },
+    };
+
+    const apiTenantDeclaredAttribute: agreementApi.TenantAttribute = {
+      declared: {
+        id: tenantDeclaredAttribute.id,
+        assignmentTimestamp:
+          tenantDeclaredAttribute.assignmentTimestamp.toISOString(),
+        revocationTimestamp:
+          tenantDeclaredAttribute.revocationTimestamp?.toISOString(),
+      },
+    };
+
+    const apiTenantVerifiedAttribute: agreementApi.TenantAttribute = {
+      verified: {
+        id: tenantVerifiedAttribute.id,
+        assignmentTimestamp:
+          tenantVerifiedAttribute.assignmentTimestamp.toISOString(),
+        verifiedBy: tenantVerifiedAttribute.verifiedBy.map((data) => ({
+          ...data,
+          verificationDate: data.verificationDate.toISOString(),
+          expirationDate: data.expirationDate?.toISOString(),
+          extensionDate: data.extensionDate?.toISOString(),
+        })),
+        revokedBy: tenantVerifiedAttribute.revokedBy.map((data) => ({
+          ...data,
+          verificationDate: data.verificationDate.toISOString(),
+          expirationDate: data.expirationDate?.toISOString(),
+          extensionDate: data.extensionDate?.toISOString(),
+          revocationDate: data.revocationDate.toISOString(),
+        })),
+      },
+    };
+
     const consumer: Tenant = {
       ...getMockTenant(),
       attributes: [
         tenantCertifiedAttribute,
         tenantDeclaredAttribute,
         tenantVerifiedAttribute,
+      ],
+    };
+
+    const apiConsumer: agreementApi.CompactTenant = {
+      id: consumer.id,
+      attributes: [
+        apiTenantCertifiedAttribute,
+        apiTenantDeclaredAttribute,
+        apiTenantVerifiedAttribute,
       ],
     };
 
@@ -301,20 +368,18 @@ describe("compute Agreements state by attribute", () => {
 
       await addOneAgreement(updatableSuspendedAgreement);
 
-      await agreementService.computeAgreementsStateByAttribute(
-        randomArrayItem([
-          tenantCertifiedAttribute.id,
-          tenantDeclaredAttribute.id,
-          tenantVerifiedAttribute.id,
-        ]),
-        consumer,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
+      await mockAgreementRouterRequest.post({
+        path: "/compute/agreementsState",
+        body: {
+          attributeId: randomArrayItem([
+            tenantCertifiedAttribute.id,
+            tenantDeclaredAttribute.id,
+            tenantVerifiedAttribute.id,
+          ]),
+          consumer: apiConsumer,
+        },
+        authData,
+      });
 
       const agreementStateUpdateEvent = await readLastAgreementEvent(
         updatableSuspendedAgreement.id
@@ -357,20 +422,18 @@ describe("compute Agreements state by attribute", () => {
 
       await addOneAgreement(updatableMissingCertAttributesAgreement);
 
-      await agreementService.computeAgreementsStateByAttribute(
-        randomArrayItem([
-          tenantCertifiedAttribute.id,
-          tenantDeclaredAttribute.id,
-          tenantVerifiedAttribute.id,
-        ]),
-        consumer,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
+      await mockAgreementRouterRequest.post({
+        path: "/compute/agreementsState",
+        body: {
+          attributeId: randomArrayItem([
+            tenantCertifiedAttribute.id,
+            tenantDeclaredAttribute.id,
+            tenantVerifiedAttribute.id,
+          ]),
+          consumer: apiConsumer,
+        },
+        authData,
+      });
 
       const agreementStateUpdateEvent = await readLastAgreementEvent(
         updatableMissingCertAttributesAgreement.id
@@ -415,20 +478,18 @@ describe("compute Agreements state by attribute", () => {
 
       await addOneAgreement(updatableSuspendedAgreement);
 
-      await agreementService.computeAgreementsStateByAttribute(
-        randomArrayItem([
-          tenantCertifiedAttribute.id,
-          tenantDeclaredAttribute.id,
-          tenantVerifiedAttribute.id,
-        ]),
-        consumer,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
+      await mockAgreementRouterRequest.post({
+        path: "/compute/agreementsState",
+        body: {
+          attributeId: randomArrayItem([
+            tenantCertifiedAttribute.id,
+            tenantDeclaredAttribute.id,
+            tenantVerifiedAttribute.id,
+          ]),
+          consumer: apiConsumer,
+        },
+        authData,
+      });
 
       const agreementStateUpdateEvent = await readLastAgreementEvent(
         updatableSuspendedAgreement.id
@@ -466,12 +527,32 @@ describe("compute Agreements state by attribute", () => {
       ...getMockCertifiedTenantAttribute(),
       revocationTimestamp: new Date(),
     };
+
+    const apiInvalidCertifiedAttribute: agreementApi.TenantAttribute = {
+      certified: {
+        id: invalidCertifiedAttribute.id,
+        assignmentTimestamp:
+          invalidCertifiedAttribute.assignmentTimestamp.toISOString(),
+        revocationTimestamp:
+          invalidCertifiedAttribute.revocationTimestamp?.toISOString(),
+      },
+    };
+
     const consumer: Tenant = {
       ...getMockTenant(),
       attributes: [
         invalidCertifiedAttribute,
         getMockDeclaredTenantAttribute(),
         getMockVerifiedTenantAttribute(),
+      ],
+    };
+
+    const apiConsumer: agreementApi.CompactTenant = {
+      id: consumer.id,
+      attributes: [
+        apiInvalidCertifiedAttribute,
+        getMockApiTenantDeclaredAttribute(),
+        getMockApiTenantVerifiedAttribute(),
       ],
     };
 
@@ -538,16 +619,14 @@ describe("compute Agreements state by attribute", () => {
     await addOneAgreement(updatableAgreement2);
     await addOneAgreement(nonUpdatableAgreement);
 
-    await agreementService.computeAgreementsStateByAttribute(
-      invalidCertifiedAttribute.id,
-      consumer,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    await mockAgreementRouterRequest.post({
+      path: "/compute/agreementsState",
+      body: {
+        attributeId: invalidCertifiedAttribute.id,
+        consumer: apiConsumer,
+      },
+      authData,
+    });
 
     const nonUpdatableAgreementStateUpdateEvent = await readLastAgreementEvent(
       nonUpdatableAgreement.id

@@ -1,4 +1,5 @@
 /* eslint-disable functional/no-let */
+import { fail } from "assert";
 import {
   getMockAgreement,
   getRandomAuthData,
@@ -9,6 +10,7 @@ import {
   AgreementId,
   DraftAgreementUpdatedV2,
   agreementState,
+  fromAgreementV2,
   generateId,
   toAgreementV2,
 } from "pagopa-interop-models";
@@ -20,11 +22,14 @@ import {
   operationNotAllowed,
 } from "../src/model/domain/errors.js";
 import { agreementUpdatableStates } from "../src/model/domain/agreement-validators.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   agreementService,
+  expectedAgreementWithCorrectDate,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("update agreement", () => {
   it("should succeed when requester is Consumer and the Agreement is in an updatable state", async () => {
@@ -34,16 +39,14 @@ describe("update agreement", () => {
     };
     await addOneAgreement(agreement);
     const authData = getRandomAuthData(agreement.consumerId);
-    const returnedAgreement = await agreementService.updateAgreement(
-      agreement.id,
-      { consumerNotes: "Updated consumer notes" },
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/update",
+      pathParams: { agreementId: agreement.id },
+      body: { consumerNotes: "Updated consumer notes" },
+      authData,
+    });
+
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
 
     const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -59,12 +62,23 @@ describe("update agreement", () => {
       payload: agreementEvent.data,
     }).agreement;
 
+    if (!actualAgreementUptaded) {
+      fail("impossible to decode DraftAgreementUpdatedV2 data");
+    }
+
+    const expectedActualAgreementUptadedWithCorrectDate =
+      expectedAgreementWithCorrectDate({
+        expectedAgreement: fromAgreementV2(actualAgreementUptaded),
+        agreement,
+        agreementReturnValue: returnedAgreement,
+      });
+
     expect(actualAgreementUptaded).toMatchObject({
       ...toAgreementV2(agreement),
       consumerNotes: "Updated consumer notes",
     });
-    expect(actualAgreementUptaded).toMatchObject(
-      toAgreementV2(returnedAgreement)
+    expect(expectedActualAgreementUptadedWithCorrectDate).toMatchObject(
+      returnedAgreement
     );
   });
 

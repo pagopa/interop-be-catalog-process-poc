@@ -24,11 +24,14 @@ import {
   agreementNotInExpectedState,
   operationNotAllowed,
 } from "../src/model/domain/errors.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   agreementService,
+  expectedAgreementWithCorrectDate,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("archive agreement", () => {
   it("should succeed when the requester is the consumer and the agreement is in an archivable state", async () => {
@@ -46,15 +49,14 @@ describe("archive agreement", () => {
 
     await addOneAgreement(agreement);
 
-    const returnedAgreement = await agreementService.archiveAgreement(
-      agreement.id,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/archive",
+      pathParams: { agreementId: agreement.id },
+      authData,
+    });
+
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
+
     const agreementId = returnedAgreement.id;
 
     expect(agreementId).toBeDefined();
@@ -95,11 +97,21 @@ describe("archive agreement", () => {
         },
       },
     };
+
+    const expectedAgreemenentArchivedWithCorrectDate =
+      expectedAgreementWithCorrectDate({
+        expectedAgreement: expectedAgreemenentArchived,
+        agreement,
+        agreementReturnValue: returnedAgreement,
+      });
+
     expect(actualAgreement).toMatchObject(
       toAgreementV2(expectedAgreemenentArchived)
     );
 
-    expect(actualAgreement).toMatchObject(toAgreementV2(returnedAgreement));
+    expect(expectedAgreemenentArchivedWithCorrectDate).toMatchObject(
+      returnedAgreement
+    );
 
     vi.useRealTimers();
   });

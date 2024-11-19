@@ -41,6 +41,7 @@ import {
   tenantNotFound,
 } from "../src/model/domain/errors.js";
 import { config } from "../src/config/config.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneEService,
@@ -51,6 +52,7 @@ import {
   readAgreementEventByVersion,
   uploadDocument,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("clone agreement", () => {
   const TEST_EXECUTION_DATE = new Date();
@@ -108,6 +110,7 @@ describe("clone agreement", () => {
       producerId: eservice.producerId,
       descriptorId: descriptor.id,
       consumerDocuments: agreementConsumerDocuments,
+      contract: undefined,
     };
 
     await addOneTenant(consumer);
@@ -130,17 +133,16 @@ describe("clone agreement", () => {
       ),
       producerId: eservice.producerId,
     };
+
     await addOneAgreement(anotherNonConflictingAgreement);
 
-    const returnedAgreement = await agreementService.cloneAgreement(
-      agreementToBeCloned.id,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/clone",
+      pathParams: { agreementId: agreementToBeCloned.id },
+      authData,
+    });
+
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
 
     const newAgreementId = unsafeBrandId<AgreementId>(returnedAgreement.id);
 
@@ -164,12 +166,13 @@ describe("clone agreement", () => {
     const agreementClonedAgreement = agreementClonedEventPayload.agreement;
 
     const expectedAgreementCloned: AgreementV2 = toAgreementV2({
+      ...agreementToBeCloned,
       id: newAgreementId,
-      eserviceId: agreementToBeCloned.eserviceId,
-      descriptorId: agreementToBeCloned.descriptorId,
-      producerId: agreementToBeCloned.producerId,
-      consumerId: agreementToBeCloned.consumerId,
-      consumerNotes: agreementToBeCloned.consumerNotes,
+      // eserviceId: agreementToBeCloned.eserviceId,
+      // descriptorId: agreementToBeCloned.descriptorId,
+      // producerId: agreementToBeCloned.producerId,
+      // consumerId: agreementToBeCloned.consumerId,
+      // consumerNotes: agreementToBeCloned.consumerNotes,
       verifiedAttributes: [],
       certifiedAttributes: [],
       declaredAttributes: [],
@@ -186,6 +189,9 @@ describe("clone agreement", () => {
       ),
       stamps: {},
     });
+
+    expect(expectedAgreementCloned).toEqual(toAgreementV2(returnedAgreement));
+
     delete expectedAgreementCloned.suspendedAt;
     delete expectedAgreementCloned.updatedAt;
     delete expectedAgreementCloned.contract;
@@ -193,9 +199,6 @@ describe("clone agreement", () => {
 
     expect(agreementClonedEventPayload).toMatchObject({
       agreement: expectedAgreementCloned,
-    });
-    expect(agreementClonedEventPayload).toEqual({
-      agreement: toAgreementV2(returnedAgreement),
     });
 
     for (const agreementDoc of expectedAgreementCloned.consumerDocuments) {

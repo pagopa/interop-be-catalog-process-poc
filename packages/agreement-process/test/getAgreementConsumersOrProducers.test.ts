@@ -1,13 +1,14 @@
 /* eslint-disable functional/no-let */
-import { genericLogger } from "pagopa-interop-commons";
 import {
   getMockTenant,
   getMockAgreement,
+  getMockAuthData,
 } from "pagopa-interop-commons-test/index.js";
 import { Tenant } from "pagopa-interop-models";
 import { describe, beforeEach, it, expect } from "vitest";
 import { CompactOrganization } from "../src/model/domain/models.js";
-import { addOneTenant, addOneAgreement, agreementService } from "./utils.js";
+import { addOneTenant, addOneAgreement } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("get agreement consumers / producers", () => {
   let tenant1: Tenant;
@@ -75,13 +76,11 @@ describe("get agreement consumers / producers", () => {
   });
   describe("get agreement consumers", () => {
     it("should get all agreement consumers", async () => {
-      const consumers = await agreementService.getAgreementConsumers(
-        undefined,
-        10,
-        0,
-        genericLogger
-      );
-
+      const consumers = await mockAgreementRouterRequest.get({
+        path: "/consumers",
+        queryParams: { limit: 10, offset: 0 },
+        authData: getMockAuthData(),
+      });
       expect(consumers).toEqual({
         totalCount: 5,
         results: expect.arrayContaining(
@@ -92,12 +91,11 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement consumers filtered by name", async () => {
-      const consumers = await agreementService.getAgreementConsumers(
-        "Foo",
-        10,
-        0,
-        genericLogger
-      );
+      const consumers = await mockAgreementRouterRequest.get({
+        path: "/consumers",
+        queryParams: { consumerName: "Foo", limit: 10, offset: 0 },
+        authData: getMockAuthData(),
+      });
 
       expect(consumers).toEqual({
         totalCount: 2,
@@ -107,12 +105,11 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement consumers with limit", async () => {
-      const consumers = await agreementService.getAgreementConsumers(
-        undefined,
-        2,
-        0,
-        genericLogger
-      );
+      const consumers = await mockAgreementRouterRequest.get({
+        path: "/consumers",
+        queryParams: { limit: 2, offset: 0 },
+        authData: getMockAuthData(),
+      });
 
       expect(consumers).toEqual({
         totalCount: 5,
@@ -122,12 +119,11 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement consumers with offset and limit", async () => {
-      const consumers = await agreementService.getAgreementConsumers(
-        undefined,
-        2,
-        1,
-        genericLogger
-      );
+      const consumers = await mockAgreementRouterRequest.get({
+        path: "/consumers",
+        queryParams: { limit: 2, offset: 1 },
+        authData: getMockAuthData(),
+      });
 
       expect(consumers).toEqual({
         totalCount: 5,
@@ -137,12 +133,11 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement consumers with offset, limit, and name filter", async () => {
-      const consumers = await agreementService.getAgreementConsumers(
-        "Foo",
-        1,
-        1,
-        genericLogger
-      );
+      const consumers = await mockAgreementRouterRequest.get({
+        path: "/consumers",
+        queryParams: { consumerName: "Foo", limit: 1, offset: 1 },
+        authData: getMockAuthData(),
+      });
 
       expect(consumers).toEqual({
         totalCount: 2,
@@ -150,12 +145,15 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get no agreement consumers in case no filters match", async () => {
-      const producers = await agreementService.getAgreementConsumers(
-        "Not existing name",
-        10,
-        0,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          producerName: "Not existing name",
+          limit: 10,
+          offset: 1,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 0,
@@ -165,12 +163,14 @@ describe("get agreement consumers / producers", () => {
   });
   describe("get agreement producers", () => {
     it("should get all agreement producers", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        undefined,
-        10,
-        0,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          limit: 10,
+          offset: 0,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 3,
@@ -180,12 +180,15 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement producers filtered by name", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        "Bar",
-        10,
-        0,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          producerName: "Bar",
+          limit: 10,
+          offset: 0,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 2,
@@ -195,12 +198,14 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement producers with limit", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        undefined,
-        2,
-        0,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          limit: 2,
+          offset: 0,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 3,
@@ -210,12 +215,14 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement producers with offset and limit", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        undefined,
-        2,
-        1,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          limit: 2,
+          offset: 1,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 3,
@@ -225,12 +232,15 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get agreement producers with offset, limit, and name filter", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        "Bar",
-        1,
-        1,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          producerName: "Bar",
+          limit: 1,
+          offset: 1,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 2,
@@ -238,12 +248,15 @@ describe("get agreement consumers / producers", () => {
       });
     });
     it("should get no agreement producers in case no filters match", async () => {
-      const producers = await agreementService.getAgreementProducers(
-        "Not existing name",
-        10,
-        0,
-        genericLogger
-      );
+      const producers = await mockAgreementRouterRequest.get({
+        path: "/producers",
+        queryParams: {
+          producerName: "Not existing name",
+          limit: 10,
+          offset: 0,
+        },
+        authData: getMockAuthData(),
+      });
 
       expect(producers).toEqual({
         totalCount: 0,

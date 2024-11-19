@@ -37,6 +37,7 @@ import {
   getMockConsumerDocument,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("agreement consumer document", () => {
   describe("get", () => {
@@ -59,18 +60,23 @@ describe("agreement consumer document", () => {
       const authData = getRandomAuthData(
         randomArrayItem([agreement1.consumerId, agreement1.producerId])
       );
-      const result = await agreementService.getAgreementConsumerDocument(
-        agreement1.id,
-        agreement1.consumerDocuments[0].id,
-        {
-          authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      );
 
-      expect(result).toEqual(agreement1.consumerDocuments[0]);
+      const result = await mockAgreementRouterRequest.get({
+        path: "/agreements/:agreementId/consumer-documents/:documentId",
+        pathParams: {
+          agreementId: agreement1.id,
+          documentId: agreement1.consumerDocuments[0].id,
+        },
+        authData,
+      });
+
+      const consumerDocumentsWithCorrectDate = {
+        ...result,
+        createdAt: new Date(result.createdAt),
+      };
+      expect(consumerDocumentsWithCorrectDate).toEqual(
+        agreement1.consumerDocuments[0]
+      );
     });
 
     it("should throw an agreementNotFound error when the agreement does not exist", async () => {

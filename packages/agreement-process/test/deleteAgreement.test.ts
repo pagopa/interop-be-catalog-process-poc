@@ -28,6 +28,7 @@ import {
   readLastAgreementEvent,
   uploadDocument,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("delete agreement", () => {
   it("should succeed when requester is Consumer and the Agreement is in a deletable state", async () => {
@@ -57,11 +58,11 @@ describe("delete agreement", () => {
     );
 
     const authData = getRandomAuthData(agreement.consumerId);
-    await agreementService.deleteAgreementById(agreement.id, {
+
+    await mockAgreementRouterRequest.delete({
+      path: "/agreements/:agreementId",
+      pathParams: { agreementId: agreement.id },
       authData,
-      serviceName: "",
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
     const agreementEvent = await readLastAgreementEvent(agreement.id);
@@ -83,12 +84,12 @@ describe("delete agreement", () => {
     expect(fileManager.delete).toHaveBeenCalledWith(
       config.s3Bucket,
       agreement.consumerDocuments[0].path,
-      genericLogger
+      expect.anything()
     );
     expect(fileManager.delete).toHaveBeenCalledWith(
       config.s3Bucket,
       agreement.consumerDocuments[1].path,
-      genericLogger
+      expect.anything()
     );
     expect(
       await fileManager.listFiles(config.s3Bucket, genericLogger)

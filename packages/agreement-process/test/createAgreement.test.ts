@@ -44,6 +44,7 @@ import {
   notLatestEServiceDescriptor,
   tenantNotFound,
 } from "../src/model/domain/errors.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneEService,
@@ -51,6 +52,7 @@ import {
   agreementService,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 /**
  * Executes the generic agreement expectation for agreement creation process,
@@ -142,15 +144,14 @@ describe("create agreement", () => {
       eserviceId,
       descriptorId,
     };
-    const createdAgreement = await agreementService.createAgreement(
-      agreementData,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+
+    const apiCreatedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements",
+      body: { ...agreementData },
+      authData,
+    });
+
+    const createdAgreement = apiAgreementToAgreement(apiCreatedAgreement);
 
     await expectedAgreementCreation(
       createdAgreement,
@@ -206,15 +207,13 @@ describe("create agreement", () => {
       descriptorId: eservice.descriptors[0].id,
     };
 
-    const createdAgreement = await agreementService.createAgreement(
-      apiAgreementPayload,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const apiCreatedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements",
+      body: { ...apiAgreementPayload },
+      authData,
+    });
+
+    const createdAgreement = apiAgreementToAgreement(apiCreatedAgreement);
 
     await expectedAgreementCreation(
       createdAgreement,
@@ -248,15 +247,13 @@ describe("create agreement", () => {
       descriptorId: eservice.descriptors[0].id,
     };
 
-    const createdAgreement = await agreementService.createAgreement(
-      apiAgreementPayload,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const apiCreatedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements",
+      body: { ...apiAgreementPayload },
+      authData,
+    });
+
+    const createdAgreement = apiAgreementToAgreement(apiCreatedAgreement);
 
     await expectedAgreementCreation(
       createdAgreement,
@@ -298,15 +295,13 @@ describe("create agreement", () => {
       descriptorId: descriptor0.id,
     };
 
-    const createdAgreement = await agreementService.createAgreement(
-      apiAgreementPayload,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const apiCreatedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements",
+      body: { ...apiAgreementPayload },
+      authData,
+    });
+
+    const createdAgreement = apiAgreementToAgreement(apiCreatedAgreement);
 
     await expectedAgreementCreation(
       createdAgreement,
@@ -345,15 +340,13 @@ describe("create agreement", () => {
       descriptorId: descriptor.id,
     };
 
-    const createdAgreement = await agreementService.createAgreement(
-      apiAgreementPayload,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const apiCreatedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements",
+      body: { ...apiAgreementPayload },
+      authData,
+    });
+
+    const createdAgreement = apiAgreementToAgreement(apiCreatedAgreement);
 
     await expectedAgreementCreation(
       createdAgreement,

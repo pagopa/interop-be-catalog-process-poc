@@ -44,13 +44,16 @@ import {
   tenantNotFound,
 } from "../src/model/domain/errors.js";
 import { createStamp } from "../src/services/agreementStampUtils.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneEService,
   addOneTenant,
   agreementService,
+  expectedAgreementWithCorrectDate,
   readLastAgreementEvent,
 } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("suspend agreement", () => {
   beforeEach(async () => {
@@ -118,15 +121,13 @@ describe("suspend agreement", () => {
     ]);
     const authData = getRandomAuthData(requesterId);
 
-    const returnedAgreement = await agreementService.suspendAgreement(
-      agreement.id,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/suspend",
+      pathParams: { agreementId: agreement.id },
+      authData,
+    });
+
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
 
     const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -181,11 +182,19 @@ describe("suspend agreement", () => {
         ...expectedStamps,
       },
     };
+
+    const expectedAgreementSuspendedWithCorrectDate =
+      expectedAgreementWithCorrectDate({
+        expectedAgreement: expectedAgreementSuspended,
+        agreement,
+        agreementReturnValue: returnedAgreement,
+      });
+
     expect(actualAgreementSuspended).toMatchObject(
       toAgreementV2(expectedAgreementSuspended)
     );
-    expect(actualAgreementSuspended).toMatchObject(
-      toAgreementV2(returnedAgreement)
+    expect(expectedAgreementSuspendedWithCorrectDate).toMatchObject(
+      returnedAgreement
     );
   });
 
@@ -241,16 +250,13 @@ describe("suspend agreement", () => {
 
     const authData = getRandomAuthData(producerAndConsumerId);
 
-    const returnedAgreement = await agreementService.suspendAgreement(
-      agreement.id,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/suspend",
+      pathParams: { agreementId: agreement.id },
+      authData,
+    });
 
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
     const agreementEvent = await readLastAgreementEvent(agreement.id);
 
     expect(agreementEvent).toMatchObject({
@@ -285,11 +291,19 @@ describe("suspend agreement", () => {
         },
       },
     };
+
+    const expectedAgreementSuspendedWithCorrectDate =
+      expectedAgreementWithCorrectDate({
+        expectedAgreement: expectedAgreementSuspended,
+        agreement,
+        agreementReturnValue: returnedAgreement,
+      });
+
     expect(actualAgreementSuspended).toMatchObject(
       toAgreementV2(expectedAgreementSuspended)
     );
-    expect(actualAgreementSuspended).toMatchObject(
-      toAgreementV2(returnedAgreement)
+    expect(expectedAgreementSuspendedWithCorrectDate).toMatchObject(
+      returnedAgreement
     );
   });
 
@@ -332,15 +346,13 @@ describe("suspend agreement", () => {
     await addOneEService(eservice);
     await addOneAgreement(agreement);
 
-    const returnedAgreement = await agreementService.suspendAgreement(
-      agreement.id,
-      {
-        authData,
-        serviceName: "",
-        correlationId: generateId(),
-        logger: genericLogger,
-      }
-    );
+    const apiReturnedAgreement = await mockAgreementRouterRequest.post({
+      path: "/agreements/:agreementId/suspend",
+      pathParams: { agreementId: agreement.id },
+      authData,
+    });
+
+    const returnedAgreement = apiAgreementToAgreement(apiReturnedAgreement);
 
     const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -393,11 +405,19 @@ describe("suspend agreement", () => {
         ...expectedStamps,
       },
     };
+
+    const expectedAgreementSuspendedWithCorrectDate =
+      expectedAgreementWithCorrectDate({
+        expectedAgreement: expectedAgreementSuspended,
+        agreement,
+        agreementReturnValue: returnedAgreement,
+      });
+
     expect(actualAgreementSuspended).toMatchObject(
       toAgreementV2(expectedAgreementSuspended)
     );
-    expect(actualAgreementSuspended).toMatchObject(
-      toAgreementV2(returnedAgreement)
+    expect(expectedAgreementSuspendedWithCorrectDate).toMatchObject(
+      returnedAgreement
     );
   });
 

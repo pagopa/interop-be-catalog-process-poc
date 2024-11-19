@@ -71,8 +71,12 @@ export const attributes = readModelRepository.attributes;
 
 export const readModelService = readModelServiceBuilder(readModelRepository);
 
-export const selfcareV2ClientMock: SelfcareV2UsersClient =
-  {} as SelfcareV2UsersClient;
+export const mockGetUserInfoUsingGET = vi.fn();
+
+export const selfcareV2ClientMock: SelfcareV2UsersClient = {
+  getUserInfoUsingGET: mockGetUserInfoUsingGET,
+} as unknown as SelfcareV2UsersClient;
+
 export const pdfGenerator = await initPDFGenerator();
 
 export const agreementService = agreementServiceBuilder(
@@ -247,3 +251,25 @@ export function getMockApiTenantVerifiedAttribute(): agreementApi.TenantAttribut
     },
   };
 }
+export const expectedAgreementWithCorrectDate = ({
+  expectedAgreement,
+  agreement,
+  agreementReturnValue,
+}: {
+  expectedAgreement: Agreement;
+  agreement: Agreement;
+  agreementReturnValue: Agreement;
+}): Agreement => ({
+  ...expectedAgreement,
+  consumerDocuments: agreement.consumerDocuments.map((doc, index) => ({
+    ...doc,
+    createdAt: agreementReturnValue.consumerDocuments[index].createdAt,
+  })),
+  contract:
+    agreement.contract && agreementReturnValue.contract
+      ? {
+          ...agreement.contract,
+          createdAt: agreementReturnValue.contract.createdAt,
+        }
+      : undefined,
+});

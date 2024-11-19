@@ -48,7 +48,7 @@ import {
   generateId,
   unsafeBrandId,
 } from "pagopa-interop-models";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   agreementActivableStates,
   agreementActivationAllowedDescriptorStates,
@@ -70,17 +70,23 @@ import {
   userNotFound,
 } from "../src/model/domain/errors.js";
 import { config } from "../src/config/config.js";
+import { apiAgreementToAgreement } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneAttribute,
   addOneEService,
   addOneTenant,
   agreementService,
+  expectedAgreementWithCorrectDate,
   fileManager,
   readAgreementEventByVersion,
   readLastAgreementEvent,
   selfcareV2ClientMock,
 } from "./utils.js";
+import {
+  mockAgreementRouterRequest,
+  mockSelfcareV2ClientCall,
+} from "./supertestSetup.js";
 
 describe("activate agreement", () => {
   const mockSelfcareUserResponse: selfcareV2ClientApi.UserResponse = {
@@ -107,16 +113,6 @@ describe("activate agreement", () => {
       taxCode: randomArrayItem([mockSelfcareUserResponse.taxCode, undefined]),
     };
   }
-
-  beforeEach(async () => {
-    selfcareV2ClientMock.getUserInfoUsingGET = vi.fn(
-      async () => mockSelfcareUserResponse
-    );
-  });
-
-  afterEach(async () => {
-    vi.clearAllMocks();
-  });
 
   async function addRelatedAgreements(agreement: Agreement): Promise<{
     archivableRelatedAgreement1: Agreement;
@@ -292,6 +288,8 @@ describe("activate agreement", () => {
         verifiedAttributes: [getMockAgreementAttribute()],
       };
 
+      mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
       await addOneAgreement(agreement);
       await addOneTenant(consumer);
       await addOneTenant(producer);
@@ -301,13 +299,16 @@ describe("activate agreement", () => {
       await addOneAttribute(verifiedAttribute);
       const relatedAgreements = await addRelatedAgreements(agreement);
 
-      const acrivateAgreementReturnValue =
-        await agreementService.activateAgreement(agreement.id, {
+      const apiActivateAgreementReturnValue =
+        await mockAgreementRouterRequest.post({
+          path: "/agreements/:agreementId/activate",
+          pathParams: { agreementId: agreement.id },
           authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
         });
+
+      const activateAgreementReturnValue = apiAgreementToAgreement(
+        apiActivateAgreementReturnValue
+      );
 
       const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -318,7 +319,7 @@ describe("activate agreement", () => {
         stream_id: agreement.id,
       });
 
-      const actualAgreementActivated = fromAgreementV2(
+      const actualAgreementActivated: Agreement = fromAgreementV2(
         decodeProtobufPayload({
           messageType: AgreementActivatedV2,
           payload: agreementEvent.data,
@@ -359,6 +360,19 @@ describe("activate agreement", () => {
         suspendedByPlatform: false, // when the agreement is Activated this is uptated to false
       };
 
+      const expectedActivatedAgreementWithCorrectDate: Agreement = {
+        ...expectedActivatedAgreement,
+        consumerDocuments: agreement.consumerDocuments.map((doc, index) => ({
+          ...doc,
+          createdAt:
+            activateAgreementReturnValue.consumerDocuments[index].createdAt,
+        })),
+        contract: {
+          ...expectedContract,
+          createdAt: activateAgreementReturnValue.contract!.createdAt,
+        },
+      };
+
       expect(actualAgreementActivated).toMatchObject(
         expectedActivatedAgreement
       );
@@ -368,8 +382,8 @@ describe("activate agreement", () => {
       ).toContain(expectedContract.path);
 
       await testRelatedAgreementsArchiviation(relatedAgreements);
-      expect(acrivateAgreementReturnValue).toMatchObject(
-        expectedActivatedAgreement
+      expect(activateAgreementReturnValue).toMatchObject(
+        expectedActivatedAgreementWithCorrectDate
       );
     });
 
@@ -703,19 +717,24 @@ describe("activate agreement", () => {
           verifiedAttributes: [getMockAgreementAttribute()],
         };
 
+        mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
         await addOneTenant(consumer);
         await addOneTenant(producer);
         await addOneEService(eservice);
         await addOneAgreement(agreement);
         const relatedAgreements = await addRelatedAgreements(agreement);
 
-        const activateAgreementReturnValue =
-          await agreementService.activateAgreement(agreement.id, {
+        const apiActivateAgreementReturnValue =
+          await mockAgreementRouterRequest.post({
+            path: "/agreements/:agreementId/activate",
+            pathParams: { agreementId: agreement.id },
             authData,
-            serviceName: "",
-            correlationId: generateId(),
-            logger: genericLogger,
           });
+
+        const activateAgreementReturnValue = apiAgreementToAgreement(
+          apiActivateAgreementReturnValue
+        );
 
         const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -751,12 +770,19 @@ describe("activate agreement", () => {
           suspendedByPlatform: false, // when the agreement is Activated this is uptated to false
         };
 
+        const expectedActivatedAgreementWithCorrectDate =
+          expectedAgreementWithCorrectDate({
+            expectedAgreement: expectedActivatedAgreement,
+            agreement,
+            agreementReturnValue: activateAgreementReturnValue,
+          });
+
         expect(actualAgreementActivated).toMatchObject(
           expectedActivatedAgreement
         );
 
         expect(activateAgreementReturnValue).toMatchObject(
-          expectedActivatedAgreement
+          expectedActivatedAgreementWithCorrectDate
         );
 
         await testRelatedAgreementsArchiviation(relatedAgreements);
@@ -844,13 +870,16 @@ describe("activate agreement", () => {
       await addOneAgreement(agreement);
       const relatedAgreements = await addRelatedAgreements(agreement);
 
-      const activateAgreementReturnValue =
-        await agreementService.activateAgreement(agreement.id, {
+      const apiActivateAgreementReturnValue =
+        await mockAgreementRouterRequest.post({
+          path: "/agreements/:agreementId/activate",
+          pathParams: { agreementId: agreement.id },
           authData,
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
         });
+
+      const activateAgreementReturnValue = apiAgreementToAgreement(
+        apiActivateAgreementReturnValue
+      );
 
       const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -884,12 +913,19 @@ describe("activate agreement", () => {
         suspendedByPlatform: false, // when the agreement is Activated this is uptated to false
       };
 
+      const expectedActivatedAgreementWithCorrectDate =
+        expectedAgreementWithCorrectDate({
+          expectedAgreement: expectedActivatedAgreement,
+          agreement,
+          agreementReturnValue: activateAgreementReturnValue,
+        });
+
       expect(actualAgreementActivated).toMatchObject(
         expectedActivatedAgreement
       );
 
       expect(activateAgreementReturnValue).toMatchObject(
-        expectedActivatedAgreement
+        expectedActivatedAgreementWithCorrectDate
       );
 
       await testRelatedAgreementsArchiviation(relatedAgreements);
@@ -1038,19 +1074,25 @@ describe("activate agreement", () => {
             ...expectedUnsuspendedAgreement,
             suspendedByPlatform: false,
           };
+
+          mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
           await addOneTenant(consumer);
           await addOneTenant(producer);
           await addOneEService(eservice);
           await addOneAgreement(agreement);
           const relatedAgreements = await addRelatedAgreements(agreement);
 
-          const activateAgreementReturnValue =
-            await agreementService.activateAgreement(agreement.id, {
+          const apiActivateAgreementReturnValue =
+            await mockAgreementRouterRequest.post({
+              path: "/agreements/:agreementId/activate",
+              pathParams: { agreementId: agreement.id },
               authData,
-              serviceName: "",
-              correlationId: generateId(),
-              logger: genericLogger,
             });
+
+          const activateAgreementReturnValue = apiAgreementToAgreement(
+            apiActivateAgreementReturnValue
+          );
 
           const agreementEvent = await readLastAgreementEvent(agreement.id);
 
@@ -1072,11 +1114,20 @@ describe("activate agreement", () => {
             }).agreement!
           );
 
+          const expectedUnsospendedAgreementWithCorrectDate =
+            expectedAgreementWithCorrectDate({
+              expectedAgreement: expected,
+              agreement,
+              agreementReturnValue: activateAgreementReturnValue,
+            });
+
           await testRelatedAgreementsArchiviation(relatedAgreements);
 
           expect(actualAgreementUnsuspended).toMatchObject(expected);
 
-          expect(activateAgreementReturnValue).toMatchObject(expected);
+          expect(activateAgreementReturnValue).toMatchObject(
+            expectedUnsospendedAgreementWithCorrectDate
+          );
         });
 
         it("if suspendedByPlatform === true, unsuspends by Producer or Consumer and also by platform, and remains in a Suspended state", async () => {
@@ -1095,19 +1146,24 @@ describe("activate agreement", () => {
             suspendedByPlatform: false,
           };
 
+          mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
           await addOneTenant(consumer);
           await addOneTenant(producer);
           await addOneEService(eservice);
           await addOneAgreement(agreement);
           const relatedAgreements = await addRelatedAgreements(agreement);
 
-          const activateAgreementReturnValue =
-            await agreementService.activateAgreement(agreement.id, {
+          const apiActivateAgreementReturnValue =
+            await mockAgreementRouterRequest.post({
+              path: "/agreements/:agreementId/activate",
+              pathParams: { agreementId: agreement.id },
               authData,
-              serviceName: "",
-              correlationId: generateId(),
-              logger: genericLogger,
             });
+
+          const activateAgreementReturnValue = apiAgreementToAgreement(
+            apiActivateAgreementReturnValue
+          );
 
           const agreementEvent = await readAgreementEventByVersion(
             agreement.id,
@@ -1151,9 +1207,18 @@ describe("activate agreement", () => {
             }).agreement!
           );
 
+          const expectedUnsospendedAgreementWithCorrectDate =
+            expectedAgreementWithCorrectDate({
+              expectedAgreement: expected2,
+              agreement,
+              agreementReturnValue: activateAgreementReturnValue,
+            });
+
           await testRelatedAgreementsArchiviation(relatedAgreements);
           expect(actualAgreementUnsuspendedByPlatform).toMatchObject(expected2);
-          expect(activateAgreementReturnValue).toMatchObject(expected2);
+          expect(activateAgreementReturnValue).toMatchObject(
+            expectedUnsospendedAgreementWithCorrectDate
+          );
         });
       }
     );
@@ -1317,18 +1382,25 @@ describe("activate agreement", () => {
             ...expectedUnsuspendedAgreement,
             suspendedByPlatform: true,
           };
+
+          mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
           await addOneTenant(consumer);
           await addOneTenant(producer);
           await addOneEService(eservice);
           await addOneAgreement(agreement);
           const relatedAgreements = await addRelatedAgreements(agreement);
-          const activateAgreementReturnValue =
-            await agreementService.activateAgreement(agreement.id, {
+
+          const apiActivateAgreementReturnValue =
+            await mockAgreementRouterRequest.post({
+              path: "/agreements/:agreementId/activate",
+              pathParams: { agreementId: agreement.id },
               authData,
-              serviceName: "",
-              correlationId: generateId(),
-              logger: genericLogger,
             });
+
+          const activateAgreementReturnValue = apiAgreementToAgreement(
+            apiActivateAgreementReturnValue
+          );
           const agreementEvent = await readLastAgreementEvent(agreement.id);
           expect(agreementEvent).toMatchObject({
             type: isProducer
@@ -1346,9 +1418,19 @@ describe("activate agreement", () => {
               payload: agreementEvent.data,
             }).agreement!
           );
+
+          const expectedUnsospendedAgreementWithCorrectDate =
+            expectedAgreementWithCorrectDate({
+              expectedAgreement: expected,
+              agreement,
+              agreementReturnValue: activateAgreementReturnValue,
+            });
+
           await testRelatedAgreementsArchiviation(relatedAgreements);
           expect(actualAgreementUnsuspended).toMatchObject(expected);
-          expect(activateAgreementReturnValue).toMatchObject(expected);
+          expect(activateAgreementReturnValue).toMatchObject(
+            expectedUnsospendedAgreementWithCorrectDate
+          );
         });
 
         it("if suspendedByPlatform === false, unsuspends by Producer or Consumer and also suspends by platform, and remains in a Suspended state", async () => {
@@ -1367,19 +1449,24 @@ describe("activate agreement", () => {
             suspendedByPlatform: true,
           };
 
+          mockSelfcareV2ClientCall(mockSelfcareUserResponse);
+
           await addOneTenant(consumer);
           await addOneTenant(producer);
           await addOneEService(eservice);
           await addOneAgreement(agreement);
           const relatedAgreements = await addRelatedAgreements(agreement);
 
-          const activateAgreementReturnValue =
-            await agreementService.activateAgreement(agreement.id, {
+          const apiActivateAgreementReturnValue =
+            await mockAgreementRouterRequest.post({
+              path: "/agreements/:agreementId/activate",
+              pathParams: { agreementId: agreement.id },
               authData,
-              serviceName: "",
-              correlationId: generateId(),
-              logger: genericLogger,
             });
+
+          const activateAgreementReturnValue = apiAgreementToAgreement(
+            apiActivateAgreementReturnValue
+          );
 
           const agreementEvent = await readAgreementEventByVersion(
             agreement.id,
@@ -1423,9 +1510,18 @@ describe("activate agreement", () => {
             }).agreement!
           );
 
+          const expectedUnsospendedAgreementWithCorrectDate =
+            expectedAgreementWithCorrectDate({
+              expectedAgreement: expected2,
+              agreement,
+              agreementReturnValue: activateAgreementReturnValue,
+            });
+
           await testRelatedAgreementsArchiviation(relatedAgreements);
           expect(actualAgreementUnsuspendedByPlatform).toMatchObject(expected2);
-          expect(activateAgreementReturnValue).toMatchObject(expected2);
+          expect(activateAgreementReturnValue).toMatchObject(
+            expectedUnsospendedAgreementWithCorrectDate
+          );
         });
       }
     );
@@ -2064,6 +2160,8 @@ describe("activate agreement", () => {
           },
         },
       };
+
+      mockSelfcareV2ClientCall(mockSelfcareUserResponse);
 
       await addOneTenant(consumer);
       await addOneTenant(producer);

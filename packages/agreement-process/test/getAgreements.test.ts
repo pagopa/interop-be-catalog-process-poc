@@ -4,8 +4,8 @@ import {
   getMockDescriptorPublished,
   getMockEService,
   getMockAgreement,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
-import { genericLogger } from "pagopa-interop-commons";
 import {
   Tenant,
   Descriptor,
@@ -19,12 +19,9 @@ import {
   TenantId,
 } from "pagopa-interop-models";
 import { describe, beforeEach, it, expect } from "vitest";
-import {
-  addOneTenant,
-  addOneEService,
-  addOneAgreement,
-  agreementService,
-} from "./utils.js";
+import { agreementToApiAgreement } from "../src/model/domain/apiConverter.js";
+import { addOneTenant, addOneEService, addOneAgreement } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("get agreements", () => {
   let tenant1: Tenant;
@@ -158,226 +155,205 @@ describe("get agreements", () => {
   });
 
   it("should get all agreements if no filters are provided", async () => {
-    const allAgreements = await agreementService.getAgreements(
-      {},
-      10,
-      0,
-      genericLogger
-    );
+    const allAgreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: { limit: 10, offset: 0 },
+      authData: getMockAuthData(),
+    });
+
     expect(allAgreements).toEqual({
       totalCount: 6,
       results: expect.arrayContaining([
-        agreement1,
-        agreement2,
-        agreement3,
-        agreement4,
-        agreement5,
-        agreement6,
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement4),
+        agreementToApiAgreement(agreement5),
+        agreementToApiAgreement(agreement6),
       ]),
     });
   });
 
   it("should get agreements with filters: producerId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
-        producerId: eservice1.producerId,
-      },
-      10,
-      0,
-      genericLogger
-    );
+    const agreements1 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: { producersIds: eservice1.producerId, limit: 10, offset: 0 },
+      authData: getMockAuthData(),
+    });
     expect(agreements1).toEqual({
       totalCount: 2,
-      results: expect.arrayContaining([agreement1, agreement2]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+      ]),
     });
 
-    const agreements2 = await agreementService.getAgreements(
-      {
-        producerId: [eservice1.producerId, eservice2.producerId],
+    const agreements2 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        producersIds: [eservice1.producerId, eservice2.producerId],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(agreements2).toEqual({
       totalCount: 4,
       results: expect.arrayContaining([
-        agreement1,
-        agreement2,
-        agreement3,
-        agreement4,
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement4),
       ]),
     });
   });
 
   it("should get agreements with filters: consumerId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
-        consumerId: tenant1.id,
+    const agreements1 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        consumersIds: tenant1.id,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements1).toEqual({
       totalCount: 3,
-      results: expect.arrayContaining([agreement1, agreement3, agreement5]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement5),
+      ]),
     });
 
-    const agreements2 = await agreementService.getAgreements(
-      {
-        consumerId: [tenant1.id, tenant2.id],
+    const agreements2 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        consumersIds: [tenant1.id, tenant2.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements2).toEqual({
       totalCount: 5,
       results: expect.arrayContaining([
-        agreement1,
-        agreement2,
-        agreement3,
-        agreement4,
-        agreement5,
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement4),
+        agreementToApiAgreement(agreement5),
       ]),
     });
   });
 
   it("should get agreements with filters: eserviceId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
-        eserviceId: eservice1.id,
+    const agreements1 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        eservicesIds: eservice1.id,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements1).toEqual({
       totalCount: 2,
-      results: expect.arrayContaining([agreement1, agreement2]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+      ]),
     });
 
-    const agreements2 = await agreementService.getAgreements(
-      {
-        eserviceId: [eservice1.id, eservice2.id],
+    const agreements2 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        eservicesIds: [eservice1.id, eservice2.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements2).toEqual({
       totalCount: 4,
       results: expect.arrayContaining([
-        agreement1,
-        agreement2,
-        agreement3,
-        agreement4,
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement4),
       ]),
     });
   });
 
   it("should get agreements with filters: descriptorId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
-        descriptorId: descriptor1.id,
+    const agreements1 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        descriptorsIds: descriptor1.id,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements1).toEqual({
       totalCount: 1,
-      results: expect.arrayContaining([agreement1]),
+      results: expect.arrayContaining([agreementToApiAgreement(agreement1)]),
     });
 
-    const agreements2 = await agreementService.getAgreements(
-      {
-        descriptorId: [descriptor1.id, descriptor3.id, descriptor5.id],
+    const agreements2 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        descriptorsIds: [descriptor1.id, descriptor3.id, descriptor5.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements2).toEqual({
       totalCount: 4,
       results: expect.arrayContaining([
-        agreement1,
-        agreement3,
-        agreement5,
-        agreement6,
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement3),
+        agreementToApiAgreement(agreement5),
+        agreementToApiAgreement(agreement6),
       ]),
     });
   });
 
-  it("should get agreements with filters: attributeId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
-        attributeId: attribute2.id,
-      },
-      10,
-      0,
-      genericLogger
-    );
-    expect(agreements1).toEqual({
-      totalCount: 1,
-      results: expect.arrayContaining([agreement1]),
-    });
-
-    const agreements2 = await agreementService.getAgreements(
-      {
-        attributeId: attribute3.id,
-      },
-      10,
-      0,
-      genericLogger
-    );
-    expect(agreements2).toEqual({
-      totalCount: 2,
-      results: expect.arrayContaining([agreement1, agreement2]),
-    });
-
-    const agreements3 = await agreementService.getAgreements(
-      {
-        attributeId: [attribute1.id, attribute3.id, attribute4.id],
-      },
-      10,
-      0,
-      genericLogger
-    );
-    expect(agreements3).toEqual({
-      totalCount: 2,
-      results: expect.arrayContaining([agreement1, agreement2]),
-    });
-  });
   it("should get agreements with filters: state", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        agreementStates: [agreementState.active, agreementState.pending],
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        states: ["ACTIVE", "PENDING"],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements).toEqual({
       totalCount: 2,
-      results: expect.arrayContaining([agreement2, agreement3]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+      ]),
     });
   });
   it("should get agreements with filters: showOnlyUpgradeable", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
         showOnlyUpgradeable: true,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements).toEqual({
       totalCount: 1,
       results: expect.arrayContaining([
-        agreement1,
+        agreementToApiAgreement(agreement1),
         // also agreement4 has a latest descriptor to upgrade to,
         // but it is not in an upgradeable state
       ]),
@@ -385,82 +361,73 @@ describe("get agreements", () => {
   });
 
   it("should get agreements with filters: producerId, consumerId, eserviceId", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        producerId: [eservice1.producerId, eservice2.producerId],
-        consumerId: tenant1.id,
-        eserviceId: [eservice1.id, eservice2.id],
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        producersIds: [eservice1.producerId, eservice2.producerId],
+        consumersIds: tenant1.id,
+        eservicesIds: [eservice1.id, eservice2.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements).toEqual({
       totalCount: 2,
-      results: expect.arrayContaining([agreement1, agreement3]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement1),
+        agreementToApiAgreement(agreement3),
+      ]),
     });
   });
 
   it("should get agreements with filters: producerId, consumerId, eserviceId, descriptorId", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        producerId: [eservice1.producerId, eservice2.producerId],
-        consumerId: tenant1.id,
-        eserviceId: [eservice1.id, eservice2.id],
-        descriptorId: [descriptor1.id],
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        producersIds: [eservice1.producerId, eservice2.producerId],
+        consumersIds: tenant1.id,
+        eservicesIds: [eservice1.id, eservice2.id],
+        descriptorsIds: [descriptor1.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
-    expect(agreements).toEqual({
-      totalCount: 1,
-      results: expect.arrayContaining([agreement1]),
+      authData: getMockAuthData(),
     });
-  });
-
-  it("should get agreements with filters: attributeId, state", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        attributeId: attribute3.id,
-        agreementStates: [agreementState.active],
-      },
-      10,
-      0,
-      genericLogger
-    );
     expect(agreements).toEqual({
       totalCount: 1,
-      results: expect.arrayContaining([agreement2]),
+      results: expect.arrayContaining([agreementToApiAgreement(agreement1)]),
     });
   });
 
   it("should get agreements with filters: showOnlyUpgradeable, state, descriptorId", async () => {
-    const agreements1 = await agreementService.getAgreements(
-      {
+    const agreements1 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
         showOnlyUpgradeable: true,
-        agreementStates: [agreementState.draft],
-        descriptorId: descriptor1.id,
+        states: ["DRAFT"],
+        descriptorsIds: descriptor1.id,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements1).toEqual({
       totalCount: 1,
-      results: expect.arrayContaining([agreement1]),
+      results: expect.arrayContaining([agreementToApiAgreement(agreement1)]),
     });
 
-    const agreements2 = await agreementService.getAgreements(
-      {
+    const agreements2 = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
         showOnlyUpgradeable: true,
-        agreementStates: [agreementState.suspended],
-        descriptorId: descriptor1.id,
+        states: ["SUSPENDED"],
+        descriptorsIds: descriptor1.id,
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements2).toEqual({
       totalCount: 0,
       results: [],
@@ -468,43 +435,49 @@ describe("get agreements", () => {
   });
 
   it("should get agreements with limit", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        eserviceId: eservice1.id,
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        eservicesIds: eservice1.id,
+        limit: 1,
+        offset: 0,
       },
-      1,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements).toEqual({
       totalCount: 2,
-      results: expect.arrayContaining([agreement1]),
+      results: expect.arrayContaining([agreementToApiAgreement(agreement1)]),
     });
   });
 
   it("should get agreements with offset and limit", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        eserviceId: [eservice1.id, eservice2.id],
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        eservicesIds: [eservice1.id, eservice2.id],
+        limit: 2,
+        offset: 1,
       },
-      2,
-      1,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
     expect(agreements).toEqual({
       totalCount: 4,
-      results: expect.arrayContaining([agreement2, agreement3]),
+      results: expect.arrayContaining([
+        agreementToApiAgreement(agreement2),
+        agreementToApiAgreement(agreement3),
+      ]),
     });
   });
   it("should get no agreements in case no filters match", async () => {
-    const agreements = await agreementService.getAgreements(
-      {
-        producerId: generateId<TenantId>(),
+    const agreements = await mockAgreementRouterRequest.get({
+      path: "/agreements",
+      queryParams: {
+        producersIds: generateId<TenantId>(),
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(agreements).toEqual({
       totalCount: 0,

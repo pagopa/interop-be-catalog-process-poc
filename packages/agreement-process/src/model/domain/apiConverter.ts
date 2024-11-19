@@ -12,6 +12,7 @@ import {
   badRequestError,
   CompactTenant,
   AgreementStamps,
+  AgreementAttribute,
 } from "pagopa-interop-models";
 import { agreementApi } from "pagopa-interop-api-clients";
 import { P, match } from "ts-pattern";
@@ -233,6 +234,102 @@ export const stampsToApiStamps = (
     ? {
         who: unsafeBrandId(input.archiving.who),
         when: input.archiving.when.toJSON(),
+      }
+    : undefined,
+});
+
+const apiAttributeToAgreementAttribute = (
+  apiAttribute:
+    | agreementApi.VerifiedAttribute
+    | agreementApi.DeclaredAttribute
+    | agreementApi.CertifiedAttribute
+): AgreementAttribute => ({
+  ...apiAttribute,
+  id: unsafeBrandId(apiAttribute.id),
+});
+
+export const apiAgreementToAgreement = (
+  apiAgreement: agreementApi.Agreement
+): Agreement => ({
+  id: unsafeBrandId(apiAgreement.id),
+  createdAt: new Date(apiAgreement.createdAt),
+  eserviceId: unsafeBrandId(apiAgreement.eserviceId),
+  descriptorId: unsafeBrandId(apiAgreement.descriptorId),
+  producerId: unsafeBrandId(apiAgreement.producerId),
+  consumerId: unsafeBrandId(apiAgreement.consumerId),
+  suspendedAt: apiAgreement.suspendedAt
+    ? new Date(apiAgreement.suspendedAt)
+    : undefined,
+  updatedAt: apiAgreement.updatedAt
+    ? new Date(apiAgreement.updatedAt)
+    : undefined,
+  state: apiAgreementStateToAgreementState(apiAgreement.state),
+  verifiedAttributes: apiAgreement.verifiedAttributes.map((attr) =>
+    apiAttributeToAgreementAttribute(attr)
+  ),
+  certifiedAttributes: apiAgreement.certifiedAttributes.map((attr) =>
+    apiAttributeToAgreementAttribute(attr)
+  ),
+  declaredAttributes: apiAgreement.declaredAttributes.map((attr) =>
+    apiAttributeToAgreementAttribute(attr)
+  ),
+  consumerDocuments: apiAgreement.consumerDocuments.map((doc) =>
+    apiAgreementDocumentToAgreementDocument(doc)
+  ),
+  suspendedByConsumer: apiAgreement.suspendedByConsumer,
+  suspendedByProducer: apiAgreement.suspendedByProducer,
+  suspendedByPlatform: apiAgreement.suspendedByPlatform,
+  consumerNotes: apiAgreement.consumerNotes,
+  rejectionReason: apiAgreement.rejectionReason,
+  contract: apiAgreement.contract
+    ? apiAgreementDocumentToAgreementDocument(apiAgreement.contract)
+    : undefined,
+  stamps: apiStampsToStamps(apiAgreement.stamps),
+});
+
+export const apiStampsToStamps = (
+  input: agreementApi.Stamps
+): AgreementStamps => ({
+  submission: input.submission
+    ? {
+        who: unsafeBrandId(input.submission.who),
+        when: new Date(input.submission.when),
+      }
+    : undefined,
+  activation: input.activation
+    ? {
+        who: unsafeBrandId(input.activation.who),
+        when: new Date(input.activation.when),
+      }
+    : undefined,
+  rejection: input.rejection
+    ? {
+        who: unsafeBrandId(input.rejection.who),
+        when: new Date(input.rejection.when),
+      }
+    : undefined,
+  suspensionByProducer: input.suspensionByProducer
+    ? {
+        who: unsafeBrandId(input.suspensionByProducer.who),
+        when: new Date(input.suspensionByProducer.when),
+      }
+    : undefined,
+  suspensionByConsumer: input.suspensionByConsumer
+    ? {
+        who: unsafeBrandId(input.suspensionByConsumer.who),
+        when: new Date(input.suspensionByConsumer.when),
+      }
+    : undefined,
+  upgrade: input.upgrade
+    ? {
+        who: unsafeBrandId(input.upgrade.who),
+        when: new Date(input.upgrade.when),
+      }
+    : undefined,
+  archiving: input.archiving
+    ? {
+        who: unsafeBrandId(input.archiving.who),
+        when: new Date(input.archiving.when),
       }
     : undefined,
 });

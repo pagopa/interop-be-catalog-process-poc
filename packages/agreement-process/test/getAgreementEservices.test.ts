@@ -1,9 +1,9 @@
 /* eslint-disable functional/no-let */
-import { genericLogger } from "pagopa-interop-commons";
 import {
   getMockTenant,
   getMockEService,
   getMockAgreement,
+  getMockAuthData,
 } from "pagopa-interop-commons-test/index.js";
 import {
   EService,
@@ -14,12 +14,8 @@ import {
 } from "pagopa-interop-models";
 import { describe, beforeEach, it, expect } from "vitest";
 import { CompactEService } from "../src/model/domain/models.js";
-import {
-  addOneTenant,
-  addOneEService,
-  addOneAgreement,
-  agreementService,
-} from "./utils.js";
+import { addOneTenant, addOneEService, addOneAgreement } from "./utils.js";
+import { mockAgreementRouterRequest } from "./supertestSetup.js";
 
 describe("get agreement eservices", () => {
   let eservice1: EService;
@@ -86,17 +82,11 @@ describe("get agreement eservices", () => {
   });
 
   it("should get all agreement eservices", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [],
-      },
-      10,
-      0,
-      genericLogger
-    );
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: { limit: 10, offset: 0 },
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 3,
@@ -107,17 +97,11 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices filtered by name", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: "Foo",
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [],
-      },
-      10,
-      0,
-      genericLogger
-    );
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: { eServiceName: "Foo", limit: 10, offset: 0 },
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 2,
@@ -128,17 +112,15 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices filtered by consumerId", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [tenant2.id, tenant3.id],
-        producerIds: [],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        consumersIds: [tenant2.id, tenant3.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 2,
@@ -149,17 +131,15 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices filtered by producerId", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [],
-        producerIds: [tenant1.id, tenant2.id],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        producersIds: [tenant1.id, tenant2.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 2,
@@ -170,17 +150,15 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices filtered by agreement state", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [agreementState.active, agreementState.pending],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        states: ["ACTIVE", "PENDING"],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 2,
@@ -191,17 +169,17 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices with filters: name, consumerId, producerId", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: "Foo",
-        consumerIds: [tenant2.id],
-        producerIds: [tenant1.id],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        eServiceName: "Foo",
+        consumersIds: [tenant2.id],
+        producersIds: [tenant1.id],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 1,
@@ -210,17 +188,16 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices with filters: name, agreement state", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: "Bar",
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [agreementState.pending, agreementState.draft],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        eServiceName: "Bar",
+        states: ["PENDING", "DRAFT"],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 1,
@@ -229,17 +206,18 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices with filters: name, consumerId, producerId, agreement state", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: "Bar",
-        consumerIds: [tenant1.id],
-        producerIds: [tenant3.id],
-        agreeementStates: [agreementState.pending],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        eServiceName: "Bar",
+        consumersIds: [tenant1.id],
+        producersIds: [tenant3.id],
+        states: ["PENDING"],
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 1,
@@ -248,17 +226,14 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices with limit", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        limit: 2,
+        offset: 0,
       },
-      2,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 3,
@@ -269,17 +244,14 @@ describe("get agreement eservices", () => {
   });
 
   it("should get agreement eservices with offset and limit", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: undefined,
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        limit: 2,
+        offset: 1,
       },
-      2,
-      1,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 3,
@@ -290,17 +262,15 @@ describe("get agreement eservices", () => {
   });
 
   it("should get no agreement eservices in case no filters match", async () => {
-    const eservices = await agreementService.getAgreementEServices(
-      {
-        eserviceName: "Not existing name",
-        consumerIds: [],
-        producerIds: [],
-        agreeementStates: [],
+    const eservices = await mockAgreementRouterRequest.get({
+      path: "/agreements/filter/eservices",
+      queryParams: {
+        eServiceName: "Not existing name",
+        limit: 10,
+        offset: 0,
       },
-      10,
-      0,
-      genericLogger
-    );
+      authData: getMockAuthData(),
+    });
 
     expect(eservices).toEqual({
       totalCount: 0,
