@@ -23,6 +23,7 @@ import {
 } from "pagopa-interop-commons";
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   getMockKey,
   getMockProducerKeychain,
   readLastEventByStreamId,
@@ -40,13 +41,17 @@ import {
   userNotFound,
   userWithoutSecurityPrivileges,
 } from "../src/model/domain/errors.js";
+import { apiKeyToKey } from "../src/model/domain/apiConverter.js";
 import {
   addOneClient,
   addOneProducerKeychain,
   authorizationService,
   postgresDB,
-  selfcareV2Client,
 } from "./utils.js";
+import {
+  mockClientRouterRequest,
+  mockSelfcareV2ClientCall,
+} from "./supertestSetup.js";
 
 describe("createKeys", () => {
   const consumerId: TenantId = generateId();
@@ -73,20 +78,10 @@ describe("createKeys", () => {
     name: "key seed",
     use: "ENC",
     key: base64Key,
-    alg: "",
+    alg: "test",
   };
 
   const keysSeeds: authorizationApi.KeysSeed = [keySeed];
-
-  function mockSelfcareV2ClientCall(
-    value: Awaited<
-      ReturnType<typeof selfcareV2Client.getInstitutionProductUsersUsingGET>
-    >
-  ): void {
-    selfcareV2Client.getInstitutionProductUsersUsingGET = vi.fn(
-      async () => value
-    );
-  }
 
   const mockSelfCareUsers: selfcareV2ClientApi.UserResource = {
     id: generateId(),
@@ -97,14 +92,9 @@ describe("createKeys", () => {
   };
 
   const mockAuthData: AuthData = {
+    ...getMockAuthData(),
     organizationId: consumerId,
-    selfcareId: generateId(),
-    externalId: {
-      value: "",
-      origin: "",
-    },
     userId,
-    userRoles: [],
   };
 
   const mockClient: Client = {
@@ -114,26 +104,33 @@ describe("createKeys", () => {
   };
 
   it("should create the keys and add them to the client", async () => {
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Router",
+    });
 
     await addOneClient(mockClient);
 
-    const { client } = await authorizationService.createKeys({
-      clientId: mockClient.id,
+    const { keys } = await mockClientRouterRequest.post({
+      path: "/clients/:clientId/keys",
+      body: [...keysSeeds],
+      pathParams: { clientId: mockClient.id },
       authData: mockAuthData,
-      keysSeeds,
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
+    const returnedClient: Client = {
+      ...mockClient,
+      keys: keys.map((key) => apiKeyToKey(key)),
+    };
+
     const writtenEvent = await readLastEventByStreamId(
-      client.id,
+      returnedClient.id,
       '"authorization"',
       postgresDB
     );
 
     expect(writtenEvent).toMatchObject({
-      stream_id: client.id,
+      stream_id: returnedClient.id,
       version: "1",
       type: "ClientKeyAdded",
       event_version: 2,
@@ -162,7 +159,12 @@ describe("createKeys", () => {
   });
   it("should throw clientNotFound if the client doesn't exist ", async () => {
     await addOneClient(getMockClient());
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
+
     expect(
       authorizationService.createKeys({
         clientId: mockClient.id,
@@ -180,7 +182,11 @@ describe("createKeys", () => {
     };
 
     await addOneClient(notConsumerClient);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     expect(
       authorizationService.createKeys({
@@ -197,7 +203,10 @@ describe("createKeys", () => {
   it("should throw userWithoutSecurityPrivileges if the Security user is not found", async () => {
     await addOneClient(mockClient);
 
-    mockSelfcareV2ClientCall([]);
+    mockSelfcareV2ClientCall({
+      value: [],
+      mockedFor: "Service",
+    });
 
     expect(
       authorizationService.createKeys({
@@ -226,7 +235,10 @@ describe("createKeys", () => {
       users: [userId],
     };
 
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     await addOneClient(clientWith100Keys);
 
@@ -252,7 +264,12 @@ describe("createKeys", () => {
     };
 
     await addOneClient(noUsersClient);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
+
     expect(
       authorizationService.createKeys({
         clientId: noUsersClient.id,
@@ -284,7 +301,12 @@ describe("createKeys", () => {
     const keysSeeds: authorizationApi.KeysSeed = [keySeedByPrivateKey];
 
     await addOneClient(mockClient);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
+
     expect(
       authorizationService.createKeys({
         clientId: mockClient.id,
@@ -306,7 +328,11 @@ describe("createKeys", () => {
       keys: [key],
     };
     await addOneClient(clientWithDuplicateKey);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     expect(
       authorizationService.createKeys({
@@ -337,7 +363,10 @@ describe("createKeys", () => {
     await addOneClient(client);
     await addOneClient(clientWithDuplicateKey);
 
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     expect(
       authorizationService.createKeys({
@@ -367,7 +396,10 @@ describe("createKeys", () => {
     await addOneClient(client);
     await addOneProducerKeychain(keychainWithDuplicateKey);
 
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     expect(
       authorizationService.createKeys({
@@ -398,7 +430,12 @@ describe("createKeys", () => {
     const keysSeeds: authorizationApi.KeysSeed = [keySeed];
 
     await addOneClient(mockClient);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
+
     expect(
       authorizationService.createKeys({
         clientId: mockClient.id,
@@ -420,7 +457,12 @@ describe("createKeys", () => {
     const keysSeeds: authorizationApi.KeysSeed = [keySeed];
 
     await addOneClient(mockClient);
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
+
     expect(
       authorizationService.createKeys({
         clientId: mockClient.id,
@@ -434,7 +476,10 @@ describe("createKeys", () => {
     );
   });
   it("should throw notAllowedCertificateException if the key contains a certificate", async () => {
-    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    mockSelfcareV2ClientCall({
+      value: [mockSelfCareUsers],
+      mockedFor: "Service",
+    });
 
     await addOneClient(mockClient);
 

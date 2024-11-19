@@ -1,4 +1,9 @@
-import { AttributeKind, Attribute, attributeKind } from "pagopa-interop-models";
+import {
+  AttributeKind,
+  Attribute,
+  attributeKind,
+  unsafeBrandId,
+} from "pagopa-interop-models";
 import { attributeRegistryApi } from "pagopa-interop-api-clients";
 import { match } from "ts-pattern";
 
@@ -28,6 +33,18 @@ export const toApiAttribute = (
   kind: toApiAttributeKind(attribute.kind),
   description: attribute.description,
   creationTime: attribute.creationTime.toJSON(),
+  code: attribute.code,
+  origin: attribute.origin,
+});
+
+export const toAttribute = (
+  attribute: attributeRegistryApi.Attribute
+): Attribute => ({
+  id: unsafeBrandId(attribute.id),
+  name: attribute.name,
+  kind: toAttributeKind(attribute.kind),
+  description: attribute.description,
+  creationTime: new Date(attribute.creationTime),
   code: attribute.code,
   origin: attribute.origin,
 });

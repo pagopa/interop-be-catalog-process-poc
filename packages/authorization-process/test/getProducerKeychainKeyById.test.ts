@@ -5,13 +5,16 @@ import { describe, it, expect } from "vitest";
 import {
   getMockProducerKeychain,
   getMockKey,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   producerKeychainNotFound,
   producerKeyNotFound,
   organizationNotAllowedOnProducerKeychain,
 } from "../src/model/domain/errors.js";
+import { keyToApiKey } from "../src/model/domain/apiConverter.js";
 import { addOneProducerKeychain, authorizationService } from "./utils.js";
+import { mockProducerKeyChainRouterRequest } from "./supertestSetup.js";
 
 describe("getProducerKeychainKeyById", async () => {
   it("should get the producer keychain key if it exists", async () => {
@@ -25,13 +28,16 @@ describe("getProducerKeychainKeyById", async () => {
     };
     await addOneProducerKeychain(mockProducerKeychain);
 
-    const retrievedKey = await authorizationService.getProducerKeychainKeyById({
-      producerKeychainId: mockProducerKeychain.id,
-      kid: mockKey1.kid,
-      organizationId: producerId,
-      logger: genericLogger,
+    const retrievedKey = await mockProducerKeyChainRouterRequest.get({
+      path: "/producerKeychains/:producerKeychainId/keys/:keyId",
+      pathParams: {
+        producerKeychainId: mockProducerKeychain.id,
+        keyId: mockKey1.kid,
+      },
+      authData: getMockAuthData(producerId),
     });
-    expect(retrievedKey).toEqual(mockKey1);
+
+    expect(retrievedKey).toEqual(keyToApiKey(mockKey1));
   });
   it("should throw organizationNotAllowedOnProducerKeychain if the requester is not the producer", async () => {
     const organizationId: TenantId = generateId();

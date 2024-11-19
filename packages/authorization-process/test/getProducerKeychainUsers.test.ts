@@ -1,4 +1,7 @@
-import { getMockProducerKeychain } from "pagopa-interop-commons-test/src/testUtils.js";
+import {
+  getMockAuthData,
+  getMockProducerKeychain,
+} from "pagopa-interop-commons-test/src/testUtils.js";
 import {
   ProducerKeychain,
   ProducerKeychainId,
@@ -13,6 +16,7 @@ import {
   producerKeychainNotFound,
 } from "../src/model/domain/errors.js";
 import { addOneProducerKeychain, authorizationService } from "./utils.js";
+import { mockProducerKeyChainRouterRequest } from "./supertestSetup.js";
 
 describe("getProducerKeychainUsers", async () => {
   it("should get from the readModel the users in the specified producer keychain", async () => {
@@ -27,11 +31,12 @@ describe("getProducerKeychainUsers", async () => {
 
     await addOneProducerKeychain(mockProducerKeychain);
 
-    const users = await authorizationService.getProducerKeychainUsers({
-      producerKeychainId: mockProducerKeychain.id,
-      organizationId,
-      logger: genericLogger,
+    const users = await mockProducerKeyChainRouterRequest.get({
+      path: "/producerKeychains/:producerKeychainId/users",
+      pathParams: { producerKeychainId: mockProducerKeychain.id },
+      authData: getMockAuthData(organizationId),
     });
+
     expect(users).toEqual([userId1, userId2]);
   });
   it("should throw producerKeychainNotFound if the producer keychain with the specified Id doesn't exist", async () => {

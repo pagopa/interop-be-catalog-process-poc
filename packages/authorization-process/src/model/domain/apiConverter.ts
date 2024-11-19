@@ -7,6 +7,7 @@ import {
   clientKind,
   keyUse,
   ProducerKeychain,
+  unsafeBrandId,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
 
@@ -98,3 +99,10 @@ export const ApiKeyUseToKeyUse = (kid: authorizationApi.KeyUse): KeyUse =>
     .with("ENC", () => keyUse.enc)
     .with("SIG", () => keyUse.sig)
     .exhaustive();
+
+export const apiKeyToKey = (key: authorizationApi.Key): Key => ({
+  ...key,
+  createdAt: new Date(key.createdAt),
+  userId: unsafeBrandId(key.userId),
+  use: ApiKeyUseToKeyUse(key.use),
+});

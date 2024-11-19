@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   getMockClient,
   getMockTenant,
 } from "pagopa-interop-commons-test";
@@ -23,6 +24,7 @@ import {
   authorizationService,
   readLastAuthorizationEvent,
 } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("remove client user", () => {
   it("should write on event-store for removing a user from a client", async () => {
@@ -38,12 +40,10 @@ describe("remove client user", () => {
 
     await addOneClient(mockClient);
 
-    await authorizationService.removeClientUser({
-      clientId: mockClient.id,
-      userIdToRemove,
-      organizationId: mockConsumer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockClientRouterRequest.delete({
+      path: "/clients/:clientId/users/:userId",
+      pathParams: { clientId: mockClient.id, userId: userIdToRemove },
+      authData: getMockAuthData(mockConsumer.id),
     });
 
     const writtenEvent = await readLastAuthorizationEvent(mockClient.id);

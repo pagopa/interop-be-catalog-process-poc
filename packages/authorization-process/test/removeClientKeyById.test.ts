@@ -28,6 +28,7 @@ import {
   authorizationService,
   readLastAuthorizationEvent,
 } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("remove client key", () => {
   it("should write on event-store for removing a key from a client", async () => {
@@ -48,12 +49,10 @@ describe("remove client key", () => {
 
     await addOneClient(mockClient);
 
-    await authorizationService.deleteClientKeyById({
-      clientId: mockClient.id,
-      keyIdToRemove: keyToRemove.kid,
+    await mockClientRouterRequest.delete({
+      path: "/clients/:clientId/keys/:keyId",
+      pathParams: { clientId: mockClient.id, keyId: keyToRemove.kid },
       authData: mockAuthData,
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
     const writtenEvent = await readLastAuthorizationEvent(mockClient.id);
@@ -88,16 +87,14 @@ describe("remove client key", () => {
 
     await addOneClient(mockClient);
 
-    await authorizationService.deleteClientKeyById({
-      clientId: mockClient.id,
-      keyIdToRemove: keyToRemove.kid,
+    await mockClientRouterRequest.delete({
+      path: "/clients/:clientId/keys/:keyId",
+      pathParams: { clientId: mockClient.id, keyId: keyToRemove.kid },
       authData: {
         ...getMockAuthData(mockConsumer.id),
         userRoles: [userRoles.ADMIN_ROLE],
         userId: mockUserId,
       },
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
     const writtenEvent = await readLastAuthorizationEvent(mockClient.id);

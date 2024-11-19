@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   getMockProducerKeychain,
   getMockTenant,
 } from "pagopa-interop-commons-test";
@@ -23,6 +24,7 @@ import {
   authorizationService,
   readLastAuthorizationEvent,
 } from "./utils.js";
+import { mockProducerKeyChainRouterRequest } from "./supertestSetup.js";
 
 describe("remove producer keychain user", () => {
   it("should write on event-store for removing a user from a producer keychain", async () => {
@@ -38,12 +40,13 @@ describe("remove producer keychain user", () => {
 
     await addOneProducerKeychain(mockProducerKeychain);
 
-    await authorizationService.removeProducerKeychainUser({
-      producerKeychainId: mockProducerKeychain.id,
-      userIdToRemove,
-      organizationId: mockProducer.id,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockProducerKeyChainRouterRequest.delete({
+      path: "/producerKeychains/:producerKeychainId/users/:userId",
+      pathParams: {
+        producerKeychainId: mockProducerKeychain.id,
+        userId: userIdToRemove,
+      },
+      authData: getMockAuthData(mockProducer.id),
     });
 
     const writtenEvent = await readLastAuthorizationEvent(
