@@ -6,9 +6,11 @@ import {
   generateId,
 } from "pagopa-interop-models";
 import { describe, expect, it } from "vitest";
-import { getMockClient, getRandomAuthData } from "pagopa-interop-commons-test";
-import { genericLogger, userRoles } from "pagopa-interop-commons";
-import { addOneClient, authorizationService } from "./utils.js";
+import { getMockAuthData, getMockClient } from "pagopa-interop-commons-test";
+import { AuthData, userRoles } from "pagopa-interop-commons";
+import { clientToApiClient } from "../src/model/domain/apiConverter.js";
+import { addOneClient } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("getClients", async () => {
   const consumerId: TenantId = generateId();
@@ -56,56 +58,65 @@ describe("getClients", async () => {
   it("should get the clients if they exist (parameters: name)", async () => {
     await addOneClient(mockClient1);
     await addOneClient(mockClient2);
-    const result = await authorizationService.getClients({
-      filters: {
+
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         name: "test",
         userIds: [],
         consumerId,
         purposeId: undefined,
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockClient1, mockClient2]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient1, { showUsers: false }),
+      clientToApiClient(mockClient2, { showUsers: false }),
+    ]);
   });
   it("should get the clients if they exist (parameters: userIds taken from the authData)", async () => {
-    const userId: UserId = generateId();
+    const authData: AuthData = {
+      ...getMockAuthData(consumerId),
+      userRoles: [userRoles.SECURITY_ROLE],
+      userId: generateId(),
+    };
+
     const notUsedUserId: UserId = generateId();
 
     const mockClient7: Client = {
-      ...mockClient3,
-      users: [userId],
+      ...getMockClient(),
+      consumerId,
+      users: [authData.userId],
     };
+
     const mockClient8: Client = {
-      ...mockClient3,
-      id: generateId(),
+      ...getMockClient(),
+      consumerId,
       users: [notUsedUserId],
     };
     await addOneClient(mockClient7);
     await addOneClient(mockClient8);
 
-    const result = await authorizationService.getClients({
-      filters: {
-        name: "",
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [notUsedUserId],
         consumerId,
         purposeId: undefined,
+        offset: 0,
+        limit: 50,
       },
-      authData: {
-        ...getRandomAuthData(consumerId),
-        userRoles: [userRoles.SECURITY_ROLE],
-        userId,
-      },
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData,
     });
 
     expect(result.totalCount).toBe(1);
-    expect(result.results).toEqual([mockClient7]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient7, { showUsers: true }),
+    ]);
   });
   it("should get the clients if they exist (parameters: userIds taken from the filter)", async () => {
     const userId5: UserId = generateId();
@@ -118,78 +129,88 @@ describe("getClients", async () => {
     };
     await addOneClient(mockClient9);
 
-    const result = await authorizationService.getClients({
-      filters: {
-        name: "",
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [userId5, userId6],
         consumerId,
         purposeId: undefined,
+        offset: 0,
+        limit: 50,
       },
-      authData: {
-        ...getRandomAuthData(consumerId),
-        userRoles: [userRoles.INTERNAL_ROLE],
-        userId: generateId(),
-      },
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
 
     expect(result.totalCount).toBe(1);
-    expect(result.results).toEqual([mockClient9]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient9, { showUsers: true }),
+    ]);
   });
   it("should get the clients if they exist (parameters: consumerId)", async () => {
     await addOneClient(mockClient1);
     await addOneClient(mockClient2);
-    const result = await authorizationService.getClients({
-      filters: {
+
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [],
         consumerId,
         purposeId: undefined,
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockClient1, mockClient2]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient1, { showUsers: false }),
+      clientToApiClient(mockClient2, { showUsers: false }),
+    ]);
   });
   it("should get the clients if they exist (parameters: purposeId)", async () => {
     await addOneClient(mockClient5);
     await addOneClient(mockClient6);
 
-    const result = await authorizationService.getClients({
-      filters: {
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [],
         consumerId,
         purposeId,
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockClient5, mockClient6]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient5, { showUsers: false }),
+      clientToApiClient(mockClient6, { showUsers: false }),
+    ]);
   });
   it("should get the clients if they exist (parameters: kind)", async () => {
     await addOneClient(mockClient1);
     await addOneClient(mockClient2);
-    const result = await authorizationService.getClients({
-      filters: {
+
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [],
         consumerId,
         purposeId: undefined,
-        kind: "Consumer",
+        kind: "CONSUMER",
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([mockClient1, mockClient2]);
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient1, { showUsers: false }),
+      clientToApiClient(mockClient2, { showUsers: false }),
+    ]);
   });
   it("should get the clients if they exist (pagination: offset)", async () => {
     await addOneClient(mockClient3);
@@ -209,20 +230,21 @@ describe("getClients", async () => {
     await addOneClient(mockClientForOffset1);
     await addOneClient(mockClientForOffset2);
 
-    const result = await authorizationService.getClients({
-      filters: {
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [userId1, userId2, userId3, userId4],
         consumerId,
         purposeId: undefined,
+        offset: 2,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 2,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
+
     expect(result.results).toEqual([
-      mockClientForOffset1,
-      mockClientForOffset2,
+      clientToApiClient(mockClientForOffset1, { showUsers: true }),
+      clientToApiClient(mockClientForOffset2, { showUsers: true }),
     ]);
   });
   it("should get the clients if they exist (pagination: limit)", async () => {
@@ -242,31 +264,35 @@ describe("getClients", async () => {
     await addOneClient(mockClientForLimit1);
     await addOneClient(mockClientForLimit2);
 
-    const result = await authorizationService.getClients({
-      filters: {
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [userId1, userId2, userId3, userId4],
         consumerId,
         purposeId: undefined,
+        offset: 0,
+        limit: 2,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 2,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
-    expect(result.results).toEqual([mockClient3, mockClient4]);
+
+    expect(result.results).toEqual([
+      clientToApiClient(mockClient3, { showUsers: true }),
+      clientToApiClient(mockClient4, { showUsers: true }),
+    ]);
   });
   it("should not get the clients if they don't exist", async () => {
     await addOneClient(mockClient1);
-    const result = await authorizationService.getClients({
-      filters: {
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         userIds: [],
         consumerId: generateId(),
         purposeId: undefined,
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
     expect(result.totalCount).toBe(0);
     expect(result.results).toEqual([]);
@@ -288,20 +314,24 @@ describe("getClients", async () => {
     await addOneClient(completeClient1);
     await addOneClient(completeClient2);
 
-    const result = await authorizationService.getClients({
-      filters: {
+    const result = await mockClientRouterRequest.get({
+      path: "/clients",
+      queryParams: {
         name: "Test client",
         userIds: [userId1, userId2],
         consumerId,
         purposeId,
-        kind: "Consumer",
+        kind: "CONSUMER",
+        offset: 0,
+        limit: 50,
       },
-      authData: getRandomAuthData(consumerId),
-      offset: 0,
-      limit: 50,
-      logger: genericLogger,
+      authData: getMockAuthData(consumerId),
     });
+
     expect(result.totalCount).toBe(2);
-    expect(result.results).toEqual([completeClient1, completeClient2]);
+    expect(result.results).toEqual([
+      clientToApiClient(completeClient1, { showUsers: true }),
+      clientToApiClient(completeClient2, { showUsers: true }),
+    ]);
   });
 });

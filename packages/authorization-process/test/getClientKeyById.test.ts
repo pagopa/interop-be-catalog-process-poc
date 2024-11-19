@@ -2,13 +2,19 @@
 import { genericLogger } from "pagopa-interop-commons";
 import { Client, TenantId, generateId } from "pagopa-interop-models";
 import { describe, it, expect } from "vitest";
-import { getMockClient, getMockKey } from "pagopa-interop-commons-test";
+import {
+  getMockAuthData,
+  getMockClient,
+  getMockKey,
+} from "pagopa-interop-commons-test";
 import {
   clientNotFound,
   clientKeyNotFound,
   organizationNotAllowedOnClient,
 } from "../src/model/domain/errors.js";
+import { keyToApiKey } from "../src/model/domain/apiConverter.js";
 import { addOneClient, authorizationService } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("getClientKeyById", async () => {
   it("should get the client key if it exists", async () => {
@@ -22,13 +28,13 @@ describe("getClientKeyById", async () => {
     };
     await addOneClient(mockClient);
 
-    const retrievedKey = await authorizationService.getClientKeyById({
-      clientId: mockClient.id,
-      kid: mockKey1.kid,
-      organizationId: consumerId,
-      logger: genericLogger,
+    const retrievedKey = await mockClientRouterRequest.get({
+      path: "/clients/:clientId/keys/:keyId",
+      pathParams: { clientId: mockClient.id, keyId: mockKey1.kid },
+      authData: getMockAuthData(consumerId),
     });
-    expect(retrievedKey).toEqual(mockKey1);
+
+    expect(retrievedKey).toEqual(keyToApiKey(mockKey1));
   });
   it("should throw organizationNotAllowedOnClient if the requester is not the consumer", async () => {
     const organizationId: TenantId = generateId();

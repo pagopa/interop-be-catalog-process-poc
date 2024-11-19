@@ -28,6 +28,7 @@ import {
   authorizationService,
   readLastAuthorizationEvent,
 } from "./utils.js";
+import { mockProducerKeyChainRouterRequest } from "./supertestSetup.js";
 
 describe("remove producer keychain key", () => {
   it("should write on event-store for removing a key from a producer keychain", async () => {
@@ -49,12 +50,13 @@ describe("remove producer keychain key", () => {
 
     await addOneProducerKeychain(mockProducerKeychain);
 
-    await authorizationService.removeProducerKeychainKeyById({
-      producerKeychainId: mockProducerKeychain.id,
-      keyIdToRemove: keyToRemove.kid,
+    await mockProducerKeyChainRouterRequest.delete({
+      path: "/producerKeychains/:producerKeychainId/keys/:keyId",
+      pathParams: {
+        producerKeychainId: mockProducerKeychain.id,
+        keyId: keyToRemove.kid,
+      },
       authData,
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
     const writtenEvent = await readLastAuthorizationEvent(
@@ -105,12 +107,13 @@ describe("remove producer keychain key", () => {
 
     await addOneProducerKeychain(mockProducerKeychain);
 
-    await authorizationService.removeProducerKeychainKeyById({
-      producerKeychainId: mockProducerKeychain.id,
-      keyIdToRemove: keyToRemove.kid,
+    await mockProducerKeyChainRouterRequest.delete({
+      path: "/producerKeychains/:producerKeychainId/keys/:keyId",
+      pathParams: {
+        producerKeychainId: mockProducerKeychain.id,
+        keyId: keyToRemove.kid,
+      },
       authData,
-      correlationId: generateId(),
-      logger: genericLogger,
     });
 
     const writtenEvent = await readLastAuthorizationEvent(

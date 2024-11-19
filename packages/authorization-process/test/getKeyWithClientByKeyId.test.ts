@@ -12,6 +12,7 @@ import {
 } from "../src/model/domain/errors.js";
 import { clientToApiClient } from "../src/model/domain/apiConverter.js";
 import { addOneClient, authorizationService } from "./utils.js";
+import { mockTokenGenerationRouterRequest } from "./supertestSetup.js";
 
 describe("getKeyWithClientByKeyId", async () => {
   it("should get the jwkKey with client by kid if it exists", async () => {
@@ -40,12 +41,11 @@ describe("getKeyWithClientByKeyId", async () => {
     };
     await addOneClient(mockClient);
 
-    const { key: jwkKey, client } =
-      await authorizationService.getKeyWithClientByKeyId({
-        clientId: mockClient.id,
-        kid: mockKey1.kid,
-        logger: genericLogger,
-      });
+    const { key: jwkKey, client } = await mockTokenGenerationRouterRequest.get({
+      path: "/clients/:clientId/keys/:keyId/bundle",
+      pathParams: { clientId: mockClient.id, keyId: mockKey1.kid },
+    });
+
     expect(jwkKey).toEqual(expectedJwkKey);
     expect(client).toEqual(clientToApiClient(mockClient, { showUsers: false }));
   });

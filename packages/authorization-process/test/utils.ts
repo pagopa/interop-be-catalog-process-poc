@@ -6,7 +6,7 @@ import {
   writeInReadmodel,
   readLastEventByStreamId,
 } from "pagopa-interop-commons-test";
-import { afterEach, inject } from "vitest";
+import { afterEach, inject, vi } from "vitest";
 import {
   AuthorizationEvent,
   Client,
@@ -41,8 +41,12 @@ export const {
 } = readModelRepository;
 
 export const readModelService = readModelServiceBuilder(readModelRepository);
-export const selfcareV2Client: SelfcareV2InstitutionClient =
-  {} as SelfcareV2InstitutionClient;
+
+export const mockGetInstitutionProductUsersUsingGET = vi.fn();
+
+export const selfcareV2Client: SelfcareV2InstitutionClient = {
+  getInstitutionProductUsersUsingGET: mockGetInstitutionProductUsersUsingGET,
+} as unknown as SelfcareV2InstitutionClient;
 
 export const authorizationService = authorizationServiceBuilder(
   postgresDB,

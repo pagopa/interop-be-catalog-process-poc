@@ -1,13 +1,15 @@
 import {
+  getMockAuthData,
   getMockClient,
   getMockKey,
 } from "pagopa-interop-commons-test/src/testUtils.js";
 import {
   Client,
+  ClientId,
   Key,
+  TenantId,
   UserId,
   generateId,
-  unsafeBrandId,
 } from "pagopa-interop-models";
 import { describe, expect, it } from "vitest";
 import { genericLogger } from "pagopa-interop-commons";
@@ -15,15 +17,17 @@ import {
   clientNotFound,
   organizationNotAllowedOnClient,
 } from "../src/model/domain/errors.js";
+import { keyToApiKey } from "../src/model/domain/apiConverter.js";
 import { addOneClient, authorizationService } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("getClientKeys", async () => {
-  const consumerId = generateId();
+  const consumerId: TenantId = generateId();
   const mockKey = getMockKey();
   const mockClient: Client = {
     ...getMockClient(),
     keys: [mockKey],
-    consumerId: unsafeBrandId(consumerId),
+    consumerId,
   };
 
   it("should get the keys in the specified client", async () => {
@@ -50,13 +54,20 @@ describe("getClientKeys", async () => {
     };
     await addOneClient(clientWithKeyUser);
 
-    const keys = await authorizationService.getClientKeys({
-      clientId: mockClient.id,
-      userIds: [keyUserId1, keyUserId2, keyUserId3],
-      organizationId: unsafeBrandId(consumerId),
-      logger: genericLogger,
+    const keys = await mockClientRouterRequest.get({
+      path: "/clients/:clientId/keys",
+      pathParams: { clientId: mockClient.id },
+      queryParams: { userIds: [keyUserId1, keyUserId2, keyUserId3] },
+      authData: getMockAuthData(consumerId),
     });
-    expect(keys).toEqual([keyWithUser1, keyWithUser2, keyWithUser3]);
+
+    expect(keys).toEqual({
+      keys: [
+        keyToApiKey(keyWithUser1),
+        keyToApiKey(keyWithUser2),
+        keyToApiKey(keyWithUser3),
+      ],
+    });
   });
   it("should get the keys of the specified client, but only limited to the keys belonging to specific users", async () => {
     const keyUserId1: UserId = generateId();
@@ -84,41 +95,40 @@ describe("getClientKeys", async () => {
     };
     await addOneClient(clientWithKeyUser);
 
-    const keys = await authorizationService.getClientKeys({
-      clientId: clientWithKeyUser.id,
-      userIds: [keyUserId1],
-      organizationId: unsafeBrandId(consumerId),
-      logger: genericLogger,
+    const keys = await mockClientRouterRequest.get({
+      path: "/clients/:clientId/keys",
+      pathParams: { clientId: clientWithKeyUser.id },
+      queryParams: { userIds: [keyUserId1] },
+      authData: getMockAuthData(consumerId),
     });
-    expect(keys).toEqual([keyWithUser1]);
+    expect(keys).toEqual({
+      keys: [keyToApiKey(keyWithUser1)],
+    });
   });
   it("should throw clientNotFound if the client with the specified Id doesn't exist", async () => {
     await addOneClient(mockClient);
-    const clientId = generateId();
+    const clientId: ClientId = generateId();
     await expect(
       authorizationService.getClientKeys({
-        clientId: unsafeBrandId(clientId),
+        clientId,
         userIds: [],
         organizationId: generateId(),
         logger: genericLogger,
       })
-    ).rejects.toThrowError(clientNotFound(unsafeBrandId(clientId)));
+    ).rejects.toThrowError(clientNotFound(clientId));
   });
   it("should throw organizationNotAllowedOnClient if the requester is not the consumer", async () => {
     await addOneClient(mockClient);
-    const organizationId = generateId();
+    const organizationId: TenantId = generateId();
     await expect(
       authorizationService.getClientKeys({
         clientId: mockClient.id,
         userIds: [],
-        organizationId: unsafeBrandId(organizationId),
+        organizationId,
         logger: genericLogger,
       })
     ).rejects.toThrowError(
-      organizationNotAllowedOnClient(
-        unsafeBrandId(organizationId),
-        unsafeBrandId(mockClient.id)
-      )
+      organizationNotAllowedOnClient(organizationId, mockClient.id)
     );
   });
 });

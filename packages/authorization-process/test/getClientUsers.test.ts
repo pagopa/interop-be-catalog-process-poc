@@ -1,4 +1,7 @@
-import { getMockClient } from "pagopa-interop-commons-test/src/testUtils.js";
+import {
+  getMockAuthData,
+  getMockClient,
+} from "pagopa-interop-commons-test/src/testUtils.js";
 import {
   Client,
   ClientId,
@@ -13,6 +16,7 @@ import {
   organizationNotAllowedOnClient,
 } from "../src/model/domain/errors.js";
 import { addOneClient, authorizationService } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("getClientUsers", async () => {
   const organizationId: TenantId = generateId();
@@ -27,11 +31,12 @@ describe("getClientUsers", async () => {
   it("should get from the readModel the users in the specified client", async () => {
     await addOneClient(mockClient);
 
-    const { users } = await authorizationService.getClientUsers({
-      clientId: mockClient.id,
-      organizationId,
-      logger: genericLogger,
+    const users = await mockClientRouterRequest.get({
+      path: "/clients/:clientId/users",
+      pathParams: { clientId: mockClient.id },
+      authData: getMockAuthData(organizationId),
     });
+
     expect(users).toEqual([userId1, userId2]);
   });
   it("should throw clientNotFound if the client with the specified Id doesn't exist", async () => {

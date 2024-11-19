@@ -22,6 +22,7 @@ import {
 } from "pagopa-interop-commons";
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   getMockClient,
   getMockKey,
   readLastEventByStreamId,
@@ -44,8 +45,11 @@ import {
   addOneProducerKeychain,
   authorizationService,
   postgresDB,
-  selfcareV2Client,
 } from "./utils.js";
+import {
+  mockProducerKeyChainRouterRequest,
+  mockSelfcareV2ClientCall,
+} from "./supertestSetup.js";
 
 describe("createProducerKeychainKey", () => {
   const producerId: TenantId = generateId();
@@ -75,16 +79,6 @@ describe("createProducerKeychainKey", () => {
     alg: "",
   };
 
-  function mockSelfcareV2ClientCall(
-    value: Awaited<
-      ReturnType<typeof selfcareV2Client.getInstitutionProductUsersUsingGET>
-    >
-  ): void {
-    selfcareV2Client.getInstitutionProductUsersUsingGET = vi.fn(
-      async () => value
-    );
-  }
-
   const mockSelfCareUsers: selfcareV2ClientApi.UserResource = {
     id: generateId(),
     name: "test",
@@ -94,14 +88,9 @@ describe("createProducerKeychainKey", () => {
   };
 
   const mockAuthData: AuthData = {
+    ...getMockAuthData(),
     organizationId: producerId,
-    selfcareId: generateId(),
-    externalId: {
-      value: "",
-      origin: "",
-    },
     userId,
-    userRoles: [],
   };
 
   const mockProducerKeychain: ProducerKeychain = {
@@ -112,26 +101,23 @@ describe("createProducerKeychainKey", () => {
 
   it("should create the keys and add them to the producer keychain", async () => {
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
-
     await addOneProducerKeychain(mockProducerKeychain);
 
-    const producerKeychain =
-      await authorizationService.createProducerKeychainKey({
-        producerKeychainId: mockProducerKeychain.id,
-        authData: mockAuthData,
-        keySeed,
-        correlationId: generateId(),
-        logger: genericLogger,
-      });
+    await mockProducerKeyChainRouterRequest.post({
+      path: "/producerKeychains/:producerKeychainId/keys",
+      body: { ...keySeed },
+      pathParams: { producerKeychainId: mockProducerKeychain.id },
+      authData: mockAuthData,
+    });
 
     const writtenEvent = await readLastEventByStreamId(
-      producerKeychain.id,
+      mockProducerKeychain.id,
       '"authorization"',
       postgresDB
     );
 
     expect(writtenEvent).toMatchObject({
-      stream_id: producerKeychain.id,
+      stream_id: mockProducerKeychain.id,
       version: "1",
       type: "ProducerKeychainKeyAdded",
       event_version: 2,
@@ -164,7 +150,9 @@ describe("createProducerKeychainKey", () => {
   });
   it("should throw producerKeychainNotFound if the producer keychain doesn't exist ", async () => {
     await addOneProducerKeychain(getMockProducerKeychain());
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.createProducerKeychainKey({
         producerKeychainId: mockProducerKeychain.id,
@@ -182,6 +170,7 @@ describe("createProducerKeychainKey", () => {
     };
 
     await addOneProducerKeychain(notProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
 
     expect(
@@ -253,7 +242,9 @@ describe("createProducerKeychainKey", () => {
     };
 
     await addOneProducerKeychain(noUsersProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.createProducerKeychainKey({
         producerKeychainId: noUsersProducerKeychain.id,
@@ -283,7 +274,9 @@ describe("createProducerKeychainKey", () => {
     };
 
     await addOneProducerKeychain(mockProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.createProducerKeychainKey({
         producerKeychainId: mockProducerKeychain.id,
@@ -305,6 +298,7 @@ describe("createProducerKeychainKey", () => {
       keys: [key],
     };
     await addOneProducerKeychain(producerKeychainWithDuplicateKey);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
 
     expect(
@@ -392,7 +386,9 @@ describe("createProducerKeychainKey", () => {
     };
 
     await addOneProducerKeychain(mockProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.createProducerKeychainKey({
         producerKeychainId: mockProducerKeychain.id,
@@ -412,7 +408,9 @@ describe("createProducerKeychainKey", () => {
     };
 
     await addOneProducerKeychain(mockProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.createProducerKeychainKey({
         producerKeychainId: mockProducerKeychain.id,

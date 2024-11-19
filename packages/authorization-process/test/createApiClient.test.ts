@@ -2,6 +2,7 @@ import { describe, it, vi, beforeAll, afterAll, expect } from "vitest";
 import {
   Client,
   ClientAddedV2,
+  ClientId,
   TenantId,
   UserId,
   clientKind,
@@ -9,13 +10,14 @@ import {
   toClientV2,
   unsafeBrandId,
 } from "pagopa-interop-models";
-import { genericLogger } from "pagopa-interop-commons";
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   readLastEventByStreamId,
 } from "pagopa-interop-commons-test/index.js";
 import { authorizationApi } from "pagopa-interop-api-clients";
-import { authorizationService, postgresDB } from "./utils.js";
+import { postgresDB } from "./utils.js";
+import { mockClientRouterRequest } from "./supertestSetup.js";
 
 describe("createConsumerClient", () => {
   const userId: UserId = generateId();
@@ -36,15 +38,15 @@ describe("createConsumerClient", () => {
   };
   it("should write on event-store for the creation of a api client", async () => {
     const organizationId: TenantId = generateId();
-    const { client } = await authorizationService.createApiClient({
-      clientSeed,
-      organizationId,
-      correlationId: generateId(),
-      logger: genericLogger,
+
+    const client = await mockClientRouterRequest.post({
+      path: "/clientsApi",
+      body: { ...clientSeed },
+      authData: getMockAuthData(organizationId),
     });
 
     const writtenEvent = await readLastEventByStreamId(
-      client.id,
+      client.id as ClientId,
       '"authorization"',
       postgresDB
     );
@@ -62,7 +64,7 @@ describe("createConsumerClient", () => {
     });
 
     const expectedClient: Client = {
-      id: client.id,
+      id: client.id as ClientId,
       keys: [],
       name: clientSeed.name,
       createdAt: new Date(),

@@ -2,6 +2,7 @@
 
 import {
   decodeProtobufPayload,
+  getMockAuthData,
   getMockProducerKeychain,
   getRandomAuthData,
 } from "pagopa-interop-commons-test";
@@ -13,7 +14,7 @@ import {
   generateId,
   toProducerKeychainV2,
 } from "pagopa-interop-models";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { AuthData, genericLogger } from "pagopa-interop-commons";
 import { selfcareV2ClientApi } from "pagopa-interop-api-clients";
 import {
@@ -26,18 +27,11 @@ import {
   addOneProducerKeychain,
   authorizationService,
   readLastAuthorizationEvent,
-  selfcareV2Client,
 } from "./utils.js";
-
-function mockSelfcareV2ClientCall(
-  value: Awaited<
-    ReturnType<typeof selfcareV2Client.getInstitutionProductUsersUsingGET>
-  >
-): void {
-  selfcareV2Client.getInstitutionProductUsersUsingGET = vi.fn(
-    async () => value
-  );
-}
+import {
+  mockProducerKeyChainRouterRequest,
+  mockSelfcareV2ClientCall,
+} from "./supertestSetup.js";
 
 const mockSelfCareUsers: selfcareV2ClientApi.UserResource = {
   id: generateId(),
@@ -63,15 +57,12 @@ describe("addProducerKeychainUsers", () => {
 
     await addOneProducerKeychain(mockProducerKeychain);
 
-    await authorizationService.addProducerKeychainUsers(
-      {
-        producerKeychainId: mockProducerKeychain.id,
-        userIds: userIdsToAdd,
-        authData: getRandomAuthData(producerId),
-      },
-      generateId(),
-      genericLogger
-    );
+    await mockProducerKeyChainRouterRequest.post({
+      path: "/producerKeychains/:producerKeychainId/users",
+      body: { userIds: userIdsToAdd },
+      pathParams: { producerKeychainId: mockProducerKeychain.id },
+      authData: getMockAuthData(producerId),
+    });
 
     const writtenEvent = await readLastAuthorizationEvent(
       mockProducerKeychain.id
@@ -110,7 +101,9 @@ describe("addProducerKeychainUsers", () => {
     };
 
     await addOneProducerKeychain(getMockProducerKeychain());
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
+
     expect(
       authorizationService.addProducerKeychainUsers(
         {
@@ -136,6 +129,7 @@ describe("addProducerKeychainUsers", () => {
     };
 
     await addOneProducerKeychain(mockProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
 
     expect(
@@ -165,6 +159,7 @@ describe("addProducerKeychainUsers", () => {
     };
 
     await addOneProducerKeychain(mockProducerKeychain);
+
     mockSelfcareV2ClientCall([mockSelfCareUsers]);
 
     expect(

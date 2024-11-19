@@ -226,14 +226,14 @@ const authorizationRouter = (
           const clients = await authorizationService.getClients({
             filters: {
               name,
-              userIds: userIds?.map(unsafeBrandId<UserId>),
+              userIds: userIds.map(unsafeBrandId<UserId>),
               consumerId: unsafeBrandId(consumerId),
               purposeId: purposeId
                 ? unsafeBrandId<PurposeId>(purposeId)
                 : undefined,
               kind: kind && apiClientKindToClientKind(kind),
             },
-            authData: req.ctx.authData,
+            authData: ctx.authData,
             offset,
             limit,
             logger: ctx.logger,
@@ -413,7 +413,7 @@ const authorizationRouter = (
         try {
           const { client } = await authorizationService.createKeys({
             clientId: unsafeBrandId(req.params.clientId),
-            authData: req.ctx.authData,
+            authData: ctx.authData,
             keysSeeds: req.body,
             correlationId: req.ctx.correlationId,
             logger: ctx.logger,
