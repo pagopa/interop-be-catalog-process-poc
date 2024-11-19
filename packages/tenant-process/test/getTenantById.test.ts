@@ -2,9 +2,11 @@
 import { describe, expect, it } from "vitest";
 import { Tenant } from "pagopa-interop-models";
 import { genericLogger } from "pagopa-interop-commons";
-import { getMockTenant } from "pagopa-interop-commons-test";
+import { getMockAuthData, getMockTenant } from "pagopa-interop-commons-test";
 import { tenantNotFound } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import { addOneTenant, tenantService } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getTenantById", () => {
   const tenant1: Tenant = {
@@ -24,11 +26,16 @@ describe("getTenantById", () => {
     await addOneTenant(tenant1);
     await addOneTenant(tenant2);
     await addOneTenant(tenant3);
-    const returnedTenant = await tenantService.getTenantById(
-      tenant1.id,
-      genericLogger
-    );
-    expect(returnedTenant).toEqual(tenant1);
+
+    const returnedTenant = await mockTenantRouterRequest.get({
+      path: "/tenants/:id",
+      pathParams: {
+        id: tenant1.id,
+      },
+      authData: getMockAuthData(),
+    });
+
+    expect(returnedTenant).toEqual(toApiTenant(tenant1));
   });
   it("should throw tenantNotFound if the tenant isn't in DB", async () => {
     await addOneTenant(tenant2);

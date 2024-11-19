@@ -18,6 +18,7 @@ import {
   verifiedAttributeNotFoundInTenant,
   organizationNotFoundInVerifiers,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   currentDate,
@@ -27,6 +28,7 @@ import {
   readLastTenantEvent,
   tenantService,
 } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("updateTenantVerifiedAttribute", async () => {
   const correlationId: CorrelationId = generateId();
@@ -61,20 +63,14 @@ describe("updateTenantVerifiedAttribute", async () => {
   const verifierId = mockVerifiedBy.id;
   it("should update the expirationDate", async () => {
     await addOneTenant(tenant);
-    const returnedTenant = await tenantService.updateTenantVerifiedAttribute(
-      {
-        verifierId,
-        tenantId: tenant.id,
-        attributeId,
-        updateVerifiedTenantAttributeSeed,
-      },
-      {
-        correlationId,
-        logger: genericLogger,
-        serviceName: "",
-        authData: getMockAuthData(),
-      }
-    );
+
+    const returnedTenant = await mockTenantRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/verified/:attributeId",
+      pathParams: { tenantId: tenant.id, attributeId },
+      body: { ...updateVerifiedTenantAttributeSeed },
+      authData: getMockAuthData(verifierId),
+    });
+
     const writtenEvent = await readLastTenantEvent(tenant.id);
     if (!writtenEvent) {
       fail("Creation fails: tenant not found in event-store");
@@ -101,7 +97,7 @@ describe("updateTenantVerifiedAttribute", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("should throw tenantNotFound when tenant doesn't exist", async () => {
     expect(

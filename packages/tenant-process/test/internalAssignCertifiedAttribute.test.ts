@@ -11,6 +11,7 @@ import {
   getMockAttribute,
   getMockTenant,
   readEventByStreamIdAndVersion,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   generateId,
@@ -23,7 +24,7 @@ import {
   toTenantV2,
 } from "pagopa-interop-models";
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import { genericLogger } from "pagopa-interop-commons";
+import { AuthData, genericLogger, userRoles } from "pagopa-interop-commons";
 import {
   attributeNotFound,
   certifiedAttributeAlreadyAssigned,
@@ -35,11 +36,19 @@ import {
   postgresDB,
   tenantService,
 } from "./utils.js";
+import { mockInternalTenantRouterRequest } from "./supertestSetup.js";
 
 describe("internalAssignCertifiedAttributes", async () => {
+  const authData: AuthData = {
+    ...getMockAuthData(),
+    userRoles: [userRoles.INTERNAL_ROLE],
+  };
+
   const attribute: Attribute = {
     ...getMockAttribute(),
     kind: attributeKind.certified,
+    origin: "IPA",
+    code: generateId(),
   };
 
   beforeAll(async () => {
@@ -58,16 +67,18 @@ describe("internalAssignCertifiedAttributes", async () => {
     };
     await writeInReadmodel(toReadModelAttribute(attribute), attributes);
     await addOneTenant(targetTenant);
-    await tenantService.internalAssignCertifiedAttribute(
-      {
-        tenantOrigin: targetTenant.externalId.origin,
-        tenantExternalId: targetTenant.externalId.value,
-        attributeOrigin: attribute.origin!,
-        attributeExternalId: attribute.code!,
-        correlationId: generateId(),
+
+    await mockInternalTenantRouterRequest.post({
+      path: "/internal/origin/:tOrigin/externalId/:tExternalId/attributes/origin/:aOrigin/externalId/:aExternalId",
+      pathParams: {
+        tOrigin: targetTenant.externalId.origin,
+        tExternalId: targetTenant.externalId.value,
+        aOrigin: attribute.origin!,
+        aExternalId: attribute.code!,
       },
-      genericLogger
-    );
+      authData,
+    });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       targetTenant.id,
       1,
@@ -115,16 +126,18 @@ describe("internalAssignCertifiedAttributes", async () => {
 
     await writeInReadmodel(toReadModelAttribute(attribute), attributes);
     await addOneTenant(tenantWithCertifiedAttribute);
-    await tenantService.internalAssignCertifiedAttribute(
-      {
-        tenantOrigin: tenantWithCertifiedAttribute.externalId.origin,
-        tenantExternalId: tenantWithCertifiedAttribute.externalId.value,
-        attributeOrigin: attribute.origin!,
-        attributeExternalId: attribute.code!,
-        correlationId: generateId(),
+
+    await mockInternalTenantRouterRequest.post({
+      path: "/internal/origin/:tOrigin/externalId/:tExternalId/attributes/origin/:aOrigin/externalId/:aExternalId",
+      pathParams: {
+        tOrigin: tenantWithCertifiedAttribute.externalId.origin,
+        tExternalId: tenantWithCertifiedAttribute.externalId.value,
+        aOrigin: attribute.origin!,
+        aExternalId: attribute.code!,
       },
-      genericLogger
-    );
+      authData,
+    });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       tenantWithCertifiedAttribute.id,
       1,

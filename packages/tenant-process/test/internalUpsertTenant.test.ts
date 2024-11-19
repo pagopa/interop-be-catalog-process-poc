@@ -26,6 +26,7 @@ import {
   certifiedAttributeAlreadyAssigned,
   tenantNotFoundByExternalId,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   tenantService,
@@ -33,6 +34,7 @@ import {
   attributes,
   postgresDB,
 } from "./utils.js";
+import { mockInternalTenantRouterRequest } from "./supertestSetup.js";
 
 describe("internalUpsertTenant", async () => {
   const tenantSeed: tenantApi.InternalTenantSeed = {
@@ -80,15 +82,13 @@ describe("internalUpsertTenant", async () => {
 
     await writeInReadmodel(toReadModelAttribute(attribute1), attributes);
     await addOneTenant(mockTenant);
-    const returnedTenant = await tenantService.internalUpsertTenant(
-      tenantSeed,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+
+    const returnedTenant = await mockInternalTenantRouterRequest.post({
+      path: "/internal/tenants",
+      body: { ...tenantSeed },
+      authData,
+    });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       mockTenant.id,
       1,
@@ -123,7 +123,7 @@ describe("internalUpsertTenant", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(expectedTenant));
-    expect(returnedTenant).toEqual(expectedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(expectedTenant));
   });
 
   it("Should re-assign the attributes if they were revoked", async () => {
@@ -182,15 +182,11 @@ describe("internalUpsertTenant", async () => {
 
     await addOneTenant(tenant);
 
-    const returnedTenant = await tenantService.internalUpsertTenant(
-      tenantSeed2,
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const returnedTenant = await mockInternalTenantRouterRequest.post({
+      path: "/internal/tenants",
+      body: { ...tenantSeed2 },
+      authData,
+    });
 
     const writtenEvent = await readLastTenantEvent(mockTenant.id);
     if (!writtenEvent) {
@@ -227,7 +223,7 @@ describe("internalUpsertTenant", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(expectedTenant));
-    expect(returnedTenant).toEqual(expectedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(expectedTenant));
   });
   it("Should throw certifiedAttributeAlreadyAssigned if the attribute was already assigned", async () => {
     const tenantAlreadyAssigned: Tenant = {

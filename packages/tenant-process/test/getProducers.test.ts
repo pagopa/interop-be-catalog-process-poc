@@ -6,11 +6,14 @@ import {
   descriptorState,
 } from "pagopa-interop-models";
 import {
+  getMockAuthData,
   getMockDescriptor,
   getMockEService,
   getMockTenant,
 } from "pagopa-interop-commons-test";
-import { addOneEService, addOneTenant, readModelService } from "./utils.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
+import { addOneEService, addOneTenant } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getProducers", () => {
   const tenant1: Tenant = {
@@ -71,13 +74,18 @@ describe("getProducers", () => {
     };
     await addOneEService(eService3);
 
-    const producers = await readModelService.getProducers({
-      producerName: undefined,
-      offset: 0,
-      limit: 50,
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: undefined, offset: 0, limit: 50 },
+      authData: getMockAuthData(),
     });
+
     expect(producers.totalCount).toBe(3);
-    expect(producers.results).toEqual([tenant1, tenant2, tenant3]);
+    expect(producers.results).toEqual([
+      toApiTenant(tenant1),
+      toApiTenant(tenant2),
+      toApiTenant(tenant3),
+    ]);
   });
   it("should get producers by name", async () => {
     await addOneTenant(tenant1);
@@ -110,13 +118,14 @@ describe("getProducers", () => {
     };
     await addOneEService(eService2);
 
-    const producers = await readModelService.getProducers({
-      producerName: tenant1.name,
-      offset: 0,
-      limit: 50,
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: tenant1.name, offset: 0, limit: 50 },
+      authData: getMockAuthData(),
     });
+
     expect(producers.totalCount).toBe(1);
-    expect(producers.results).toEqual([tenant1]);
+    expect(producers.results).toEqual([toApiTenant(tenant1)]);
   });
   it("should not get any tenants if no one matches the requested name", async () => {
     await addOneTenant(tenant1);
@@ -149,11 +158,12 @@ describe("getProducers", () => {
     };
     await addOneEService(eService2);
 
-    const producers = await readModelService.getProducers({
-      producerName: "Tenant 6",
-      offset: 0,
-      limit: 50,
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: "Tenant 6", offset: 0, limit: 50 },
+      authData: getMockAuthData(),
     });
+
     expect(producers.totalCount).toBe(0);
     expect(producers.results).toEqual([]);
   });
@@ -184,11 +194,12 @@ describe("getProducers", () => {
     };
     await addOneEService(eService2);
 
-    const producers = await readModelService.getProducers({
-      producerName: "A tenant",
-      offset: 0,
-      limit: 50,
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: "A tenant", offset: 0, limit: 50 },
+      authData: getMockAuthData(),
     });
+
     expect(producers.totalCount).toBe(0);
     expect(producers.results).toEqual([]);
   });
@@ -237,12 +248,14 @@ describe("getProducers", () => {
       producerId: tenant3.id,
     };
     await addOneEService(eService3);
-    const tenantsByName = await readModelService.getProducers({
-      producerName: undefined,
-      offset: 0,
-      limit: 3,
+
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: undefined, offset: 0, limit: 3 },
+      authData: getMockAuthData(),
     });
-    expect(tenantsByName.results.length).toBe(3);
+
+    expect(producers.results.length).toBe(3);
   });
   it("should get producers (pagination: offset, limit)", async () => {
     await addOneTenant(tenant1);
@@ -289,11 +302,13 @@ describe("getProducers", () => {
       producerId: tenant3.id,
     };
     await addOneEService(eService3);
-    const tenantsByName = await readModelService.getProducers({
-      producerName: undefined,
-      offset: 2,
-      limit: 3,
+
+    const producers = await mockTenantRouterRequest.get({
+      path: "/producers",
+      queryParams: { name: undefined, offset: 2, limit: 3 },
+      authData: getMockAuthData(),
     });
-    expect(tenantsByName.results.length).toBe(1);
+
+    expect(producers.results.length).toBe(1);
   });
 });

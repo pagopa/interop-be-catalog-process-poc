@@ -373,7 +373,7 @@ const tenantsRouter = (
             {
               tenantId: unsafeBrandId(req.params.tenantId),
               certifierId: req.body.certifierId,
-              correlationId: req.ctx.correlationId,
+              correlationId: ctx.correlationId,
             },
             ctx.logger
           );
@@ -583,9 +583,9 @@ const tenantsRouter = (
           await tenantService.m2mRevokeCertifiedAttribute({
             tenantOrigin: origin,
             tenantExternalId: externalId,
-            organizationId: req.ctx.authData.organizationId,
+            organizationId: ctx.authData.organizationId,
             attributeExternalId: code,
-            correlationId: req.ctx.correlationId,
+            correlationId: ctx.correlationId,
             logger: ctx.logger,
           });
           return res.status(204).send();
@@ -823,8 +823,8 @@ const tenantsRouter = (
             {
               tenantId: unsafeBrandId(req.params.tenantId),
               tenantAttributeSeed: req.body,
-              organizationId: req.ctx.authData.organizationId,
-              correlationId: req.ctx.correlationId,
+              organizationId: ctx.authData.organizationId,
+              correlationId: ctx.correlationId,
             },
             ctx.logger
           );

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {
   getMockAttribute,
+  getMockAuthData,
   getMockTenant,
   writeInReadmodel,
 } from "pagopa-interop-commons-test/index.js";
@@ -18,7 +19,7 @@ import {
   toTenantV2,
 } from "pagopa-interop-models";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { genericLogger } from "pagopa-interop-commons";
+import { AuthData, genericLogger } from "pagopa-interop-commons";
 import {
   attributeNotFound,
   attributeNotFoundInTenant,
@@ -32,6 +33,7 @@ import {
   readLastTenantEvent,
   tenantService,
 } from "./utils.js";
+import { mockM2MTenantRouterRequest } from "./supertestSetup.js";
 
 describe("m2mRevokeCertifiedAttribute", () => {
   beforeAll(() => {
@@ -44,9 +46,15 @@ describe("m2mRevokeCertifiedAttribute", () => {
 
   it("should write on event-store for the revocation of a certified attribute", async () => {
     const certifierId = generateId();
+
     const requesterTenant: Tenant = {
       ...getMockTenant(),
       features: [{ certifierId, type: "PersistentCertifier" }],
+    };
+
+    const authData: AuthData = {
+      ...getMockAuthData(requesterTenant.id),
+      userRoles: ["m2m"],
     };
     const mockAttribute: Attribute = {
       ...getMockAttribute(),
@@ -65,17 +73,19 @@ describe("m2mRevokeCertifiedAttribute", () => {
         },
       ],
     };
+
     await writeInReadmodel(toReadModelAttribute(mockAttribute), attributes);
     await addOneTenant(requesterTenant);
     await addOneTenant(targetTenant);
 
-    await tenantService.m2mRevokeCertifiedAttribute({
-      organizationId: requesterTenant.id,
-      tenantOrigin: targetTenant.externalId.origin,
-      tenantExternalId: targetTenant.externalId.value,
-      attributeExternalId: mockAttribute.code!,
-      correlationId: generateId(),
-      logger: genericLogger,
+    await mockM2MTenantRouterRequest.delete({
+      path: "/m2m/origin/:origin/externalId/:externalId/attributes/:code",
+      pathParams: {
+        origin: targetTenant.externalId.origin,
+        externalId: targetTenant.externalId.value,
+        code: mockAttribute.code!,
+      },
+      authData,
     });
 
     const writtenEvent = await readLastTenantEvent(targetTenant.id);

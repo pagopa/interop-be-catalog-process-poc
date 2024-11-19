@@ -6,6 +6,7 @@ import {
   getMockAttribute,
   readLastEventByStreamId,
   getMockTenant,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   generateId,
@@ -24,12 +25,14 @@ import {
   tenantNotFound,
   attributeNotFound,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   attributes,
   postgresDB,
   tenantService,
 } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("addDeclaredAttribute", async () => {
   const declaredAttribute: Attribute = {
@@ -56,14 +59,13 @@ describe("addDeclaredAttribute", async () => {
 
     await writeInReadmodel(toReadModelAttribute(declaredAttribute), attributes);
     await addOneTenant(tenantWithoutDeclaredAttribute);
-    const returnedTenant = await tenantService.addDeclaredAttribute(
-      {
-        tenantAttributeSeed: { id: declaredAttribute.id },
-        organizationId: tenantWithoutDeclaredAttribute.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/attributes/declared",
+      body: { id: declaredAttribute.id },
+      authData: getMockAuthData(tenantWithoutDeclaredAttribute.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenantWithoutDeclaredAttribute.id,
       "tenant",
@@ -93,7 +95,7 @@ describe("addDeclaredAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should re-assign the declared attribute if it was revoked", async () => {
     const tenantWithAttributeRevoked: Tenant = {
@@ -109,14 +111,13 @@ describe("addDeclaredAttribute", async () => {
     };
     await writeInReadmodel(toReadModelAttribute(declaredAttribute), attributes);
     await addOneTenant(tenantWithAttributeRevoked);
-    const returnedTenant = await tenantService.addDeclaredAttribute(
-      {
-        tenantAttributeSeed: { id: declaredAttribute.id },
-        organizationId: tenantWithAttributeRevoked.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/attributes/declared",
+      body: { id: declaredAttribute.id },
+      authData: getMockAuthData(tenantWithAttributeRevoked.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenantWithAttributeRevoked.id,
       "tenant",
@@ -146,7 +147,7 @@ describe("addDeclaredAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should throw tenantNotFound if the tenant doesn't exist", async () => {
     await writeInReadmodel(toReadModelAttribute(declaredAttribute), attributes);

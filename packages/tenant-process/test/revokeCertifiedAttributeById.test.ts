@@ -38,6 +38,7 @@ import {
   attributes,
   postgresDB,
 } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("revokeCertifiedAttributeById", async () => {
   const requesterTenant: Tenant = {
@@ -81,18 +82,16 @@ describe("revokeCertifiedAttributeById", async () => {
     await writeInReadmodel(toReadModelAttribute(attribute), attributes);
     await addOneTenant(tenantWithCertifiedAttribute);
     await addOneTenant(requesterTenant);
-    await tenantService.revokeCertifiedAttributeById(
-      {
+
+    await mockTenantAttributeRouterRequest.delete({
+      path: "/tenants/:tenantId/attributes/certified/:attributeId",
+      pathParams: {
         tenantId: tenantWithCertifiedAttribute.id,
         attributeId: attribute.id,
       },
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+      authData,
+    });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       tenantWithCertifiedAttribute.id,
       1,

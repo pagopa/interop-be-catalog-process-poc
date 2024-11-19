@@ -11,11 +11,13 @@ import {
 import { describe, it, expect, vi, afterAll, beforeAll } from "vitest";
 import { genericLogger } from "pagopa-interop-commons";
 import {
+  getMockAuthData,
   getMockTenant,
   readLastEventByStreamId,
 } from "pagopa-interop-commons-test";
 import { mailNotFound, tenantNotFound } from "../src/model/domain/errors.js";
 import { addOneTenant, postgresDB, tenantService } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("deleteTenantMailById", async () => {
   const mailId = generateId();
@@ -49,15 +51,13 @@ describe("deleteTenantMailById", async () => {
     };
 
     await addOneTenant(tenant);
-    await tenantService.deleteTenantMailById(
-      {
-        tenantId: tenant.id,
-        mailId,
-        organizationId: tenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    await mockTenantRouterRequest.delete({
+      path: "/tenants/:tenantId/mails/:mailId",
+      pathParams: { tenantId: tenant.id, mailId },
+      authData: getMockAuthData(tenant.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenant.id,
       "tenant",

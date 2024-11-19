@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {
+  getMockAuthData,
   getMockTenant,
   readLastEventByStreamId,
 } from "pagopa-interop-commons-test";
@@ -18,7 +19,9 @@ import {
   tenantNotFound,
   attributeNotFound,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import { addOneTenant, postgresDB, tenantService } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("revokeDeclaredAttribute", async () => {
   const attributeId: AttributeId = generateId();
@@ -47,14 +50,15 @@ describe("revokeDeclaredAttribute", async () => {
 
   it("Should revoke the declared attribute if it exist in tenant", async () => {
     await addOneTenant(tenant);
-    const returnedTenant = await tenantService.revokeDeclaredAttribute(
-      {
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.delete({
+      path: "/tenants/attributes/declared/:attributeId",
+      pathParams: {
         attributeId,
-        organizationId: tenant.id,
-        correlationId: generateId(),
       },
-      genericLogger
-    );
+      authData: getMockAuthData(tenant.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenant.id,
       "tenant",
@@ -84,7 +88,7 @@ describe("revokeDeclaredAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should throw tenantNotFound if the tenant doesn't exist", async () => {
     expect(

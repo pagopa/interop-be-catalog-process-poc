@@ -26,6 +26,7 @@ import {
   getMockDescriptor,
   getMockEService,
   getMockTenant,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import { tenantApi } from "pagopa-interop-api-clients";
 import {
@@ -34,6 +35,7 @@ import {
   verifiedAttributeSelfVerificationNotAllowed,
   attributeNotFound,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   getMockAgreement,
@@ -46,6 +48,7 @@ import {
   agreements,
   postgresDB,
 } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("verifyVerifiedAttribute", async () => {
   const targetTenant = getMockTenant();
@@ -104,15 +107,13 @@ describe("verifyVerifiedAttribute", async () => {
       toReadModelAgreement(agreementEservice1),
       agreements
     );
-    const returnedTenant = await tenantService.verifyVerifiedAttribute(
-      {
-        tenantId: targetTenant.id,
-        tenantAttributeSeed,
-        organizationId: requesterTenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/verified",
+      pathParams: { tenantId: targetTenant.id },
+      body: { ...tenantAttributeSeed },
+      authData: getMockAuthData(requesterTenant.id),
+    });
 
     const writtenEvent = await readLastEventByStreamId(
       targetTenant.id,
@@ -155,7 +156,7 @@ describe("verifyVerifiedAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should verify the VerifiedAttribute if verifiedTenantAttribute exist", async () => {
     const mockVerifiedBy = getMockVerifiedBy();
@@ -186,15 +187,13 @@ describe("verifyVerifiedAttribute", async () => {
       agreements
     );
 
-    const returnedTenant = await tenantService.verifyVerifiedAttribute(
-      {
-        tenantId: tenantWithVerifiedAttribute.id,
-        tenantAttributeSeed,
-        organizationId: requesterTenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/verified",
+      pathParams: { tenantId: tenantWithVerifiedAttribute.id },
+      body: { ...tenantAttributeSeed },
+      authData: getMockAuthData(requesterTenant.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenantWithVerifiedAttribute.id,
       "tenant",
@@ -233,7 +232,7 @@ describe("verifyVerifiedAttribute", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should throw tenantNotFound if the tenant doesn't exist", async () => {
     await writeInReadmodel(toReadModelEService(eService1), eservices);

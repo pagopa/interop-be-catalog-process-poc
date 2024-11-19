@@ -30,6 +30,7 @@ import {
   attributeRevocationNotAllowed,
   verifiedAttributeSelfRevocationNotAllowed,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   getMockAgreement,
@@ -41,6 +42,7 @@ import {
   tenantService,
   postgresDB,
 } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("revokeVerifiedAttribute", async () => {
   const targetTenant = getMockTenant();
@@ -109,18 +111,14 @@ describe("revokeVerifiedAttribute", async () => {
     await writeInReadmodel(toReadModelEService(eService), eservices);
     await writeInReadmodel(toReadModelAgreement(agreementEservice), agreements);
 
-    const returnedTenant = await tenantService.revokeVerifiedAttribute(
-      {
+    const returnedTenant = await mockTenantAttributeRouterRequest.delete({
+      path: "/tenants/:tenantId/attributes/verified/:attributeId",
+      pathParams: {
         tenantId: tenantWithVerifiedAttribute.id,
         attributeId: verifiedAttribute.id,
       },
-      {
-        authData,
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+      authData,
+    });
 
     const writtenEvent = await readLastEventByStreamId(
       tenantWithVerifiedAttribute.id,
@@ -160,7 +158,7 @@ describe("revokeVerifiedAttribute", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should throw tenantNotFound if the tenant doesn't exist", async () => {
     await writeInReadmodel(toReadModelEService(eService), eservices);

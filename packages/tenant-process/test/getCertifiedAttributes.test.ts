@@ -9,12 +9,14 @@ import {
   getMockAttribute,
   getMockTenant,
   getMockCertifiedTenantAttribute,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   tenantIsNotACertifier,
   tenantNotFound,
 } from "../src/model/domain/errors.js";
 import { addOneAttribute, addOneTenant, tenantService } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getCertifiedAttributes", () => {
   it("should get certified attributes certified by the passed certifier id", async () => {
@@ -60,10 +62,10 @@ describe("getCertifiedAttributes", () => {
     await addOneTenant(tenantCertifier);
     await addOneTenant(tenantWithCertifiedAttributes);
 
-    const result = await tenantService.getCertifiedAttributes({
-      organizationId: tenantCertifier.id,
-      offset: 0,
-      limit: 50,
+    const result = await mockTenantRouterRequest.get({
+      path: "/tenants/attributes/certified",
+      queryParams: { offset: 0, limit: 50 },
+      authData: getMockAuthData(tenantCertifier.id),
     });
 
     expect(result.totalCount).toBe(2);
@@ -126,10 +128,10 @@ describe("getCertifiedAttributes", () => {
     await addOneTenant(tenantCertifier);
     await addOneTenant(tenantWithCertifiedAttributes);
 
-    const result = await tenantService.getCertifiedAttributes({
-      organizationId: tenantCertifier.id,
-      offset: 0,
-      limit: 50,
+    const result = await mockTenantRouterRequest.get({
+      path: "/tenants/attributes/certified",
+      queryParams: { offset: 0, limit: 50 },
+      authData: getMockAuthData(tenantCertifier.id),
     });
 
     expect(result.totalCount).toBe(1);

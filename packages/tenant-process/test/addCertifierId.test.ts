@@ -9,9 +9,10 @@ import {
   toTenantV2,
 } from "pagopa-interop-models";
 import { describe, it, expect, vi, afterAll, beforeAll } from "vitest";
-import { genericLogger } from "pagopa-interop-commons";
+import { AuthData, genericLogger, userRoles } from "pagopa-interop-commons";
 import {
   getMockAttribute,
+  getMockAuthData,
   getMockTenant,
   readLastEventByStreamId,
   writeInReadmodel,
@@ -21,12 +22,14 @@ import {
   tenantIsAlreadyACertifier,
   certifierWithExistingAttributes,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   attributes,
   postgresDB,
   tenantService,
 } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("addCertifierId", async () => {
   const certifierId = generateId();
@@ -43,14 +46,19 @@ describe("addCertifierId", async () => {
   it("should write on event-store for the addition of the certifierId to the tenant", async () => {
     const mockTenant = getMockTenant();
     await addOneTenant(mockTenant);
-    const returnedTenant = await tenantService.addCertifierId(
-      {
-        tenantId: mockTenant.id,
-        certifierId,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const authData: AuthData = {
+      ...getMockAuthData(mockTenant.id),
+      userRoles: [userRoles.MAINTENANCE_ROLE],
+    };
+
+    const returnedTenant = await mockTenantRouterRequest.post({
+      path: "/maintenance/tenants/:tenantId/certifier",
+      body: { certifierId },
+      pathParams: { tenantId: mockTenant.id },
+      authData,
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       mockTenant.id,
       "tenant",
@@ -81,7 +89,7 @@ describe("addCertifierId", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(expectedTenant));
-    expect(returnedTenant).toEqual(expectedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(expectedTenant));
   });
   it("Should throw tenantNotFound when tenant doesn't exist", async () => {
     const mockTenant = getMockTenant();

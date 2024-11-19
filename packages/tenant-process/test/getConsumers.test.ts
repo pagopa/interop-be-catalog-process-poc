@@ -9,14 +9,16 @@ import {
   getMockTenant,
   getMockEService,
   getMockDescriptor,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneAgreement,
   addOneEService,
   addOneTenant,
   getMockAgreement,
-  readModelService,
 } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getConsumers", () => {
   const tenant1: Tenant = {
@@ -100,14 +102,18 @@ describe("getConsumers", () => {
     });
     await addOneAgreement(agreementEservice3);
 
-    const consumers = await readModelService.getConsumers({
-      consumerName: undefined,
-      producerId: eService1.producerId,
-      offset: 0,
-      limit: 50,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { offset: 0, limit: 50 },
+      authData: getMockAuthData(eService1.producerId),
     });
+
     expect(consumers.totalCount).toBe(3);
-    expect(consumers.results).toEqual([tenant1, tenant2, tenant3]);
+    expect(consumers.results).toEqual([
+      toApiTenant(tenant1),
+      toApiTenant(tenant2),
+      toApiTenant(tenant3),
+    ]);
   });
   it("should get the tenants consuming any of the eservices of a specific name", async () => {
     await addOneTenant(tenant1);
@@ -178,14 +184,14 @@ describe("getConsumers", () => {
     });
     await addOneAgreement(agreementEservice3);
 
-    const consumers = await readModelService.getConsumers({
-      consumerName: tenant1.name,
-      producerId: eService1.producerId,
-      offset: 0,
-      limit: 50,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { name: tenant1.name, offset: 0, limit: 50 },
+      authData: getMockAuthData(eService1.producerId),
     });
+
     expect(consumers.totalCount).toBe(1);
-    expect(consumers.results).toEqual([tenant1]);
+    expect(consumers.results).toEqual([toApiTenant(tenant1)]);
   });
   it("should not get any tenants, if no one is consuming any of the eservices of a specific producerId", async () => {
     await addOneTenant(tenant1);
@@ -232,12 +238,12 @@ describe("getConsumers", () => {
     };
     await addOneEService(eService3);
 
-    const consumers = await readModelService.getConsumers({
-      consumerName: undefined,
-      producerId: eService1.producerId,
-      offset: 0,
-      limit: 50,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { name: undefined, offset: 0, limit: 50 },
+      authData: getMockAuthData(eService1.producerId),
     });
+
     expect(consumers.totalCount).toBe(0);
     expect(consumers.results).toEqual([]);
   });
@@ -286,12 +292,12 @@ describe("getConsumers", () => {
     };
     await addOneEService(eService3);
 
-    const consumers = await readModelService.getConsumers({
-      consumerName: "Tenant 4",
-      producerId: eService1.producerId,
-      offset: 0,
-      limit: 50,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { name: "Tenant 4", offset: 0, limit: 50 },
+      authData: getMockAuthData(eService1.producerId),
     });
+
     expect(consumers.totalCount).toBe(0);
     expect(consumers.results).toEqual([]);
   });
@@ -364,13 +370,13 @@ describe("getConsumers", () => {
     });
     await addOneAgreement(agreementEservice3);
 
-    const tenantsByName = await readModelService.getConsumers({
-      consumerName: undefined,
-      producerId: eService1.producerId,
-      offset: 0,
-      limit: 2,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { name: undefined, offset: 0, limit: 2 },
+      authData: getMockAuthData(eService1.producerId),
     });
-    expect(tenantsByName.results.length).toBe(2);
+
+    expect(consumers.results.length).toBe(2);
   });
   it("should get consumers (pagination: offset, limit)", async () => {
     await addOneTenant(tenant1);
@@ -441,12 +447,12 @@ describe("getConsumers", () => {
     });
     await addOneAgreement(agreementEservice3);
 
-    const tenantsByName = await readModelService.getConsumers({
-      consumerName: undefined,
-      producerId: eService1.producerId,
-      offset: 2,
-      limit: 3,
+    const consumers = await mockTenantRouterRequest.get({
+      path: "/consumers",
+      queryParams: { name: undefined, offset: 2, limit: 3 },
+      authData: getMockAuthData(eService1.producerId),
     });
-    expect(tenantsByName.results.length).toBe(1);
+
+    expect(consumers.results.length).toBe(1);
   });
 });

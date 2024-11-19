@@ -3,9 +3,11 @@
 import { describe, expect, it } from "vitest";
 import { Tenant } from "pagopa-interop-models";
 import { genericLogger } from "pagopa-interop-commons";
-import { getMockTenant } from "pagopa-interop-commons-test";
+import { getMockAuthData, getMockTenant } from "pagopa-interop-commons-test";
 import { tenantNotFoundBySelfcareId } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import { addOneTenant, tenantService } from "./utils.js";
+import { mockSelfcareTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getTenantBySelfcareId", () => {
   const tenant1: Tenant = {
@@ -25,11 +27,14 @@ describe("getTenantBySelfcareId", () => {
     await addOneTenant(tenant1);
     await addOneTenant(tenant2);
     await addOneTenant(tenant3);
-    const returnedTenant = await tenantService.getTenantBySelfcareId(
-      tenant1.selfcareId!,
-      genericLogger
-    );
-    expect(returnedTenant).toEqual(tenant1);
+
+    const returnedTenant = await mockSelfcareTenantRouterRequest.get({
+      path: "/tenants/selfcare/:selfcareId",
+      pathParams: { selfcareId: tenant1.selfcareId! },
+      authData: getMockAuthData(),
+    });
+
+    expect(returnedTenant).toEqual(toApiTenant(tenant1));
   });
   it("should throw tenantNotFoundBySelfcareId if the tenant isn't in DB", async () => {
     await addOneTenant(tenant2);

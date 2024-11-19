@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { genericLogger } from "pagopa-interop-commons";
 import {
+  getMockAuthData,
   getMockTenant,
   getTenantOneCertifierFeature,
 } from "pagopa-interop-commons-test";
@@ -34,12 +35,14 @@ import {
   tenantIsNotACertifier,
   attributeDoesNotBelongToCertifier,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   attributes,
   addOneTenant,
   tenantService,
   postgresDB,
 } from "./utils.js";
+import { mockTenantAttributeRouterRequest } from "./supertestSetup.js";
 
 describe("addCertifiedAttribute", async () => {
   const tenantAttributeSeed: tenantApi.CertifiedTenantAttributeSeed = {
@@ -78,15 +81,14 @@ describe("addCertifiedAttribute", async () => {
     await addOneTenant(targetTenant);
     await writeInReadmodel(toReadModelAttribute(attribute), attributes);
     await addOneTenant(requesterTenant);
-    const returnedTenant = await tenantService.addCertifiedAttribute(
-      {
-        tenantId: targetTenant.id,
-        tenantAttributeSeed,
-        organizationId: requesterTenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/certified",
+      body: { ...tenantAttributeSeed },
+      pathParams: { tenantId: targetTenant.id },
+      authData: getMockAuthData(requesterTenant.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       targetTenant.id,
       "tenant",
@@ -116,7 +118,7 @@ describe("addCertifiedAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should store TenantCertifiedAttributeAssigned and tenantUpdatedKind events", async () => {
     await writeInReadmodel(toReadModelAttribute(attribute), attributes);
@@ -127,15 +129,13 @@ describe("addCertifiedAttribute", async () => {
     };
     await addOneTenant(tenantWithRevaluatedKind);
 
-    await tenantService.addCertifiedAttribute(
-      {
-        tenantId: tenantWithRevaluatedKind.id,
-        tenantAttributeSeed,
-        organizationId: requesterTenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+    await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/certified",
+      body: { ...tenantAttributeSeed },
+      pathParams: { tenantId: tenantWithRevaluatedKind.id },
+      authData: getMockAuthData(requesterTenant.id),
+    });
+
     const writtenEventTenantCertifiedAttributeAssigned =
       await readEventByStreamIdAndVersion(
         tenantWithRevaluatedKind.id,
@@ -181,15 +181,14 @@ describe("addCertifiedAttribute", async () => {
 
     await addOneTenant(tenantWithCertifiedAttribute);
     await addOneTenant(requesterTenant);
-    const returnedTenant = await tenantService.addCertifiedAttribute(
-      {
-        tenantId: tenantWithCertifiedAttribute.id,
-        tenantAttributeSeed,
-        organizationId: requesterTenant.id,
-        correlationId: generateId(),
-      },
-      genericLogger
-    );
+
+    const returnedTenant = await mockTenantAttributeRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/certified",
+      body: { ...tenantAttributeSeed },
+      pathParams: { tenantId: tenantWithCertifiedAttribute.id },
+      authData: getMockAuthData(requesterTenant.id),
+    });
+
     const writtenEvent = await readLastEventByStreamId(
       tenantWithCertifiedAttribute.id,
       "tenant",
@@ -219,7 +218,7 @@ describe("addCertifiedAttribute", async () => {
       updatedAt: new Date(),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("Should throw certifiedAttributeAlreadyAssigned if the attribute was already assigned", async () => {
     const tenantAlreadyAssigned: Tenant = {

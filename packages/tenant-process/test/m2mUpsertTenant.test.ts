@@ -27,6 +27,7 @@ import {
   tenantNotFound,
   tenantNotFoundByExternalId,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   addOneTenant,
   tenantService,
@@ -34,6 +35,7 @@ import {
   attributes,
   postgresDB,
 } from "./utils.js";
+import { mockM2MTenantRouterRequest } from "./supertestSetup.js";
 
 describe("m2mUpsertTenant", async () => {
   const certifierId = generateId();
@@ -99,12 +101,13 @@ describe("m2mUpsertTenant", async () => {
     await writeInReadmodel(toReadModelAttribute(attribute2), attributes);
 
     await addOneTenant(mockTenant);
-    const returnedTenant = await tenantService.m2mUpsertTenant(tenantSeed, {
+
+    const returnedTenant = await mockM2MTenantRouterRequest.post({
+      path: "/m2m/tenants",
+      body: { ...tenantSeed },
       authData,
-      correlationId: generateId(),
-      serviceName: "",
-      logger: genericLogger,
     });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       mockTenant.id,
       1,
@@ -182,7 +185,7 @@ describe("m2mUpsertTenant", async () => {
     };
 
     expect(writtenPayload2.tenant).toEqual(toTenantV2(expectedTenant2));
-    expect(returnedTenant).toEqual(expectedTenant2);
+    expect(returnedTenant).toEqual(toApiTenant(expectedTenant2));
   });
 
   it("Should re-assign the attributes if they were revoked", async () => {
@@ -248,11 +251,10 @@ describe("m2mUpsertTenant", async () => {
 
     await addOneTenant(tenant);
 
-    const returnedTenant = await tenantService.m2mUpsertTenant(tenantSeed2, {
+    const returnedTenant = await mockM2MTenantRouterRequest.post({
+      path: "/m2m/tenants",
+      body: { ...tenantSeed2 },
       authData,
-      correlationId: generateId(),
-      serviceName: "",
-      logger: genericLogger,
     });
 
     const writtenEvent = await readLastTenantEvent(tenant.id);
@@ -290,7 +292,7 @@ describe("m2mUpsertTenant", async () => {
     };
 
     expect(writtenPayload.tenant).toEqual(toTenantV2(expectedTenant));
-    expect(returnedTenant).toEqual(expectedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(expectedTenant));
   });
   it("Should throw certifiedAttributeAlreadyAssigned if the attribute was already assigned", async () => {
     const mockTenant: Tenant = {

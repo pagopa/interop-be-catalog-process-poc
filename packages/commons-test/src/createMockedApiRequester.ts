@@ -16,6 +16,7 @@ import type {
 import { AuthData } from "pagopa-interop-commons";
 import { generateId } from "pagopa-interop-models";
 import { getMockAuthData } from "./testUtils.js";
+import { createPayload } from "./mockedPayloadForToken.js";
 
 type MockedApiRequestOptions<
   TApi extends Array<ZodiosEndpointDefinition<unknown>>,
@@ -73,34 +74,7 @@ export function createMockedApiRequester<
         queryParams?: unknown;
       };
 
-      const payload = {
-        iss: "dev.interop.pagopa.it",
-        aud: "dev.interop.pagopa.it/ui",
-        uid: authData.userId,
-        nbf: Math.floor(Date.now() / 1000),
-        name: "Mario",
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000),
-        family_name: "Rossi",
-        jti: "1bca86f5-e913-4fce-bc47-2803bde44d2b",
-        email: "Mario.rossi@psp.it",
-        ...authData,
-        organization: {
-          id: authData.selfcareId,
-          name: "PagoPA S.p.A.",
-          roles: [
-            {
-              partyRole: "MANAGER",
-              role: "admin",
-            },
-          ],
-          fiscal_code: "15376371009",
-          ipaCode: "5N2TR557",
-        },
-        "user-roles": authData.userRoles.join(","),
-      };
-
-      const sessionToken = jwt.sign(payload, "test-secret");
+      const sessionToken = jwt.sign(createPayload(authData), "test-secret");
 
       const request = requester[method](resolvePathParams(path, pathParams));
 

@@ -5,6 +5,7 @@ import {
   getMockAttribute,
   getMockTenant,
   readEventByStreamIdAndVersion,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   generateId,
@@ -19,7 +20,7 @@ import {
   tenantAttributeType,
 } from "pagopa-interop-models";
 import { describe, it, expect, vi, afterAll, beforeAll } from "vitest";
-import { genericLogger } from "pagopa-interop-commons";
+import { AuthData, genericLogger, userRoles } from "pagopa-interop-commons";
 import {
   attributeNotFound,
   tenantNotFoundByExternalId,
@@ -32,8 +33,14 @@ import {
   attributes,
   postgresDB,
 } from "./utils.js";
+import { mockInternalTenantRouterRequest } from "./supertestSetup.js";
 
 describe("testInternalRevokeCertifiedAttribute", async () => {
+  const authData: AuthData = {
+    ...getMockAuthData(),
+    userRoles: [userRoles.INTERNAL_ROLE],
+  };
+
   const requesterTenant: Tenant = {
     ...getMockTenant(),
     features: [
@@ -58,7 +65,11 @@ describe("testInternalRevokeCertifiedAttribute", async () => {
   });
 
   it("should revoke the certified attribute if it exists", async () => {
-    const mockAttribute = getMockAttribute();
+    const mockAttribute: Attribute = {
+      ...getMockAttribute(),
+      origin: "IPA",
+      code: generateId(),
+    };
     const tenantWithCertifiedAttribute: Tenant = {
       ...requesterTenant,
       attributes: [
@@ -72,16 +83,18 @@ describe("testInternalRevokeCertifiedAttribute", async () => {
 
     await writeInReadmodel(toReadModelAttribute(mockAttribute), attributes);
     await addOneTenant(tenantWithCertifiedAttribute);
-    await tenantService.internalRevokeCertifiedAttribute(
-      {
-        tenantOrigin: tenantWithCertifiedAttribute.externalId.origin,
-        tenantExternalId: tenantWithCertifiedAttribute.externalId.value,
-        attributeOrigin: mockAttribute.origin!,
-        attributeExternalId: mockAttribute.code!,
-        correlationId: generateId(),
+
+    await mockInternalTenantRouterRequest.delete({
+      path: "/internal/origin/:tOrigin/externalId/:tExternalId/attributes/origin/:aOrigin/externalId/:aExternalId",
+      pathParams: {
+        tOrigin: tenantWithCertifiedAttribute.externalId.origin,
+        tExternalId: tenantWithCertifiedAttribute.externalId.value,
+        aOrigin: mockAttribute.origin!,
+        aExternalId: mockAttribute.code!,
       },
-      genericLogger
-    );
+      authData,
+    });
+
     const writtenEvent = await readEventByStreamIdAndVersion(
       tenantWithCertifiedAttribute.id,
       1,

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { fail } from "assert";
-import { genericLogger } from "pagopa-interop-commons";
+import { AuthData, genericLogger, userRoles } from "pagopa-interop-commons";
 import { getMockAuthData } from "pagopa-interop-commons-test/index.js";
 import {
   CorrelationId,
@@ -18,6 +18,7 @@ import {
   verifiedAttributeNotFoundInTenant,
   organizationNotFoundInVerifiers,
 } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import {
   currentDate,
   addOneTenant,
@@ -26,9 +27,9 @@ import {
   getMockVerifiedBy,
   readLastTenantEvent,
 } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("updateVerifiedAttributeExtensionDate", async () => {
-  const correlationId: CorrelationId = generateId();
   const expirationDate = new Date(
     currentDate.setDate(currentDate.getDate() + 1)
   );
@@ -54,24 +55,24 @@ describe("updateVerifiedAttributeExtensionDate", async () => {
   const attributeId = tenant.attributes.map((a) => a.id)[0];
   const verifierId = mockVerifiedBy.id;
   it("should update the extensionDate", async () => {
+    const authData: AuthData = {
+      ...getMockAuthData(),
+      userRoles: [userRoles.INTERNAL_ROLE],
+    };
+
     const extensionDate = new Date(
       currentDate.getTime() +
         (expirationDate.getTime() - mockVerifiedBy.verificationDate.getTime())
     );
 
     await addOneTenant(tenant);
-    const returnedTenant =
-      await tenantService.updateVerifiedAttributeExtensionDate(
-        tenant.id,
-        attributeId,
-        verifierId,
-        {
-          correlationId,
-          logger: genericLogger,
-          serviceName: "",
-          authData: getMockAuthData(),
-        }
-      );
+
+    const returnedTenant = await mockTenantRouterRequest.post({
+      path: "/tenants/:tenantId/attributes/verified/:attributeId/verifier/:verifierId",
+      pathParams: { tenantId: tenant.id, attributeId, verifierId },
+      authData,
+    });
+
     const writtenEvent = await readLastTenantEvent(tenant.id);
     if (!writtenEvent) {
       fail("Creation fails: tenant not found in event-store");
@@ -102,7 +103,7 @@ describe("updateVerifiedAttributeExtensionDate", async () => {
       updatedAt: new Date(Number(writtenPayload.tenant?.updatedAt)),
     };
     expect(writtenPayload.tenant).toEqual(toTenantV2(updatedTenant));
-    expect(returnedTenant).toEqual(updatedTenant);
+    expect(returnedTenant).toEqual(toApiTenant(updatedTenant));
   });
   it("should throw tenantNotFound when tenant doesn't exist", async () => {
     const correlationId: CorrelationId = generateId();

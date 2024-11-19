@@ -2,9 +2,11 @@
 import { describe, expect, it } from "vitest";
 import { Tenant } from "pagopa-interop-models";
 import { genericLogger } from "pagopa-interop-commons";
-import { getMockTenant } from "pagopa-interop-commons-test";
+import { getMockAuthData, getMockTenant } from "pagopa-interop-commons-test";
 import { tenantNotFoundByExternalId } from "../src/model/domain/errors.js";
+import { toApiTenant } from "../src/model/domain/apiConverter.js";
 import { addOneTenant, tenantService } from "./utils.js";
+import { mockTenantRouterRequest } from "./supertestSetup.js";
 
 describe("getTenantByExternalId", () => {
   const tenant1: Tenant = {
@@ -24,14 +26,17 @@ describe("getTenantByExternalId", () => {
     await addOneTenant(tenant1);
     await addOneTenant(tenant2);
     await addOneTenant(tenant3);
-    const returnedTenant = await tenantService.getTenantByExternalId(
-      {
-        value: tenant1.externalId.value,
+
+    const returnedTenant = await mockTenantRouterRequest.get({
+      path: "/tenants/origin/:origin/code/:code",
+      pathParams: {
+        code: tenant1.externalId.value,
         origin: tenant1.externalId.origin,
       },
-      genericLogger
-    );
-    expect(returnedTenant).toEqual(tenant1);
+      authData: getMockAuthData(),
+    });
+
+    expect(returnedTenant).toEqual(toApiTenant(tenant1));
   });
   it("should throw tenantNotFoundByExternalId if it isn't in DB", async () => {
     await addOneTenant(tenant2);
