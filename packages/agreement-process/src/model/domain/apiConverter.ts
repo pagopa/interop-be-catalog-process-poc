@@ -11,6 +11,7 @@ import {
   TenantRevoker,
   badRequestError,
   CompactTenant,
+  AgreementStamps,
 } from "pagopa-interop-models";
 import { agreementApi } from "pagopa-interop-api-clients";
 import { P, match } from "ts-pattern";
@@ -80,12 +81,13 @@ export const agreementToApiAgreement = (
   consumerDocuments: agreement.consumerDocuments.map(
     agreementDocumentToApiAgreementDocument
   ),
-  createdAt: agreement.createdAt?.toJSON(),
+  createdAt: agreement.createdAt.toJSON(),
   updatedAt: agreement.updatedAt?.toJSON(),
   contract: agreement.contract
     ? agreementDocumentToApiAgreementDocument(agreement.contract)
     : undefined,
   suspendedAt: agreement.suspendedAt?.toJSON(),
+  stamps: stampsToApiStamps(agreement.stamps),
 });
 
 export const apiAgreementDocumentToAgreementDocument = (
@@ -186,4 +188,51 @@ export const fromApiCompactTenant = (
 ): CompactTenant => ({
   id: unsafeBrandId(input.id),
   attributes: input.attributes.map(fromApiTenantAttribute),
+});
+
+export const stampsToApiStamps = (
+  input: AgreementStamps
+): agreementApi.Stamps => ({
+  submission: input.submission
+    ? {
+        who: unsafeBrandId(input.submission.who),
+        when: input.submission.when.toJSON(),
+      }
+    : undefined,
+  activation: input.activation
+    ? {
+        who: unsafeBrandId(input.activation.who),
+        when: input.activation.when.toJSON(),
+      }
+    : undefined,
+  rejection: input.rejection
+    ? {
+        who: unsafeBrandId(input.rejection.who),
+        when: input.rejection.when.toJSON(),
+      }
+    : undefined,
+  suspensionByProducer: input.suspensionByProducer
+    ? {
+        who: unsafeBrandId(input.suspensionByProducer.who),
+        when: input.suspensionByProducer.when.toJSON(),
+      }
+    : undefined,
+  suspensionByConsumer: input.suspensionByConsumer
+    ? {
+        who: unsafeBrandId(input.suspensionByConsumer.who),
+        when: input.suspensionByConsumer.when.toJSON(),
+      }
+    : undefined,
+  upgrade: input.upgrade
+    ? {
+        who: unsafeBrandId(input.upgrade.who),
+        when: input.upgrade.when.toJSON(),
+      }
+    : undefined,
+  archiving: input.archiving
+    ? {
+        who: unsafeBrandId(input.archiving.who),
+        when: input.archiving.when.toJSON(),
+      }
+    : undefined,
 });

@@ -939,6 +939,8 @@ components:
         suspendedAt:
           type: string
           format: date-time
+        stamps:
+           $ref: "#/components/schemas/Stamps"
       required:
         - id
         - eserviceId
@@ -951,6 +953,7 @@ components:
         - declaredAttributes
         - consumerDocuments
         - createdAt
+        - stamps
       description: business representation of an agreement
     AgreementRejectionPayload:
       type: object
@@ -1270,6 +1273,37 @@ components:
       required:
         - results
         - totalCount
+    Stamps:
+      type: object
+      additionalProperties: false
+      properties:
+        submission:
+          $ref: "#/components/schemas/StampInfo"
+        activation:
+          $ref: "#/components/schemas/StampInfo"
+        rejection:
+          $ref: "#/components/schemas/StampInfo"
+        suspensionByProducer:
+          $ref: "#/components/schemas/StampInfo"
+        suspensionByConsumer:
+          $ref: "#/components/schemas/StampInfo"
+        upgrade:
+          $ref: "#/components/schemas/StampInfo"
+        archiving:
+          $ref: "#/components/schemas/StampInfo"
+    StampInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - who
+        - when
+      properties:
+        who:
+          type: string
+          format: uuid
+        when:
+          type: string
+          format: date-time
     Problem:
       properties:
         type:
