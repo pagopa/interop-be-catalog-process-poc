@@ -3,7 +3,8 @@ import { genericLogger } from "pagopa-interop-commons";
 import {
   decodeProtobufPayload,
   readEventByStreamIdAndVersion,
-} from "pagopa-interop-commons-test/index.js";
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   EService,
   EServiceDeletedV1,
@@ -23,7 +24,6 @@ import { config } from "../src/config/config.js";
 import {
   addOneEService,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockDocument,
@@ -31,6 +31,7 @@ import {
   postgresDB,
   fileManager,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("delete eservice", () => {
   const mockDescriptor = getMockDescriptor();
@@ -42,12 +43,13 @@ describe("delete eservice", () => {
       descriptors: [],
     };
     await addOneEService(eservice);
-    await catalogService.deleteEService(eservice.id, {
+
+    await mockEserviceRouterRequest.delete({
+      path: "/eservices/:eServiceId",
+      pathParams: { eServiceId: eservice.id },
       authData: getMockAuthData(eservice.producerId),
-      correlationId: generateId(),
-      serviceName: "",
-      logger: genericLogger,
     });
+
     const writtenEvent = await readLastEserviceEvent(eservice.id);
     expect(writtenEvent).toMatchObject({
       stream_id: eservice.id,
@@ -118,11 +120,11 @@ describe("delete eservice", () => {
       descriptors: [descriptor],
     };
     await addOneEService(eservice);
-    await catalogService.deleteEService(eservice.id, {
+
+    await mockEserviceRouterRequest.delete({
+      path: "/eservices/:eServiceId",
+      pathParams: { eServiceId: eservice.id },
       authData: getMockAuthData(eservice.producerId),
-      correlationId: generateId(),
-      serviceName: "",
-      logger: genericLogger,
     });
 
     const descriptorDeletionEvent = await readEventByStreamIdAndVersion(
@@ -168,12 +170,12 @@ describe("delete eservice", () => {
     expect(fileManager.delete).toHaveBeenCalledWith(
       config.s3Bucket,
       interfaceDocument.path,
-      genericLogger
+      expect.anything()
     );
     expect(fileManager.delete).toHaveBeenCalledWith(
       config.s3Bucket,
       document.path,
-      genericLogger
+      expect.anything()
     );
 
     expect(

@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { genericLogger, fileManagerDeleteError } from "pagopa-interop-commons";
-import { decodeProtobufPayload } from "pagopa-interop-commons-test/index.js";
+import {
+  decodeProtobufPayload,
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   Descriptor,
   descriptorState,
@@ -23,12 +26,12 @@ import {
   fileManager,
   addOneEService,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockEService,
   getMockDocument,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("delete Document", () => {
   const mockDescriptor = getMockDescriptor();
@@ -72,17 +75,16 @@ describe("delete Document", () => {
         await fileManager.listFiles(config.s3Bucket, genericLogger)
       ).toContain(document.path);
 
-      await catalogService.deleteDocument(
-        eservice.id,
-        descriptor.id,
-        document.id,
-        {
-          authData: getMockAuthData(eservice.producerId),
-          correlationId: generateId(),
-          serviceName: "",
-          logger: genericLogger,
-        }
-      );
+      await mockEserviceRouterRequest.delete({
+        path: "/eservices/:eServiceId/descriptors/:descriptorId/documents/:documentId",
+        pathParams: {
+          eServiceId: eservice.id,
+          descriptorId: descriptor.id,
+          documentId: document.id,
+        },
+        authData: getMockAuthData(eservice.producerId),
+      });
+
       const writtenEvent = await readLastEserviceEvent(eservice.id);
       expect(writtenEvent.stream_id).toBe(eservice.id);
       expect(writtenEvent.version).toBe("1");
@@ -110,7 +112,7 @@ describe("delete Document", () => {
       expect(fileManager.delete).toHaveBeenCalledWith(
         config.s3Bucket,
         document.path,
-        genericLogger
+        expect.anything()
       );
       expect(
         await fileManager.listFiles(config.s3Bucket, genericLogger)
@@ -151,17 +153,16 @@ describe("delete Document", () => {
       await fileManager.listFiles(config.s3Bucket, genericLogger)
     ).toContain(interfaceDocument.path);
 
-    await catalogService.deleteDocument(
-      eservice.id,
-      descriptor.id,
-      interfaceDocument.id,
-      {
-        authData: getMockAuthData(eservice.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    await mockEserviceRouterRequest.delete({
+      path: "/eservices/:eServiceId/descriptors/:descriptorId/documents/:documentId",
+      pathParams: {
+        eServiceId: eservice.id,
+        descriptorId: descriptor.id,
+        documentId: interfaceDocument.id,
+      },
+      authData: getMockAuthData(eservice.producerId),
+    });
+
     const writtenEvent = await readLastEserviceEvent(eservice.id);
     expect(writtenEvent.stream_id).toBe(eservice.id);
     expect(writtenEvent.version).toBe("1");
@@ -190,7 +191,7 @@ describe("delete Document", () => {
     expect(fileManager.delete).toHaveBeenCalledWith(
       config.s3Bucket,
       interfaceDocument.path,
-      genericLogger
+      expect.anything()
     );
     expect(
       await fileManager.listFiles(config.s3Bucket, genericLogger)

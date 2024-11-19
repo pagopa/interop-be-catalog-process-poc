@@ -1,6 +1,10 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { genericLogger } from "pagopa-interop-commons";
-import { decodeProtobufPayload } from "pagopa-interop-commons-test/index.js";
+import {
+  decodeProtobufPayload,
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   Descriptor,
   descriptorState,
@@ -9,21 +13,23 @@ import {
   operationForbidden,
   EServiceDescriptionUpdatedV2,
   generateId,
+  fromEServiceV2,
 } from "pagopa-interop-models";
 import { expect, describe, it } from "vitest";
 import {
   eserviceWithoutValidDescriptors,
   eServiceNotFound,
 } from "../src/model/domain/errors.js";
+import { eServiceToApiEService } from "../src/model/domain/apiConverter.js";
 import {
   addOneEService,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDocument,
   getMockDescriptor,
   getMockEService,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("update eService description", () => {
   it("should write on event-store for the update of the eService description", async () => {
@@ -38,16 +44,13 @@ describe("update eService description", () => {
     await addOneEService(eservice);
 
     const updatedDescription = "eservice new description";
-    const returnedEService = await catalogService.updateEServiceDescription(
-      eservice.id,
-      updatedDescription,
-      {
-        authData: getMockAuthData(eservice.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+
+    const returnedEService = await mockEserviceRouterRequest.post({
+      path: "/eservices/:eServiceId/update",
+      pathParams: { eServiceId: eservice.id },
+      body: { description: updatedDescription },
+      authData: getMockAuthData(eservice.producerId),
+    });
 
     const updatedEService: EService = {
       ...eservice,
@@ -67,7 +70,9 @@ describe("update eService description", () => {
     });
 
     expect(writtenPayload.eservice).toEqual(toEServiceV2(updatedEService));
-    expect(writtenPayload.eservice).toEqual(toEServiceV2(returnedEService));
+    expect(
+      eServiceToApiEService(fromEServiceV2(writtenPayload.eservice!))
+    ).toEqual(returnedEService);
   });
   it("should throw eServiceNotFound if the eservice doesn't exist", async () => {
     const eservice = getMockEService();

@@ -5,13 +5,16 @@ import {
   getMockDescriptor,
   randomArrayItem,
   readEventByStreamIdAndVersion,
-} from "pagopa-interop-commons-test/index.js";
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   EServiceAddedV2,
   EService,
   toEServiceV2,
   EServiceDescriptorAddedV2,
   generateId,
+  unsafeBrandId,
+  EServiceId,
 } from "pagopa-interop-models";
 import { expect, describe, it, beforeAll, vi, afterAll } from "vitest";
 import {
@@ -23,11 +26,11 @@ import {
   addOneEService,
   buildDescriptorSeedForEserviceCreation,
   catalogService,
-  getMockAuthData,
   getMockEService,
   postgresDB,
   readLastEserviceEvent,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("create eservice", () => {
   const mockEService = getMockEService();
@@ -41,8 +44,10 @@ describe("create eservice", () => {
   });
   it("should write on event-store for the creation of an eservice", async () => {
     const isSignalHubEnabled = randomArrayItem([false, true, undefined]);
-    const eservice = await catalogService.createEService(
-      {
+
+    const eservice = await mockEserviceRouterRequest.post({
+      path: "/eservices",
+      body: {
         name: mockEService.name,
         description: mockEService.description,
         technology: "REST",
@@ -50,23 +55,20 @@ describe("create eservice", () => {
         descriptor: buildDescriptorSeedForEserviceCreation(mockDescriptor),
         isSignalHubEnabled,
       },
-      {
-        authData: getMockAuthData(mockEService.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+      authData: getMockAuthData(mockEService.producerId),
+    });
 
     expect(eservice).toBeDefined();
 
     const eserviceCreationEvent = await readEventByStreamIdAndVersion(
-      eservice.id,
+      unsafeBrandId<EServiceId>(eservice.id),
       0,
       "catalog",
       postgresDB
     );
-    const descriptorCreationEvent = await readLastEserviceEvent(eservice.id);
+    const descriptorCreationEvent = await readLastEserviceEvent(
+      unsafeBrandId(eservice.id)
+    );
 
     expect(eserviceCreationEvent).toMatchObject({
       stream_id: eservice.id,
@@ -93,19 +95,19 @@ describe("create eservice", () => {
     const expectedEservice: EService = {
       ...mockEService,
       createdAt: new Date(),
-      id: eservice.id,
+      id: unsafeBrandId(eservice.id),
       descriptors: [],
       isSignalHubEnabled,
     };
     const expectedEserviceWithDescriptor: EService = {
       ...mockEService,
       createdAt: new Date(),
-      id: eservice.id,
+      id: unsafeBrandId(eservice.id),
       isSignalHubEnabled,
       descriptors: [
         {
           ...mockDescriptor,
-          id: eservice.descriptors[0].id,
+          id: unsafeBrandId(eservice.descriptors[0].id),
           createdAt: new Date(),
           serverUrls: [],
         },

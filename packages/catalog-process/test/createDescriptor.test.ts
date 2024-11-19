@@ -4,6 +4,7 @@ import { genericLogger } from "pagopa-interop-commons";
 import {
   decodeProtobufPayload,
   readEventByStreamIdAndVersion,
+  getMockAuthData,
 } from "pagopa-interop-commons-test";
 import {
   Attribute,
@@ -15,6 +16,7 @@ import {
   descriptorState,
   operationForbidden,
   EServiceDescriptorDocumentAddedV2,
+  unsafeBrandId,
 } from "pagopa-interop-models";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { catalogApi } from "pagopa-interop-api-clients";
@@ -28,7 +30,6 @@ import {
   addOneAttribute,
   addOneEService,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockDocument,
@@ -36,6 +37,7 @@ import {
   buildCreateDescriptorSeed,
   postgresDB,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("create descriptor", async () => {
   beforeAll(() => {
@@ -73,16 +75,14 @@ describe("create descriptor", async () => {
       descriptors: [],
     };
     await addOneEService(eservice);
-    const returnedDescriptor = await catalogService.createDescriptor(
-      eservice.id,
-      descriptorSeed,
-      {
-        authData: getMockAuthData(eservice.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+
+    const returnedDescriptor = await mockEserviceRouterRequest.post({
+      path: "/eservices/:eServiceId/descriptors",
+      pathParams: { eServiceId: eservice.id },
+      body: { ...descriptorSeed },
+      authData: getMockAuthData(eservice.producerId),
+    });
+
     const newDescriptorId = returnedDescriptor.id;
     const writtenEvent = await readLastEserviceEvent(eservice.id);
     expect(writtenEvent).toMatchObject({
@@ -105,7 +105,7 @@ describe("create descriptor", async () => {
           createdAt: new Date(
             Number(writtenPayload.eservice!.descriptors[0]!.createdAt)
           ),
-          id: newDescriptorId,
+          id: unsafeBrandId(newDescriptorId),
           serverUrls: [],
           attributes: {
             certified: [],
@@ -122,13 +122,7 @@ describe("create descriptor", async () => {
       descriptorId: newDescriptorId,
       eservice: expectedEservice,
     });
-    expect(writtenPayload).toEqual({
-      descriptorId: newDescriptorId,
-      eservice: toEServiceV2({
-        ...eservice,
-        descriptors: [returnedDescriptor],
-      }),
-    });
+    expect(writtenPayload.eservice).toEqual(expectedEservice);
   });
 
   it("should write on event-store for the creation of a descriptor (eservice already had one descriptor)", async () => {
@@ -166,16 +160,13 @@ describe("create descriptor", async () => {
       },
     };
 
-    const returnedDescriptor = await catalogService.createDescriptor(
-      eservice.id,
-      descriptorSeed,
-      {
-        authData: getMockAuthData(eservice.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+    const returnedDescriptor = await mockEserviceRouterRequest.post({
+      path: "/eservices/:eServiceId/descriptors",
+      pathParams: { eServiceId: eservice.id },
+      body: { ...descriptorSeed },
+      authData: getMockAuthData(eservice.producerId),
+    });
+
     const newDescriptorId = returnedDescriptor.id;
     const descriptorCreationEvent = await readEventByStreamIdAndVersion(
       eservice.id,
@@ -211,7 +202,7 @@ describe("create descriptor", async () => {
       ...mockDescriptor,
       version: "2",
       createdAt: new Date(),
-      id: newDescriptorId,
+      id: unsafeBrandId(newDescriptorId),
       serverUrls: [],
       attributes: {
         certified: [],

@@ -8,15 +8,17 @@ import {
   EServiceId,
 } from "pagopa-interop-models";
 import { expect, describe, it } from "vitest";
+import { getMockAuthData } from "pagopa-interop-commons-test";
 import { eServiceNotFound } from "../src/model/domain/errors.js";
+import { eServiceToApiEService } from "../src/model/domain/apiConverter.js";
 import {
   addOneEService,
   catalogService,
-  getMockAuthData,
   getMockDescriptor,
   getMockDocument,
   getMockEService,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("get eservice by id", () => {
   const mockDescriptor = getMockDescriptor();
@@ -35,10 +37,6 @@ describe("get eservice by id", () => {
       descriptors: [descriptor1],
     };
     await addOneEService(eservice1);
-    const authData: AuthData = {
-      ...getMockAuthData(eservice1.producerId),
-      userRoles: [userRoles.ADMIN_ROLE],
-    };
 
     const descriptor2: Descriptor = {
       ...mockDescriptor,
@@ -66,13 +64,13 @@ describe("get eservice by id", () => {
     };
     await addOneEService(eservice3);
 
-    const result = await catalogService.getEServiceById(eservice1.id, {
-      authData,
-      logger: genericLogger,
-      correlationId: generateId(),
-      serviceName: "",
+    const result = await mockEserviceRouterRequest.get({
+      path: "/eservices/:eServiceId",
+      pathParams: { eServiceId: eservice1.id },
+      authData: getMockAuthData(eservice1.producerId),
     });
-    expect(result).toEqual(eservice1);
+
+    expect(result).toEqual(eServiceToApiEService(eservice1));
   });
 
   it("should throw eServiceNotFound if the eservice doesn't exist", async () => {

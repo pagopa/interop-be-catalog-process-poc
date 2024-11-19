@@ -1,6 +1,10 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { genericLogger } from "pagopa-interop-commons";
-import { decodeProtobufPayload } from "pagopa-interop-commons-test/index.js";
+import {
+  decodeProtobufPayload,
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   Descriptor,
   descriptorState,
@@ -10,6 +14,8 @@ import {
   operationForbidden,
   generateId,
   Document,
+  fromEServiceV2,
+  unsafeBrandId,
 } from "pagopa-interop-models";
 import { expect, describe, it } from "vitest";
 import {
@@ -19,15 +25,16 @@ import {
   eServiceDocumentNotFound,
   prettyNameDuplicate,
 } from "../src/model/domain/errors.js";
+import { eServiceToApiEService } from "../src/model/domain/apiConverter.js";
 import {
   addOneEService,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockDocument,
   getMockEService,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("update Document", () => {
   const mockDescriptor = getMockDescriptor();
@@ -49,18 +56,18 @@ describe("update Document", () => {
         descriptors: [descriptor],
       };
       await addOneEService(eservice);
-      const returnedDocument = await catalogService.updateDocument(
-        eservice.id,
-        descriptor.id,
-        mockDocument.id,
-        { prettyName: "updated prettyName" },
-        {
-          authData: getMockAuthData(eservice.producerId),
-          correlationId: generateId(),
-          serviceName: "",
-          logger: genericLogger,
-        }
-      );
+
+      const returnedDocument = await mockEserviceRouterRequest.post({
+        path: "/eservices/:eServiceId/descriptors/:descriptorId/documents/:documentId/update",
+        pathParams: {
+          eServiceId: eservice.id,
+          descriptorId: descriptor.id,
+          documentId: mockDocument.id,
+        },
+        body: { prettyName: "updated prettyName" },
+        authData: getMockAuthData(eservice.producerId),
+      });
+
       const writtenEvent = await readLastEserviceEvent(eservice.id);
       const expectedEservice = toEServiceV2({
         ...eservice,
@@ -89,13 +96,22 @@ describe("update Document", () => {
       expect(writtenPayload.descriptorId).toEqual(descriptor.id);
       expect(writtenPayload.documentId).toEqual(mockDocument.id);
       expect(writtenPayload.eservice).toEqual(expectedEservice);
-      expect(writtenPayload.eservice).toEqual(
-        toEServiceV2({
+
+      expect(
+        eServiceToApiEService(fromEServiceV2(writtenPayload.eservice!))
+      ).toEqual(
+        eServiceToApiEService({
           ...eservice,
           descriptors: [
             {
               ...descriptor,
-              docs: [returnedDocument],
+              docs: [
+                {
+                  ...returnedDocument,
+                  id: unsafeBrandId(returnedDocument.id),
+                  uploadDate: new Date(),
+                },
+              ],
             },
           ],
         })

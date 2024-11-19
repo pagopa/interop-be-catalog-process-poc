@@ -11,9 +11,13 @@ import {
   operationForbidden,
   Document,
   generateId,
+  fromEServiceV2,
 } from "pagopa-interop-models";
 import { expect, describe, it } from "vitest";
-import { decodeProtobufPayload } from "pagopa-interop-commons-test/index.js";
+import {
+  decodeProtobufPayload,
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   eServiceNotFound,
   eServiceDescriptorNotFound,
@@ -21,17 +25,18 @@ import {
   interfaceAlreadyExists,
   prettyNameDuplicate,
 } from "../src/model/domain/errors.js";
+import { eServiceToApiEService } from "../src/model/domain/apiConverter.js";
 import {
   addOneEService,
   catalogService,
   buildInterfaceSeed,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockDocument,
   getMockEService,
   buildDocumentSeed,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("upload Document", () => {
   const mockDescriptor = getMockDescriptor();
@@ -54,17 +59,12 @@ describe("upload Document", () => {
       };
       await addOneEService(eservice);
 
-      const returnedEService = await catalogService.uploadDocument(
-        eservice.id,
-        descriptor.id,
-        buildInterfaceSeed(),
-        {
-          authData: getMockAuthData(eservice.producerId),
-          correlationId: generateId(),
-          serviceName: "",
-          logger: genericLogger,
-        }
-      );
+      const returnedEService = await mockEserviceRouterRequest.post({
+        path: "/eservices/:eServiceId/descriptors/:descriptorId/documents",
+        pathParams: { eServiceId: eservice.id, descriptorId: descriptor.id },
+        body: { ...buildInterfaceSeed() },
+        authData: getMockAuthData(eservice.producerId),
+      });
 
       const writtenEvent = await readLastEserviceEvent(eservice.id);
       expect(writtenEvent.stream_id).toBe(eservice.id);
@@ -99,7 +99,9 @@ describe("upload Document", () => {
 
       expect(writtenPayload.descriptorId).toEqual(descriptor.id);
       expect(writtenPayload.eservice).toEqual(expectedEservice);
-      expect(writtenPayload.eservice).toEqual(toEServiceV2(returnedEService));
+      expect(
+        eServiceToApiEService(fromEServiceV2(writtenPayload.eservice!))
+      ).toEqual(returnedEService);
     }
   );
   it("should throw eServiceNotFound if the eservice doesn't exist", () => {

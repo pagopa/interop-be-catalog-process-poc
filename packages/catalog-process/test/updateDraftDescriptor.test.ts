@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { genericLogger } from "pagopa-interop-commons";
 import { catalogApi } from "pagopa-interop-api-clients";
-import { decodeProtobufPayload } from "pagopa-interop-commons-test/index.js";
+import {
+  decodeProtobufPayload,
+  getMockAuthData,
+} from "pagopa-interop-commons-test";
 import {
   Descriptor,
   descriptorState,
@@ -24,13 +27,13 @@ import {
   addOneEService,
   addOneAttribute,
   catalogService,
-  getMockAuthData,
   readLastEserviceEvent,
   getMockDescriptor,
   getMockEService,
   getMockDocument,
   buildUpdateDescriptorSeed,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("update draft descriptor", () => {
   const mockDescriptor = getMockDescriptor();
@@ -83,17 +86,17 @@ describe("update draft descriptor", () => {
         },
       ],
     };
-    await catalogService.updateDraftDescriptor(
-      eservice.id,
-      descriptor.id,
-      updatedDescriptorSeed,
-      {
-        authData: getMockAuthData(eservice.producerId),
-        correlationId: generateId(),
-        serviceName: "",
-        logger: genericLogger,
-      }
-    );
+
+    await mockEserviceRouterRequest.put({
+      path: "/eservices/:eServiceId/descriptors/:descriptorId",
+      pathParams: {
+        eServiceId: eservice.id,
+        descriptorId: descriptor.id,
+      },
+      body: { ...updatedDescriptorSeed },
+      authData: getMockAuthData(eservice.producerId),
+    });
+
     const writtenEvent = await readLastEserviceEvent(eservice.id);
     expect(writtenEvent).toMatchObject({
       stream_id: eservice.id,

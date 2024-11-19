@@ -1,17 +1,16 @@
-import { genericLogger } from "pagopa-interop-commons";
 import { Descriptor, descriptorState, EService } from "pagopa-interop-models";
 import { expect, describe, it } from "vitest";
-import { getMockTenant } from "pagopa-interop-commons-test";
+import { getMockAuthData, getMockTenant } from "pagopa-interop-commons-test";
 import {
   addOneAgreement,
   addOneEService,
   addOneTenant,
-  catalogService,
   getMockAgreement,
   getMockDescriptor,
   getMockDocument,
   getMockEService,
 } from "./utils.js";
+import { mockEserviceRouterRequest } from "./supertestSetup.js";
 
 describe("get eservice consumers", () => {
   const mockDescriptor = getMockDescriptor();
@@ -38,12 +37,13 @@ describe("get eservice consumers", () => {
     });
     await addOneAgreement(agreement);
 
-    const result = await catalogService.getEServiceConsumers(
-      eservice1.id,
-      0,
-      50,
-      genericLogger
-    );
+    const result = await mockEserviceRouterRequest.get({
+      path: "/eservices/:eServiceId/consumers",
+      pathParams: { eServiceId: eservice1.id },
+      queryParams: { offset: 0, limit: 50 },
+      authData: getMockAuthData(),
+    });
+
     expect(result.totalCount).toBe(1);
     expect(result.results[0].consumerName).toBe(tenant.name);
   });
@@ -60,12 +60,13 @@ describe("get eservice consumers", () => {
     };
     await addOneEService(eservice1);
 
-    const consumers = await catalogService.getEServiceConsumers(
-      eservice1.id,
-      0,
-      50,
-      genericLogger
-    );
+    const consumers = await mockEserviceRouterRequest.get({
+      path: "/eservices/:eServiceId/consumers",
+      pathParams: { eServiceId: eservice1.id },
+      queryParams: { offset: 0, limit: 50 },
+      authData: getMockAuthData(),
+    });
+
     expect(consumers.results).toStrictEqual([]);
     expect(consumers.totalCount).toBe(0);
   });
