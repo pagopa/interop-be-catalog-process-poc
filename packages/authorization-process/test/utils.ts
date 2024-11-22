@@ -21,6 +21,7 @@ import {
 import { SelfcareV2InstitutionClient } from "pagopa-interop-api-clients";
 import { readModelServiceBuilder } from "../src/services/readModelService.js";
 import { authorizationServiceBuilder } from "../src/services/authorizationService.js";
+
 export const { cleanup, readModelRepository, postgresDB } =
   await setupTestContainersVitest(
     inject("readModelConfig"),

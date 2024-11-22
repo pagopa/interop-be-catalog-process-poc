@@ -24,6 +24,8 @@
     "@pagopa/eslint-config": "3.0.0",
     "@types/express": "4.17.21",
     "@types/node": "20.14.6",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "9.0.8",
     "cpx2": "7.0.1",
     "openapi-zod-client": "1.18.1",
     "pagopa-interop-commons-test": "workspace:*",
@@ -46,6 +48,7 @@
     "pagopa-interop-models": "workspace:*",
     "pagopa-interop-api-clients": "workspace:*",
     "pagopa-interop-agreement-lifecycle": "workspace:*",
+    "supertest": "^6.3.4",
     "ts-pattern": "5.2.0",
     "zod": "3.23.8"
   }
