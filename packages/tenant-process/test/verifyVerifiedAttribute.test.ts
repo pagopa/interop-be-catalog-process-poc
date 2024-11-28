@@ -33,6 +33,7 @@ import {
   attributeVerificationNotAllowed,
   verifiedAttributeSelfVerificationNotAllowed,
   attributeNotFound,
+  expirationDateCannotBeInThePast,
 } from "../src/model/domain/errors.js";
 import {
   addOneTenant,
@@ -349,5 +350,55 @@ describe("verifyVerifiedAttribute", async () => {
         genericLogger
       )
     ).rejects.toThrowError(verifiedAttributeSelfVerificationNotAllowed());
+  });
+  it("Should throw expirationDateCannotBeInThePast if the expirationDate is in the past", async () => {
+    const mockVerifiedBy = getMockVerifiedBy();
+    const mockRevokedBy = getMockRevokedBy();
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const tenantWithVerifiedAttribute: Tenant = {
+      ...targetTenant,
+      attributes: [
+        {
+          ...getMockVerifiedTenantAttribute(),
+          id: attribute.id,
+          verifiedBy: [
+            {
+              ...mockVerifiedBy,
+            },
+          ],
+          revokedBy: [{ ...mockRevokedBy }],
+        },
+      ],
+    };
+
+    const tenantAttributeSeedWithExpirationDateInThePast: tenantApi.VerifiedTenantAttributeSeed =
+      {
+        id: tenantAttributeSeed.id,
+        expirationDate: yesterday.toISOString(),
+      };
+
+    await addOneTenant(tenantWithVerifiedAttribute);
+    await addOneTenant(requesterTenant);
+    await writeInReadmodel(toReadModelAttribute(attribute), attributes);
+    await writeInReadmodel(toReadModelEService(eService1), eservices);
+    await writeInReadmodel(
+      toReadModelAgreement(agreementEservice1),
+      agreements
+    );
+
+    expect(
+      tenantService.verifyVerifiedAttribute(
+        {
+          tenantId: targetTenant.id,
+          tenantAttributeSeed: tenantAttributeSeedWithExpirationDateInThePast,
+          organizationId: requesterTenant.id,
+          correlationId: generateId(),
+        },
+        genericLogger
+      )
+    ).rejects.toThrowError(expirationDateCannotBeInThePast(yesterday));
   });
 });

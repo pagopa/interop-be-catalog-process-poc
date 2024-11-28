@@ -72,6 +72,7 @@ import {
   tenantNotFound,
   tenantIsAlreadyACertifier,
   verifiedAttributeSelfRevocationNotAllowed,
+  expirationDateCannotBeInThePast,
 } from "../model/domain/errors.js";
 import {
   assertOrganizationIsInAttributeVerifiers,
@@ -1774,7 +1775,7 @@ function buildVerifiedBy(
               id: organizationId,
               verificationDate: new Date(),
               expirationDate: expirationDate
-                ? new Date(expirationDate)
+                ? validExpirationDate(new Date(expirationDate))
                 : undefined,
               extensionDate: expirationDate
                 ? new Date(expirationDate)
@@ -1787,7 +1788,9 @@ function buildVerifiedBy(
         {
           id: organizationId,
           verificationDate: new Date(),
-          expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+          expirationDate: expirationDate
+            ? validExpirationDate(new Date(expirationDate))
+            : undefined,
           extensionDate: expirationDate ? new Date(expirationDate) : undefined,
         },
       ];
@@ -1839,7 +1842,7 @@ function assignVerifiedAttribute(
           id: organizationId,
           verificationDate: new Date(),
           expirationDate: tenantAttributeSeed.expirationDate
-            ? new Date(tenantAttributeSeed.expirationDate)
+            ? validExpirationDate(new Date(tenantAttributeSeed.expirationDate))
             : undefined,
           extensionDate: tenantAttributeSeed.expirationDate
             ? new Date(tenantAttributeSeed.expirationDate)
@@ -1890,6 +1893,13 @@ async function revokeCertifiedAttribute(
         : attr
     ),
   } satisfies Tenant;
+}
+
+function validExpirationDate(expirationDate: Date): Date {
+  if (expirationDate.getTime() < Date.now()) {
+    throw expirationDateCannotBeInThePast(expirationDate);
+  }
+  return expirationDate;
 }
 
 export type TenantService = ReturnType<typeof tenantServiceBuilder>;
