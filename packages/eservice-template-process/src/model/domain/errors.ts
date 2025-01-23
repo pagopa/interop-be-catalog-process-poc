@@ -12,6 +12,9 @@ export const errorCodes = {
   notValidEServiceTemplateVersionState: "0003",
   eServiceTemplateDuplicate: "0004",
   eserviceTemplateWithoutPublishedVersion: "0005",
+  originNotCompliant: "0006",
+  inconsistentDailyCalls: "0007",
+  eserviceTemplateNotInDraftState: "0006",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -50,6 +53,14 @@ export function notValidEServiceTemplateVersionState(
   });
 }
 
+export function originNotCompliant(origin: string): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Requester origin ${origin} is not allowed`,
+    code: "originNotCompliant",
+    title: "Origin is not compliant",
+  });
+}
+
 export function eServiceTemplateDuplicate(
   eserviceTemplateName: string
 ): ApiError<ErrorCodes> {
@@ -67,5 +78,23 @@ export function eserviceTemplateWithoutPublishedVersion(
     detail: `EService Template ${eserviceTemplateId} does not have a published version`,
     code: "eserviceTemplateWithoutPublishedVersion",
     title: "EService template without published version",
+  });
+}
+
+export function inconsistentDailyCalls(): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `dailyCallsPerConsumer can't be greater than dailyCallsTotal`,
+    code: "inconsistentDailyCalls",
+    title: "Inconsistent daily calls",
+  });
+}
+
+export function eserviceTemplateNotInDraftState(
+  eserviceTemplateId: EServiceTemplateId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `EService Template ${eserviceTemplateId} is not in draft state`,
+    code: "eserviceTemplateNotInDraftState",
+    title: "EService Template not in draft state",
   });
 }

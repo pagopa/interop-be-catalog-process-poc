@@ -1,8 +1,8 @@
 import {
   ReadEvent,
   readLastEventByStreamId,
-  setupTestContainersVitest,
   StoredEvent,
+  setupTestContainersVitest,
   writeInEventstore,
   writeInReadmodel,
 } from "pagopa-interop-commons-test";
@@ -13,8 +13,14 @@ import {
   EServiceTemplateId,
   toEServiceTemplateV2,
 } from "pagopa-interop-models";
+import { eserviceTemplateApi } from "pagopa-interop-api-clients";
 import { readModelServiceBuilder } from "../src/services/readModelService.js";
 import { eserviceTemplateServiceBuilder } from "../src/services/eserviceTemplateService.js";
+import {
+  eServiceModeToApiEServiceMode,
+  eserviceTemplateToApiEServiceTemplate,
+  technologyToApiTechnology,
+} from "../src/model/domain/apiConverter.js";
 
 export const { cleanup, readModelRepository, postgresDB, fileManager } =
   await setupTestContainersVitest(
@@ -35,7 +41,7 @@ export const eserviceTemplateService = eserviceTemplateServiceBuilder(
   fileManager
 );
 
-export const writeEServiceInEventstore = async (
+export const writeEServiceTemplateInEventstore = async (
   eserviceTemplate: EServiceTemplate
 ): Promise<void> => {
   const eserviceTemplateEvent: EServiceTemplateEvent = {
@@ -56,7 +62,7 @@ export const writeEServiceInEventstore = async (
 export const addOneEServiceTemplate = async (
   eserviceTemplate: EServiceTemplate
 ): Promise<void> => {
-  await writeEServiceInEventstore(eserviceTemplate);
+  await writeEServiceTemplateInEventstore(eserviceTemplate);
   await writeInReadmodel(eserviceTemplate, eserviceTemplates);
 };
 
@@ -68,3 +74,26 @@ export const readLastEserviceTemplateEvent = async (
     "eservice_template",
     postgresDB
   );
+
+export const eserviceTemplateToApiEServiceTemplateSeed = (
+  eserviceTemplate: EServiceTemplate
+): eserviceTemplateApi.EServiceTemplateSeed => {
+  const apiEserviceTemplate =
+    eserviceTemplateToApiEServiceTemplate(eserviceTemplate);
+
+  return {
+    ...apiEserviceTemplate,
+    version: apiEserviceTemplate.versions[0],
+  };
+};
+
+export const eserviceTemplateToApiUpdateEServiceTemplateSeed = (
+  eserviceTemplate: EServiceTemplate
+): eserviceTemplateApi.UpdateEServiceTemplateSeed => ({
+  name: eserviceTemplate.name,
+  audienceDescription: eserviceTemplate.audienceDescription,
+  eserviceDescription: eserviceTemplate.eserviceDescription,
+  technology: technologyToApiTechnology(eserviceTemplate.technology),
+  mode: eServiceModeToApiEServiceMode(eserviceTemplate.mode),
+  isSignalHubEnabled: eserviceTemplate.isSignalHubEnabled,
+});

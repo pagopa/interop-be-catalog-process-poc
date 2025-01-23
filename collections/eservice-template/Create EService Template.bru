@@ -1,0 +1,38 @@
+meta {
+  name: Create EService Template
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host-template}}/eservices/templates
+  body: json
+  auth: none
+}
+
+headers {
+  x-correlation-id: {{correlation-id}}
+  Authorization: {{JWT}}
+}
+
+body:json {
+  {
+    "name": "Test name",
+    "audienceDescription": "This is the description of the audience",
+    "eserviceDescription": "This is the description of the EService",
+    "technology": "REST",
+    "mode": "DELIVER",
+    "version": {
+      "description": "Version description",
+      "voucherLifespan": 100,
+      "dailyCallsPerConsumer": 100,
+      "dailyCallsTotal": 1000,
+      "agreementApprovalPolicy": "AUTOMATIC"
+    },
+    "isSignalHubEnabled": false
+  }
+}
+
+vars:post-response {
+  eserviceTemplateId: res.body.id
+}

@@ -56,10 +56,9 @@ export const toEServiceTemplateVersionV2 = (
   state: toEServiceTemplateVersionStateV2(input.state),
   interface:
     input.interface != null ? toDocumentV2(input.interface) : undefined,
-  agreementApprovalPolicy:
-    input.agreementApprovalPolicy != null
-      ? toAgreementApprovalPolicyV2(input.agreementApprovalPolicy)
-      : undefined,
+  agreementApprovalPolicy: toAgreementApprovalPolicyV2(
+    input.agreementApprovalPolicy
+  ),
   createdAt: dateToBigInt(input.createdAt),
   publishedAt: dateToBigInt(input.publishedAt),
   suspendedAt: dateToBigInt(input.suspendedAt),
