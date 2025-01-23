@@ -17,7 +17,7 @@ import {
 import { eserviceTemplateApi } from "pagopa-interop-api-clients";
 import { config } from "../config/config.js";
 import {
-  eServiceDuplicate,
+  eServiceTemplateDuplicate,
   inconsistentDailyCalls,
   originNotCompliant,
 } from "../model/domain/errors.js";
@@ -57,7 +57,7 @@ export function eserviceTemplateServiceBuilder(
           producerId: authData.organizationId,
         });
       if (eserviceTemplateWithSameName) {
-        throw eServiceDuplicate(seed.name);
+        throw eServiceTemplateDuplicate(seed.name);
       }
 
       const { dailyCallsPerConsumer, dailyCallsTotal } = seed.version;

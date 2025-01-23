@@ -7,7 +7,7 @@ import {
 export const errorCodes = {
   eServiceTemplateNotFound: "0001",
   originNotCompliant: "0002",
-  eServiceDuplicate: "0003",
+  eServiceTemplateDuplicate: "0003",
   inconsistentDailyCalls: "0004",
 };
 
@@ -33,10 +33,12 @@ export function originNotCompliant(origin: string): ApiError<ErrorCodes> {
   });
 }
 
-export function eServiceDuplicate(eserviceName: string): ApiError<ErrorCodes> {
+export function eServiceTemplateDuplicate(
+  eserviceTemplateName: string
+): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `An EService with name ${eserviceName} already exists`,
-    code: "eServiceDuplicate",
+    detail: `An EService Template with name ${eserviceTemplateName} already exists`,
+    code: "eServiceTemplateDuplicate",
     title: "Duplicated service name",
   });
 }
