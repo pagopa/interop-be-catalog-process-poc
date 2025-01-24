@@ -1,0 +1,4 @@
+[default]
+aws_access_key_id=testawskey
+aws_secret_access_key=testawssecret
+region=eu-south-1
