@@ -32,7 +32,7 @@ export const toApiSelfcareInstitution = (
         id: institution.institutionId,
         description: institution.institutionDescription,
         userProductRoles: institution.products.flatMap((product) =>
-          product.role ? [product.role] : []
+          product.productRole ? [product.productRole] : []
         ),
       })
     )
