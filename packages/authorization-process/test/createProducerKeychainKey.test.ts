@@ -11,6 +11,7 @@ import {
   Key,
   ProducerKeychainKeyAddedV2,
   invalidKey,
+  invalidKeyLength,
   toProducerKeychainV2,
   Client,
 } from "pagopa-interop-models";
@@ -424,5 +425,36 @@ describe("createProducerKeychainKey", () => {
     ).rejects.toThrowError(
       invalidKey(keySeed.key, "error:1E08010C:DECODER routines::unsupported")
     );
+  });
+
+  it("should throw invalidKeyLength if the key doesn't have 2048 bites", async () => {
+    const key = crypto.generateKeyPairSync("rsa", {
+      modulusLength: 1024,
+    }).publicKey;
+
+    const base64Key = Buffer.from(
+      key.export({ type: "pkcs1", format: "pem" })
+    ).toString("base64url");
+
+    const keySeed: authorizationApi.KeySeed = {
+      name: "key seed",
+      use: "ENC",
+      key: base64Key,
+      alg: "",
+    };
+
+    const jwk = createJWK(keySeed.key);
+
+    await addOneProducerKeychain(mockProducerKeychain);
+    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    expect(
+      authorizationService.createProducerKeychainKey({
+        producerKeychainId: mockProducerKeychain.id,
+        authData: mockAuthData,
+        keySeed,
+        correlationId: generateId(),
+        logger: genericLogger,
+      })
+    ).rejects.toThrowError(invalidKeyLength(JSON.stringify(jwk)));
   });
 });

@@ -11,6 +11,7 @@ import {
   UserId,
   generateId,
   invalidKey,
+  invalidKeyLength,
   notAllowedCertificateException,
   notAllowedPrivateKeyException,
   toClientV2,
@@ -455,5 +456,38 @@ describe("createKeys", () => {
         logger: genericLogger,
       })
     ).rejects.toThrowError(notAllowedCertificateException());
+  });
+
+  it("should throw invalidKeyLength if the key doesn't have 2048 bites", async () => {
+    const key = crypto.generateKeyPairSync("rsa", {
+      modulusLength: 1024,
+    }).publicKey;
+
+    const base64Key = Buffer.from(
+      key.export({ type: "pkcs1", format: "pem" })
+    ).toString("base64url");
+
+    const keySeed: authorizationApi.KeySeed = {
+      name: "key seed",
+      use: "ENC",
+      key: base64Key,
+      alg: "",
+    };
+
+    const jwk = createJWK(keySeed.key);
+
+    const keysSeeds: authorizationApi.KeysSeed = [keySeed];
+
+    await addOneClient(mockClient);
+    mockSelfcareV2ClientCall([mockSelfCareUsers]);
+    expect(
+      authorizationService.createKeys({
+        clientId: mockClient.id,
+        authData: mockAuthData,
+        keysSeeds,
+        correlationId: generateId(),
+        logger: genericLogger,
+      })
+    ).rejects.toThrowError(invalidKeyLength(JSON.stringify(jwk)));
   });
 });
