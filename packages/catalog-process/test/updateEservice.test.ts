@@ -38,7 +38,8 @@ describe("update eService", () => {
   const mockDocument = getMockDocument();
   it("should write on event-store for the update of an eService (no technology change)", async () => {
     vi.spyOn(fileManager, "delete");
-
+    config.featureFlagSignalhubWhitelist = true;
+    config.signalhubWhitelist = [mockEService.producerId];
     const isSignalHubEnabled = randomArrayItem([false, true, undefined]);
     const descriptor: Descriptor = {
       ...getMockDescriptor(),
@@ -48,6 +49,7 @@ describe("update eService", () => {
     const eservice: EService = {
       ...mockEService,
       descriptors: [descriptor],
+      isSignalHubEnabled,
     };
     const updatedName = "eservice new name";
     await addOneEService(eservice);
@@ -71,7 +73,6 @@ describe("update eService", () => {
     const updatedEService: EService = {
       ...eservice,
       name: updatedName,
-      isSignalHubEnabled,
     };
 
     const writtenEvent = await readLastEserviceEvent(mockEService.id);
@@ -91,6 +92,9 @@ describe("update eService", () => {
 
   it("should write on event-store for the update of an eService (technology change: interface has to be deleted)", async () => {
     vi.spyOn(fileManager, "delete");
+
+    config.featureFlagSignalhubWhitelist = true;
+    config.signalhubWhitelist = [mockEService.producerId];
 
     const interfaceDocument = {
       ...mockDocument,
@@ -217,6 +221,10 @@ describe("update eService", () => {
   });
   it("should write on event-store for the update of an eService (update description only)", async () => {
     const updatedDescription = "eservice new description";
+
+    config.featureFlagSignalhubWhitelist = true;
+    config.signalhubWhitelist = [mockEService.producerId];
+
     await addOneEService(mockEService);
     const returnedEService = await catalogService.updateEService(
       mockEService.id,
@@ -256,6 +264,7 @@ describe("update eService", () => {
   });
 
   it("should write on event-store for the update of an eService (update mode to DELIVER so risk analysis has to be deleted)", async () => {
+    config.featureFlagSignalhubWhitelist = true;
     const riskAnalysis = getMockValidRiskAnalysis("PA");
     const eservice: EService = {
       ...mockEService,
@@ -264,6 +273,8 @@ describe("update eService", () => {
       mode: "Receive",
     };
     await addOneEService(eservice);
+
+    config.signalhubWhitelist = [eservice.producerId];
 
     const returnedEService = await catalogService.updateEService(
       eservice.id,
