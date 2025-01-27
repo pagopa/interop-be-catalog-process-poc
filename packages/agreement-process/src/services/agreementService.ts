@@ -171,6 +171,7 @@ export const retrieveTenant = async (
   return tenant;
 };
 
+// we have been using this naming convention so far: the retrieve[Item] functions throw not found if the item is not found. So, if the throwing is not desired, we shouldn't name the function in this way
 export const retrieveActiveProducerDelegationByEserviceId = async (
   eserviceId: EServiceId,
   readModelService: ReadModelService

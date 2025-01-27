@@ -397,6 +397,7 @@ export function readModelServiceBuilder(
             const upgradableDescriptor = cb.eservice.descriptors.filter(
               (upgradable: DescriptorReadModel) => {
                 // Since the dates are optional, if they are undefined they are set to a very old date
+                // TODO is there an alternative to this?
                 const currentPublishedAt =
                   currentDescriptor?.publishedAt ?? new Date(0);
                 const upgradablePublishedAt =

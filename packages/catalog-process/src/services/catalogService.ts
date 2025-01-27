@@ -44,7 +44,6 @@ import {
   unsafeBrandId,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
-import { RejectDelegatedEServiceDescriptorSeed } from "../../../api-clients/dist/catalogApi.js";
 import { config } from "../config/config.js";
 import {
   apiAgreementApprovalPolicyToAgreementApprovalPolicy,
@@ -1887,7 +1886,7 @@ export function catalogServiceBuilder(
     async rejectDelegatedEServiceDescriptor(
       eserviceId: EServiceId,
       descriptorId: DescriptorId,
-      body: RejectDelegatedEServiceDescriptorSeed,
+      body: catalogApi.RejectDelegatedEServiceDescriptorSeed,
       { authData, correlationId, logger }: WithLogger<AppContext>
     ): Promise<void> {
       logger.info(`Rejecting EService ${eserviceId} version ${descriptorId}`);
