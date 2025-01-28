@@ -24,6 +24,7 @@ import {
   updateEServiceTemplateAudienceDescriptionErrorMapper,
   updateEServiceTemplateEServiceDescriptionErrorMapper,
   updateEServiceTemplateVersionQuotasErrorMapper,
+  updateEServiceTemplateVersionAttributesErrorMapper,
 } from "../utilities/errorMappers.js";
 import { eserviceTemplateToApiEServiceTemplate } from "../model/domain/apiConverter.js";
 
@@ -303,8 +304,34 @@ const eserviceTemplatesRouter = (
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/attributes/update",
-      authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          const updatedEServiceTemplate =
+            await eserviceTemplateService.updateEServiceTemplateVersionAttributes(
+              unsafeBrandId(req.params.eServiceTemplateId),
+              unsafeBrandId(req.params.eServiceTemplateVersionId),
+              req.body,
+              ctx
+            );
+          return res
+            .status(200)
+            .send(
+              eserviceTemplateApi.EServiceTemplate.parse(
+                eserviceTemplateToApiEServiceTemplate(updatedEServiceTemplate)
+              )
+            );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            updateEServiceTemplateVersionAttributesErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     );
 };
 export default eserviceTemplatesRouter;
