@@ -1,0 +1,40 @@
+{
+  "name": "pagopa-interop-poc-readmodel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PagoPA Interoperability readmodel poc",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "test": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:autofix": "eslint . --ext .ts,.tsx --fix",
+    "format:check": "prettier --check src",
+    "format:write": "prettier --write src",
+    "start": "node --loader ts-node/esm -r 'dotenv-flow/config' ./src/index.ts",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@types/node": "20.14.6",
+    "connection-string": "4.4.0",
+    "dotenv-flow": "4.1.0",
+    "pagopa-interop-commons": "workspace:*",
+    "pagopa-interop-commons-test": "workspace:*",
+    "pagopa-interop-models": "workspace:*",
+    "pg-promise": "11.8.0",
+    "ts-pattern": "5.2.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "eslint": "8.57.0",
+    "prettier": "2.8.8",
+    "ts-node": "10.9.2",
+    "typescript": "5.4.5",
+    "vitest": "1.6.0"
+  }
+}

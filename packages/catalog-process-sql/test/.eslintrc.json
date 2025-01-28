@@ -1,0 +1,7 @@
+{
+  "extends": ["../../../.eslintrc.cjs"],
+  "rules": {
+    "functional/immutable-data": "off",
+    "sonarjs/no-identical-functions": "off"
+  }
+}
