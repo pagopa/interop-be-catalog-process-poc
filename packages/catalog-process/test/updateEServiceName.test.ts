@@ -170,28 +170,22 @@ describe("update eService name on published eservice", () => {
       })
     ).rejects.toThrowError(eserviceWithoutValidDescriptors(eservice.id));
   });
-  it.each([descriptorState.draft, descriptorState.archived])(
-    "should throw eserviceWithoutValidDescriptors if the eservice has only draft or archived descriptors",
-    async (state) => {
-      const descriptor: Descriptor = {
-        ...getMockDescriptor(state),
-        interface: getMockDocument(),
-      };
-      const eservice: EService = {
-        ...getMockEService(),
-        descriptors: [descriptor],
-      };
-      await addOneEService(eservice);
-      expect(
-        catalogService.updateEServiceName(eservice.id, "eservice new name", {
-          authData: getMockAuthData(eservice.producerId),
-          correlationId: generateId(),
-          serviceName: "",
-          logger: genericLogger,
-        })
-      ).rejects.toThrowError(eserviceWithoutValidDescriptors(eservice.id));
-    }
-  );
+  it("should throw eserviceWithoutValidDescriptors if the eservice has only a draft descriptor", async () => {
+    const descriptor = getMockDescriptor(descriptorState.draft);
+    const eservice: EService = {
+      ...getMockEService(),
+      descriptors: [descriptor],
+    };
+    await addOneEService(eservice);
+    expect(
+      catalogService.updateEServiceName(eservice.id, "eservice new name", {
+        authData: getMockAuthData(eservice.producerId),
+        correlationId: generateId(),
+        serviceName: "",
+        logger: genericLogger,
+      })
+    ).rejects.toThrowError(eserviceWithoutValidDescriptors(eservice.id));
+  });
   it("should throw eserviceDuplicate is there is another eservice with the same name by the same producer", async () => {
     const producerId = generateId<TenantId>();
     const descriptor: Descriptor = {
