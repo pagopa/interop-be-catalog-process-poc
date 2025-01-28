@@ -101,6 +101,8 @@ describe("create producer delegation", () => {
         },
       };
 
+      const eservice = getMockEService(generateId<EServiceId>(), delegatorId);
+
       const delegate = {
         ...getMockTenant(),
         features: [
@@ -110,7 +112,6 @@ describe("create producer delegation", () => {
           },
         ],
       };
-      const eservice = getMockEService(generateId<EServiceId>(), delegatorId);
 
       await addOneTenant(delegator);
       await addOneTenant(delegate);

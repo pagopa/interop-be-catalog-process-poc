@@ -54,9 +54,11 @@ import {
   assertDelegatorAndDelegateAllowedOrigins,
   assertDelegatorIsNotDelegate,
   assertDelegatorIsProducer,
+  assertEserviceIsConsumerDelegable,
   assertIsDelegate,
   assertIsDelegator,
   assertIsState,
+  assertNoDelegationRelatedAgreementExists,
   assertRequesterIsDelegateOrDelegator,
   assertTenantAllowedToReceiveDelegation,
 } from "./validators.js";
@@ -146,6 +148,16 @@ export function delegationServiceBuilder(
 
     if (kind === delegationKind.delegatedProducer) {
       assertDelegatorIsProducer(delegatorId, eservice);
+    }
+
+    if (kind === delegationKind.delegatedConsumer) {
+      assertEserviceIsConsumerDelegable(eservice);
+
+      await assertNoDelegationRelatedAgreementExists(
+        delegator.id,
+        eservice.id,
+        readModelService
+      );
     }
 
     await assertDelegationNotExists(

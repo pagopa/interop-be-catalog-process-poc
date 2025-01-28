@@ -15,9 +15,11 @@ import {
 import { match } from "ts-pattern";
 import {
   delegationAlreadyExists,
+  delegationRelatedAgreementExists,
   delegationStampNotFound,
   delegatorAndDelegateSameIdError,
   differentEServiceProducer,
+  eserviceNotConsumerDelegable,
   incorrectState,
   operationRestrictedToDelegate,
   operationRestrictedToDelegator,
@@ -169,3 +171,28 @@ export function assertStampExists<S extends keyof Delegation["stamps"]>(
     throw delegationStampNotFound(stamp);
   }
 }
+
+export const assertEserviceIsConsumerDelegable = (eservice: EService): void => {
+  if (!eservice.isDelegable) {
+    throw eserviceNotConsumerDelegable(eservice.id);
+  }
+};
+
+export const assertNoDelegationRelatedAgreementExists = async (
+  consumerId: TenantId,
+  eserviceId: EServiceId,
+  readModelService: ReadModelService
+): Promise<void> => {
+  const agreement = await readModelService.getDelegationRelatedAgreement(
+    eserviceId,
+    consumerId
+  );
+
+  if (agreement) {
+    throw delegationRelatedAgreementExists(
+      agreement.id,
+      agreement.eserviceId,
+      agreement.consumerId
+    );
+  }
+};

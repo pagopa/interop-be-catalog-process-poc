@@ -5,6 +5,7 @@ import {
   ReadModelRepository,
 } from "pagopa-interop-commons";
 import {
+  Agreement,
   agreementState,
   Delegation,
   DelegationId,
@@ -29,7 +30,7 @@ import { delegationApi } from "pagopa-interop-api-clients";
 export function readModelServiceBuilder(
   readModelRepository: ReadModelRepository
 ) {
-  const { delegations, eservices, tenants } = readModelRepository;
+  const { delegations, eservices, tenants, agreements } = readModelRepository;
 
   return {
     async getEService(
@@ -572,6 +573,35 @@ export function readModelServiceBuilder(
           aggregationPipeline
         ),
       };
+    },
+    async getDelegationRelatedAgreement(
+      eserviceId: EServiceId,
+      consumerId: TenantId
+    ): Promise<Agreement | null> {
+      const data = await agreements.findOne({
+        "data.eserviceId": eserviceId,
+        "data.consumerId": consumerId,
+        "data.state": {
+          $in: [
+            agreementState.active,
+            agreementState.suspended,
+            agreementState.pending,
+          ],
+        },
+      });
+
+      if (!data) {
+        return null;
+      }
+
+      const result = Agreement.safeParse(data.data);
+      if (!result.success) {
+        throw genericInternalError(
+          `Unable to parse agreement: ${JSON.stringify(result)}`
+        );
+      }
+
+      return result.data;
     },
   };
 }
