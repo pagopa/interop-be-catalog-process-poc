@@ -19,13 +19,16 @@ import {
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
 import {
+  eServiceTemplateDuplicate,
   eServiceTemplateNotFound,
   eServiceTemplateVersionNotFound,
+  eserviceTemplateWithoutPublishedVersion,
   notValidEServiceTemplateVersionState,
 } from "../model/domain/errors.js";
 import {
   toCreateEventEServiceTemplateVersionActivated,
   toCreateEventEServiceTemplateVersionSuspended,
+  toCreateEventEServiceTemplateNameUpdated,
 } from "../model/domain/toEvent.js";
 import { ReadModelService } from "./readModelService.js";
 import { assertRequesterEServiceTemplateCreator } from "./validators.js";
@@ -264,6 +267,55 @@ export function eserviceTemplateServiceBuilder(
       );
 
       await repository.createEvent(event);
+    },
+
+    async updateEServiceTemplateName(
+      eserviceTemplateId: EServiceTemplateId,
+      name: string,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplate> {
+      logger.info(`Updating name of EService template ${eserviceTemplateId}`);
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      if (
+        eserviceTemplate.data.versions.every(
+          (version) => version.state === eserviceTemplateVersionState.draft
+        )
+      ) {
+        throw eserviceTemplateWithoutPublishedVersion(eserviceTemplateId);
+      }
+
+      if (name !== eserviceTemplate.data.name) {
+        const eserviceTemplateWithSameName =
+          await readModelService.getEServiceTemplateByNameAndProducerId({
+            name,
+            creatorId: eserviceTemplate.data.creatorId,
+          });
+        if (eserviceTemplateWithSameName !== undefined) {
+          throw eServiceTemplateDuplicate(name);
+        }
+      }
+      const updatedEserviceTemplate: EServiceTemplate = {
+        ...eserviceTemplate.data,
+        name,
+      };
+      await repository.createEvent(
+        toCreateEventEServiceTemplateNameUpdated(
+          eserviceTemplate.data.id,
+          eserviceTemplate.metadata.version,
+          updatedEserviceTemplate,
+          correlationId
+        )
+      );
+      return updatedEserviceTemplate;
     },
   };
 }

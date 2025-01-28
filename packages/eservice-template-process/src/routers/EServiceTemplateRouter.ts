@@ -20,7 +20,9 @@ import { makeApiProblem } from "../model/domain/errors.js";
 import {
   activateEServiceTemplateVersionErrorMapper,
   suspendEServiceTemplateVersionErrorMapper,
+  updateEServiceTemplateNameErrorMapper,
 } from "../utilities/errorMappers.js";
+import { eserviceTemplateToApiEServiceTemplate } from "../model/domain/apiConverter.js";
 
 const readModelService = readModelServiceBuilder(
   ReadModelRepository.init(config)
@@ -190,7 +192,32 @@ const eserviceTemplatesRouter = (
     .post(
       "/eservices/templates/:eServiceTemplateId/name/update",
       authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          const updatedEServiceTemplate =
+            await eserviceTemplateService.updateEServiceTemplateName(
+              unsafeBrandId(req.params.eServiceTemplateId),
+              req.body.name,
+              ctx
+            );
+          return res
+            .status(200)
+            .send(
+              eserviceTemplateApi.EServiceTemplate.parse(
+                eserviceTemplateToApiEServiceTemplate(updatedEServiceTemplate)
+              )
+            );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            updateEServiceTemplateNameErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/attributes/update",

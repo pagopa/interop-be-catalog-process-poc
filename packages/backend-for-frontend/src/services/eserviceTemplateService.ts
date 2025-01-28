@@ -4,6 +4,7 @@ import {
   EServiceTemplateId,
   EServiceTemplateVersionId,
 } from "pagopa-interop-models";
+import { bffApi } from "pagopa-interop-api-clients";
 import { EServiceTemplateProcessClient } from "../clients/clientsProvider.js";
 import { BffAppContext } from "../utilities/context.js";
 
@@ -41,6 +42,19 @@ export function eserviceTemplateServiceBuilder(
         params: {
           eServiceTemplateId,
           eServiceTemplateVersionId,
+        },
+      });
+    },
+    updateEServiceTemplateName: async (
+      eServiceTemplateId: EServiceTemplateId,
+      seed: bffApi.EServiceTemplateNameUpdateSeed,
+      { logger, headers }: WithLogger<BffAppContext>
+    ): Promise<void> => {
+      logger.info(`Updating EService template ${eServiceTemplateId} name`);
+      await eserviceTemplateClient.updateEServiceTemplateName(seed, {
+        headers,
+        params: {
+          eServiceTemplateId,
         },
       });
     },

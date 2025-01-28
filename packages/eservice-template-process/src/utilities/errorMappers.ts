@@ -11,6 +11,7 @@ const {
   HTTP_STATUS_NOT_FOUND,
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_FORBIDDEN,
+  HTTP_STATUS_CONFLICT,
 } = constants;
 
 export const getEServiceTemplateErrorMapper = (
@@ -44,4 +45,17 @@ export const activateEServiceTemplateVersionErrorMapper = (
     )
     .with("notValidEServiceTemplateVersionState", () => HTTP_STATUS_BAD_REQUEST)
     .with("operationForbidden", () => HTTP_STATUS_FORBIDDEN)
+    .otherwise(() => HTTP_STATUS_INTERNAL_SERVER_ERROR);
+
+export const updateEServiceTemplateNameErrorMapper = (
+  error: ApiError<ErrorCodes>
+): number =>
+  match(error.code)
+    .with("eServiceTemplateNotFound", () => HTTP_STATUS_NOT_FOUND)
+    .with("operationForbidden", () => HTTP_STATUS_FORBIDDEN)
+    .with(
+      "eserviceTemplateWithoutPublishedVersion",
+      "eServiceTemplateDuplicate",
+      () => HTTP_STATUS_CONFLICT
+    )
     .otherwise(() => HTTP_STATUS_INTERNAL_SERVER_ERROR);
