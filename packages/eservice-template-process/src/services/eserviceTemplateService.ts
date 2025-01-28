@@ -18,11 +18,13 @@ import {
   WithMetadata,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
+import { eserviceTemplateApi } from "pagopa-interop-api-clients";
 import {
   eServiceTemplateDuplicate,
   eServiceTemplateNotFound,
   eServiceTemplateVersionNotFound,
   eserviceTemplateWithoutPublishedVersion,
+  inconsistentDailyCalls,
   notValidEServiceTemplateVersionState,
 } from "../model/domain/errors.js";
 import {
@@ -31,6 +33,7 @@ import {
   toCreateEventEServiceTemplateVersionActivated,
   toCreateEventEServiceTemplateVersionSuspended,
   toCreateEventEServiceTemplateNameUpdated,
+  toCreateEventEServiceTemplateVersionQuotasUpdated,
 } from "../model/domain/toEvent.js";
 import { ReadModelService } from "./readModelService.js";
 import { assertRequesterEServiceTemplateCreator } from "./validators.js";
@@ -399,6 +402,83 @@ export function eserviceTemplateServiceBuilder(
           correlationId
         )
       );
+      return updatedEserviceTemplate;
+    },
+
+    async updateEServiceTemplateVersionQuotas(
+      eserviceTemplateId: EServiceTemplateId,
+      eserviceTemplateVersionId: EServiceTemplateVersionId,
+      seed: eserviceTemplateApi.UpdateEServiceTemplateVersionQuotasSeed,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplate> {
+      logger.info(
+        `Updating e-service template version quotas of EService template ${eserviceTemplateId} version ${eserviceTemplateVersionId}`
+      );
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      const eserviceTemplateVersion = retrieveEServiceTemplateVersion(
+        eserviceTemplateVersionId,
+        eserviceTemplate.data
+      );
+
+      if (
+        eserviceTemplateVersion.state !==
+          eserviceTemplateVersionState.published &&
+        eserviceTemplateVersion.state !== eserviceTemplateVersionState.suspended
+      ) {
+        throw notValidEServiceTemplateVersionState(
+          eserviceTemplateVersionId,
+          eserviceTemplateVersion.state
+        );
+      }
+
+      const dailyCallsPerConsumer =
+        seed.dailyCallsPerConsumer ??
+        eserviceTemplateVersion.dailyCallsPerConsumer;
+
+      const dailyCallsTotal =
+        seed.dailyCallsTotal ?? eserviceTemplateVersion.dailyCallsTotal;
+
+      if (
+        dailyCallsPerConsumer &&
+        dailyCallsTotal &&
+        dailyCallsPerConsumer > dailyCallsTotal
+      ) {
+        throw inconsistentDailyCalls();
+      }
+
+      const updatedEserviceTemplateVersion: EServiceTemplateVersion = {
+        ...eserviceTemplateVersion,
+        dailyCallsPerConsumer,
+        dailyCallsTotal,
+        voucherLifespan: seed.voucherLifespan,
+      };
+
+      const updatedEserviceTemplate: EServiceTemplate =
+        replaceEServiceTemplateVersion(
+          eserviceTemplate.data,
+          updatedEserviceTemplateVersion
+        );
+
+      await repository.createEvent(
+        toCreateEventEServiceTemplateVersionQuotasUpdated(
+          eserviceTemplate.data.id,
+          eserviceTemplate.metadata.version,
+          eserviceTemplateVersionId,
+          updatedEserviceTemplate,
+          correlationId
+        )
+      );
+
       return updatedEserviceTemplate;
     },
   };
