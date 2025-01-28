@@ -1,0 +1,16 @@
+meta {
+  name: Add DelegatedConsumer feature
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{host-tenant}}/tenants/delegatedConsumer
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-id: {{correlation-id}}
+}

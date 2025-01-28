@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Revoca della delega all’erogazione</title>
+    <title>Revoca della delega {{delegationKindText}}</title>
     <link rel="stylesheet" href="./delegationTemplate.css" type="text/css" />
     {{{paged-pdf-polyfill}}}
   </head>
@@ -35,22 +35,22 @@
     </div>
 
     <!-- Titolo del documento -->
-    <h1>Revoca della delega all’erogazione</h1>
+    <h1>Revoca della delega {{delegationKindText}}</h1>
 
     <!-- Intro legale -->
     <div class="legal-intro">
       In data <strong>{{todayDate}}</strong> alle ore
       <strong>{{todayTime}}</strong>, l’infrastruttura ha ricevuto la richiesta
-      di revoca della delega all’erogazione contraddistinta da id
+      di revoca della delega {{delegationKindText}} contraddistinta da id
       <strong>{{delegationId}}</strong> (di seguito “revoca”), inviata
       dall’aderente <strong>{{delegatorName}}</strong> ({{#if
-      delegatorIpaCode}}codice IPA: <strong>{{delegatorIpaCode}}</strong> -
+      delegatorIpaCode}}codice IPA: <strong>{{delegatorIpaCode}}</strong> —
       {{/if}}di seguito “delegante”), per il delegato
       <strong>{{delegateName}}</strong> ({{#if delegateIpaCode}}codice IPA:
       <strong>{{delegateIpaCode}}</strong> - {{/if}}di seguito “delegato
-      all’erogazione”) tramite l’operatore amministrativo con identificativo
-      Area Riservata <strong>{{submitterId}}</strong>, per l’e-service
-      <strong>{{eserviceName}}</strong>, contraddistinto da id
+      {{delegationKindText}}”) tramite l’operatore amministrativo con
+      identificativo Area Riservata <strong>{{submitterId}}</strong>, per
+      l’e-service <strong>{{eserviceName}}</strong>, contraddistinto da id
       <strong>{{eserviceId}}</strong>
       (di seguito “e-service”).
     </div>
@@ -68,14 +68,15 @@
       <div>
         In data <strong>{{revocationDate}}</strong> alle ore
         <strong>{{revocationTime}}</strong>, l’Infrastruttura ha comunicato al
-        delegante e al delegato all’erogazione la dichiarazione di revoca.
+        delegante e al delegato {{delegationKindText}} la dichiarazione di
+        revoca.
       </div>
 
       <div>
         In data <strong>{{revocationDate}}</strong> alle ore
         <strong>{{revocationTime}}</strong>, l’infrastruttura ha registrato la
-        revoca al delegato all’erogazione quale soggetto titolato ad erogare
-        l’e-service per conto del delegante.
+        revoca al delegato {{delegationKindText}} quale soggetto titolato ad
+        erogare l’e-service per conto del delegante.
       </div>
     </div>
     <div class="release-date">

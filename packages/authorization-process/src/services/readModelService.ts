@@ -17,6 +17,10 @@ import {
   ClientKind,
   ProducerKeychain,
   ProducerKeychainId,
+  DelegationId,
+  delegationState,
+  delegationKind,
+  Delegation,
 } from "pagopa-interop-models";
 import { z } from "zod";
 
@@ -39,8 +43,14 @@ export type GetProducerKeychainsFilters = {
 export function readModelServiceBuilder(
   readModelRepository: ReadModelRepository
 ) {
-  const { agreements, clients, eservices, purposes, producerKeychains } =
-    readModelRepository;
+  const {
+    agreements,
+    clients,
+    eservices,
+    purposes,
+    producerKeychains,
+    delegations,
+  } = readModelRepository;
 
   return {
     async getClientById(
@@ -397,6 +407,33 @@ export function readModelServiceBuilder(
           );
         }
         return result.data.keys.find((k) => k.kid === kid);
+      }
+      return undefined;
+    },
+
+    async getActiveConsumerDelegationById(
+      id: DelegationId
+    ): Promise<Delegation | undefined> {
+      const data = await delegations.findOne(
+        {
+          "data.id": id,
+          "data.state": delegationState.active,
+          "data.kind": delegationKind.delegatedConsumer,
+        },
+        {
+          projection: { data: true },
+        }
+      );
+      if (data) {
+        const result = Delegation.safeParse(data.data);
+        if (!result.success) {
+          throw genericInternalError(
+            `Unable to parse delegation item: result ${JSON.stringify(
+              result
+            )} - data ${JSON.stringify(data)} `
+          );
+        }
+        return result.data;
       }
       return undefined;
     },

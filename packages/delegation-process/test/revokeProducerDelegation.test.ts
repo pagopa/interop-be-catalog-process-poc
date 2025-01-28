@@ -38,11 +38,12 @@ import {
   activeDelegationStates,
   inactiveDelegationStates,
 } from "../src/services/validators.js";
+import { DelegationRevocationPDFPayload } from "../src/model/domain/models.js";
 import {
   addOneDelegation,
   addOneEservice,
   addOneTenant,
-  delegationProducerService,
+  delegationService,
   fileManager,
   pdfGenerator,
   readLastDelegationEvent,
@@ -105,15 +106,12 @@ describe("revoke producer delegation", () => {
 
     await addOneDelegation(existentDelegation);
 
-    await delegationProducerService.revokeProducerDelegation(
-      existentDelegation.id,
-      {
-        authData,
-        logger: genericLogger,
-        correlationId: generateId(),
-        serviceName: "DelegationServiceTest",
-      }
-    );
+    await delegationService.revokeProducerDelegation(existentDelegation.id, {
+      authData,
+      logger: genericLogger,
+      correlationId: generateId(),
+      serviceName: "DelegationServiceTest",
+    });
 
     const event = await readLastDelegationEvent(existentDelegation.id);
     expect(event.version).toBe("1");
@@ -161,6 +159,22 @@ describe("revoke producer delegation", () => {
     });
     expect(actualDelegation).toEqual(expectedDelegation);
 
+    const expectedPdfPayload: DelegationRevocationPDFPayload = {
+      delegationKindText: "all’erogazione",
+      todayDate: dateAtRomeZone(currentExecutionTime),
+      todayTime: timeAtRomeZone(currentExecutionTime),
+      delegationId: revokedDelegationWithoutContract.id,
+      delegatorName: delegator.name,
+      delegatorIpaCode: delegator.externalId.value,
+      delegateName: delegate.name,
+      delegateIpaCode: delegate.externalId.value,
+      eserviceId: eservice.id,
+      eserviceName: eservice.name,
+      submitterId: revokedDelegationWithoutContract.stamps.submission.who,
+      revokerId: revokedDelegationWithoutContract.stamps.revocation!.who,
+      revocationDate: dateAtRomeZone(currentExecutionTime),
+      revocationTime: timeAtRomeZone(currentExecutionTime),
+    };
     expect(pdfGenerator.generate).toHaveBeenCalledWith(
       path.resolve(
         path.dirname(fileURLToPath(import.meta.url)),
@@ -168,21 +182,7 @@ describe("revoke producer delegation", () => {
         "resources/templates",
         "delegationRevokedTemplate.html"
       ),
-      {
-        todayDate: dateAtRomeZone(currentExecutionTime),
-        todayTime: timeAtRomeZone(currentExecutionTime),
-        delegationId: revokedDelegationWithoutContract.id,
-        delegatorName: delegator.name,
-        delegatorIpaCode: delegator.externalId.value,
-        delegateName: delegate.name,
-        delegateIpaCode: delegate.externalId.value,
-        eserviceId: eservice.id,
-        eserviceName: eservice.name,
-        submitterId: revokedDelegationWithoutContract.stamps.submission.who,
-        revokerId: revokedDelegationWithoutContract.stamps.revocation!.who,
-        revocationDate: dateAtRomeZone(currentExecutionTime),
-        revocationTime: timeAtRomeZone(currentExecutionTime),
-      }
+      expectedPdfPayload
     );
   });
 
@@ -191,13 +191,36 @@ describe("revoke producer delegation", () => {
     const authData = getRandomAuthData(delegatorId);
     const delegationId = generateId<DelegationId>();
     await expect(
-      delegationProducerService.revokeProducerDelegation(delegationId, {
+      delegationService.revokeProducerDelegation(delegationId, {
         authData,
         logger: genericLogger,
         correlationId: generateId(),
         serviceName: "DelegationServiceTest",
       })
-    ).rejects.toThrow(delegationNotFound(delegationId));
+    ).rejects.toThrow(
+      delegationNotFound(delegationId, delegationKind.delegatedProducer)
+    );
+  });
+
+  it("should throw delegationNotFound when delegation kind is not DelegatedProducer", async () => {
+    const delegate = getMockTenant();
+    const delegation = getMockDelegation({
+      kind: delegationKind.delegatedConsumer,
+      state: "WaitingForApproval",
+      delegateId: delegate.id,
+    });
+    await addOneDelegation(delegation);
+
+    await expect(
+      delegationService.revokeProducerDelegation(delegation.id, {
+        authData: getRandomAuthData(delegate.id),
+        serviceName: "",
+        correlationId: generateId(),
+        logger: genericLogger,
+      })
+    ).rejects.toThrow(
+      delegationNotFound(delegation.id, delegationKind.delegatedProducer)
+    );
   });
 
   it("should throw a delegatorNotAllowToRevoke if Requester is not Delegator", async () => {
@@ -215,7 +238,7 @@ describe("revoke producer delegation", () => {
     await addOneDelegation(existentDelegation);
 
     await expect(
-      delegationProducerService.revokeProducerDelegation(delegationId, {
+      delegationService.revokeProducerDelegation(delegationId, {
         authData,
         logger: genericLogger,
         correlationId: generateId(),
@@ -244,15 +267,12 @@ describe("revoke producer delegation", () => {
       await addOneDelegation(existentDelegation);
 
       await expect(
-        delegationProducerService.revokeProducerDelegation(
-          existentDelegation.id,
-          {
-            authData,
-            logger: genericLogger,
-            correlationId: generateId(),
-            serviceName: "DelegationServiceTest",
-          }
-        )
+        delegationService.revokeProducerDelegation(existentDelegation.id, {
+          authData,
+          logger: genericLogger,
+          correlationId: generateId(),
+          serviceName: "DelegationServiceTest",
+        })
       ).rejects.toThrow(
         incorrectState(
           existentDelegation.id,

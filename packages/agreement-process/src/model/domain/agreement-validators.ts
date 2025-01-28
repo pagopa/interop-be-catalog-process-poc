@@ -20,7 +20,6 @@ import {
   Delegation,
   delegationState,
 } from "pagopa-interop-models";
-import { agreementApi } from "pagopa-interop-api-clients";
 import { AuthData } from "pagopa-interop-commons";
 import {
   certifiedAttributesSatisfied,
@@ -40,9 +39,14 @@ import {
   documentChangeNotAllowed,
   missingCertifiedAttributesError,
   notLatestEServiceDescriptor,
-  operationNotAllowed,
+  organizationIsNotTheConsumer,
+  organizationIsNotTheDelegateConsumer,
+  organizationIsNotTheDelegateProducer,
+  organizationIsNotTheProducer,
+  organizationNotAllowed,
 } from "./errors.js";
 import {
+  ActiveDelegations,
   CertifiedAgreementAttribute,
   DeclaredAgreementAttribute,
   VerifiedAgreementAttribute,
@@ -87,6 +91,7 @@ export const agreementRejectableStates: AgreementState[] = [
 export const agreementDeletableStates: AgreementState[] = [
   agreementState.draft,
   agreementState.missingCertifiedAttributes,
+  agreementState.pending,
 ];
 
 export const agreementClonableStates: AgreementState[] = [
@@ -127,15 +132,15 @@ export const agreementConsumerDocumentChangeValidStates: AgreementState[] = [
 
 /* ========= ASSERTIONS ========= */
 
-export const assertRequesterIsConsumer = (
-  agreement: Agreement,
+const assertRequesterIsConsumer = (
+  agreement: Pick<Agreement, "consumerId">,
   authData: AuthData
 ): void => {
   if (
     !authData.userRoles.includes("internal") &&
     authData.organizationId !== agreement.consumerId
   ) {
-    throw operationNotAllowed(authData.organizationId);
+    throw organizationIsNotTheConsumer(authData.organizationId);
   }
 };
 
@@ -147,23 +152,31 @@ const assertRequesterIsProducer = (
     !authData.userRoles.includes("internal") &&
     authData.organizationId !== agreement.producerId
   ) {
-    throw operationNotAllowed(authData.organizationId);
+    throw organizationIsNotTheProducer(authData.organizationId);
   }
 };
 
 export const assertRequesterCanActAsConsumerOrProducer = (
   agreement: Agreement,
   authData: AuthData,
-  activeProducerDelegation: Delegation | undefined
+  activeDelegations: ActiveDelegations
 ): void => {
   try {
-    assertRequesterIsConsumer(agreement, authData);
-  } catch (error) {
-    assertRequesterCanActAsProducer(
+    assertRequesterCanActAsConsumer(
       agreement,
       authData,
-      activeProducerDelegation
+      activeDelegations.consumerDelegation
     );
+  } catch {
+    try {
+      assertRequesterCanActAsProducer(
+        agreement,
+        authData,
+        activeDelegations.producerDelegation
+      );
+    } catch {
+      throw organizationNotAllowed(authData.organizationId);
+    }
   }
 };
 
@@ -173,22 +186,34 @@ export const assertRequesterCanRetrieveConsumerDocuments = async (
   readModelService: ReadModelService
 ): Promise<void> => {
   // This operation has a dedicated assertion because it's the only operation that
-  // can be performed also by the producer even when an active producer delegation exists
+  // can be performed also by the producer/consumer even when active producer/consumer delegations exist
   try {
     assertRequesterIsConsumer(agreement, authData);
-  } catch (error) {
+  } catch {
     try {
       assertRequesterIsProducer(agreement, authData);
-    } catch (error) {
-      const activeProducerDelegation =
-        await readModelService.getActiveProducerDelegationByEserviceId(
-          agreement.eserviceId
+    } catch {
+      try {
+        assertRequesterIsDelegateProducer(
+          agreement,
+          authData,
+          await readModelService.getActiveProducerDelegationByEserviceId(
+            agreement.eserviceId
+          )
         );
-      assertRequesterIsDelegateProducer(
-        agreement,
-        authData,
-        activeProducerDelegation
-      );
+      } catch {
+        try {
+          assertRequesterIsDelegateConsumer(
+            agreement,
+            authData,
+            await readModelService.getActiveConsumerDelegationByAgreement(
+              agreement
+            )
+          );
+        } catch {
+          throw organizationNotAllowed(authData.organizationId);
+        }
+      }
     }
   }
 };
@@ -223,7 +248,10 @@ const assertRequesterIsDelegateProducer = (
     activeProducerDelegation?.state !== delegationState.active ||
     activeProducerDelegation?.eserviceId !== agreement.eserviceId
   ) {
-    throw operationNotAllowed(authData.organizationId);
+    throw organizationIsNotTheDelegateProducer(
+      authData.organizationId,
+      activeProducerDelegation?.id
+    );
   }
 };
 
@@ -257,6 +285,43 @@ export const assertCanWorkOnConsumerDocuments = (
 export const assertActivableState = (agreement: Agreement): void => {
   if (!agreementActivableStates.includes(agreement.state)) {
     throw agreementNotInExpectedState(agreement.id, agreement.state);
+  }
+};
+
+export const assertRequesterIsDelegateConsumer = (
+  agreement: Pick<Agreement, "consumerId" | "eserviceId">,
+  authData: AuthData,
+  activeConsumerDelegation: Delegation | undefined
+): void => {
+  if (
+    activeConsumerDelegation?.delegateId !== authData.organizationId ||
+    activeConsumerDelegation?.delegatorId !== agreement.consumerId ||
+    activeConsumerDelegation?.eserviceId !== agreement.eserviceId ||
+    activeConsumerDelegation?.kind !== delegationKind.delegatedConsumer ||
+    activeConsumerDelegation?.state !== delegationState.active
+  ) {
+    throw organizationIsNotTheDelegateConsumer(
+      authData.organizationId,
+      activeConsumerDelegation?.id
+    );
+  }
+};
+
+export const assertRequesterCanActAsConsumer = (
+  agreement: Pick<Agreement, "consumerId" | "eserviceId">,
+  authData: AuthData,
+  activeConsumerDelegation: Delegation | undefined
+): void => {
+  if (!activeConsumerDelegation) {
+    // No active consumer delegation, the requester is authorized only if they are the consumer
+    assertRequesterIsConsumer(agreement, authData);
+  } else {
+    // Active consumer delegation, the requester is authorized only if they are the delegate
+    assertRequesterIsDelegateConsumer(
+      agreement,
+      authData,
+      activeConsumerDelegation
+    );
   }
 };
 
@@ -317,12 +382,12 @@ export const validateCreationOnDescriptor = (
 
 export const verifyCreationConflictingAgreements = async (
   organizationId: TenantId,
-  agreement: agreementApi.AgreementPayload,
+  eserviceId: EServiceId,
   readModelService: ReadModelService
 ): Promise<void> => {
   await verifyConflictingAgreements(
     organizationId,
-    unsafeBrandId(agreement.eserviceId),
+    eserviceId,
     agreementCreationConflictingStates,
     readModelService
   );
@@ -388,19 +453,6 @@ export const verifyConflictingAgreements = async (
 
   if (agreements.length > 0) {
     throw agreementAlreadyExists(consumerId, eserviceId);
-  }
-};
-
-export const verifyConsumerDoesNotActivatePending = (
-  agreement: Agreement,
-  authData: AuthData
-): void => {
-  const activationPendingNotAllowed =
-    agreement.state === agreementState.pending &&
-    agreement.consumerId === authData.organizationId &&
-    agreement.producerId !== agreement.consumerId;
-  if (activationPendingNotAllowed) {
-    throw operationNotAllowed(authData.organizationId);
   }
 };
 

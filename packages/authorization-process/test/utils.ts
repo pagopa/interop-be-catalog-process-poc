@@ -8,15 +8,22 @@ import {
 } from "pagopa-interop-commons-test";
 import { afterEach, inject } from "vitest";
 import {
+  Agreement,
   AuthorizationEvent,
   Client,
   ClientId,
+  Delegation,
+  EService,
   ProducerKeychain,
   ProducerKeychainId,
+  Purpose,
   toClientV2,
   toProducerKeychainV2,
+  toReadModelAgreement,
   toReadModelClient,
+  toReadModelEService,
   toReadModelProducerKeychain,
+  toReadModelPurpose,
 } from "pagopa-interop-models";
 import { SelfcareV2InstitutionClient } from "pagopa-interop-api-clients";
 import { readModelServiceBuilder } from "../src/services/readModelService.js";
@@ -37,6 +44,7 @@ export const {
   purposes,
   tenants,
   producerKeychains,
+  delegations,
 } = readModelRepository;
 
 export const readModelService = readModelServiceBuilder(readModelRepository);
@@ -72,6 +80,18 @@ export const addOneClient = async (client: Client): Promise<void> => {
   await writeInReadmodel(toReadModelClient(client), clients);
 };
 
+export const addOnePurpose = async (purpose: Purpose): Promise<void> => {
+  await writeInReadmodel(toReadModelPurpose(purpose), purposes);
+};
+
+export const addOneEService = async (eservice: EService): Promise<void> => {
+  await writeInReadmodel(toReadModelEService(eservice), eservices);
+};
+
+export const addOneAgreement = async (agreement: Agreement): Promise<void> => {
+  await writeInReadmodel(toReadModelAgreement(agreement), agreements);
+};
+
 export const writeProducerKeychainInEventstore = async (
   producerKeychain: ProducerKeychain
 ): Promise<void> => {
@@ -98,6 +118,12 @@ export const addOneProducerKeychain = async (
     toReadModelProducerKeychain(producerKeychain),
     producerKeychains
   );
+};
+
+export const addOneDelegation = async (
+  delegation: Delegation
+): Promise<void> => {
+  await writeInReadmodel(delegation, delegations);
 };
 
 export const readLastAuthorizationEvent = async (

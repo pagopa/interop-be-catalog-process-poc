@@ -133,6 +133,22 @@ message EServiceDescriptorRejectedByDelegatorV2 {
     EServiceV2 eservice = 2;
 }
 
+message EServiceIsDelegableEnabledV2 {
+    EServiceV2 eservice = 1;
+}
+
+message EServiceIsDelegableDisabledV2 {
+    EServiceV2 eservice = 1;
+}
+
+message EServiceIsClientAccessDelegableEnabledV2 {
+    EServiceV2 eservice = 1;
+}
+
+message EServiceIsClientAccessDelegableDisabledV2 {
+    EServiceV2 eservice = 1;
+}
+
 message EServiceDescriptorAttributesUpdatedV2 {
   string descriptorId = 1;
   repeated string attributeIds = 2;

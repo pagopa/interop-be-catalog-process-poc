@@ -137,6 +137,10 @@ export async function sendCatalogAuthUpdate(
           "EServiceRiskAnalysisDeleted",
           "EServiceDescriptorAttributesUpdated",
           "EServiceDescriptionUpdated",
+          "EServiceIsDelegableEnabled",
+          "EServiceIsDelegableDisabled",
+          "EServiceIsClientAccessDelegableEnabled",
+          "EServiceIsClientAccessDelegableDisabled",
           "EServiceNameUpdated",
           "EServiceDescriptorSubmittedByDelegate",
           "EServiceDescriptorRejectedByDelegator"

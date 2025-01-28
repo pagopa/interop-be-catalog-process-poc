@@ -1,0 +1,22 @@
+meta {
+  name: getConsumerDelegators
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host-delegation}}/consumer/delegators
+  body: none
+  auth: none
+}
+
+params:query {
+  offset: 0
+  limit: 10
+  ~delegatorName: 
+}
+
+headers {
+  Authorization: {{JWT}}
+  x-correlation-id: {{correlation-id}}
+}

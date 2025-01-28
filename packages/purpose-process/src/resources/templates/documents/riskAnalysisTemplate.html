@@ -75,6 +75,16 @@
         </div>
       </div>
 
+      {{#if consumerDelegationId}}
+      <div class="item">
+        <div class="label">Ente delegato alla fruizione</div>
+        <div class="value">
+          {{consumerDelegateName}}{{#if consumerDelegateIpaCode}} (codice IPA:
+          {{consumerDelegateIpaCode}}){{/if}}
+        </div>
+      </div>
+      {{/if}}
+
       <div class="item">
         <div class="label">Numero chiamate API/giorno</div>
         <div class="value">{{dailyCalls}}</div>

@@ -1,33 +1,59 @@
+import { AuthData } from "pagopa-interop-commons";
 import {
   Agreement,
   AgreementStamp,
   AgreementState,
-  DelegationId,
   TenantId,
-  UserId,
   agreementState,
-  unsafeBrandId,
 } from "pagopa-interop-models";
 import { P, match } from "ts-pattern";
+import { ActiveDelegations } from "../model/domain/models.js";
 
 export const createStamp = (
-  userId: UserId,
-  delegationId?: DelegationId | undefined
-): AgreementStamp => ({
-  who: unsafeBrandId(userId),
-  delegationId,
-  when: new Date(),
-});
+  authData: AuthData,
+  activeDelegations: ActiveDelegations
+): AgreementStamp => {
+  const isProducerDelegate =
+    activeDelegations.producerDelegation?.delegateId ===
+    authData.organizationId;
+  const isConsumerDelegate =
+    activeDelegations.consumerDelegation?.delegateId ===
+    authData.organizationId;
+
+  const delegationId = isProducerDelegate
+    ? activeDelegations.producerDelegation?.id
+    : isConsumerDelegate
+    ? activeDelegations.consumerDelegation?.id
+    : undefined;
+
+  return {
+    who: authData.userId,
+    delegationId,
+    when: new Date(),
+  };
+};
 
 export const suspendedByConsumerStamp = (
   agreement: Agreement,
   requesterOrgId: TenantId,
   destinationState: AgreementState,
-  stamp: AgreementStamp
+  stamp: AgreementStamp,
+  delegateConsumerId: TenantId | undefined
 ): AgreementStamp | undefined =>
-  match([requesterOrgId, destinationState])
-    .with([agreement.consumerId, agreementState.suspended], () => stamp)
-    .with([agreement.consumerId, P.any], () => undefined)
+  match<[TenantId | undefined, AgreementState]>([
+    requesterOrgId,
+    destinationState,
+  ])
+    .with(
+      [agreement.consumerId, agreementState.suspended],
+      [delegateConsumerId, agreementState.suspended],
+      () => stamp
+    )
+    .with(
+      [agreement.consumerId, P.any],
+      [delegateConsumerId, P.any],
+      () => undefined
+    )
     .otherwise(() => agreement.stamps.suspensionByConsumer);
 
 export const suspendedByProducerStamp = (

@@ -87,3 +87,11 @@ message TenantDelegatedProducerFeatureAddedV2 {
 message TenantDelegatedProducerFeatureRemovedV2 {
   TenantV2 tenant = 1;
 }
+
+message TenantDelegatedConsumerFeatureAddedV2 {
+  TenantV2 tenant = 1;
+}
+
+message TenantDelegatedConsumerFeatureRemovedV2 {
+  TenantV2 tenant = 1;
+}

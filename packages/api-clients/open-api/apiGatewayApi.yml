@@ -2619,6 +2619,10 @@ components:
             type: string
         isSignalHubEnabled:
           type: boolean
+        isDelegable:
+          type: boolean
+        isClientAccessDelegable:
+          type: boolean
     EServiceAttributes:
       description: the attributes set associated to the EService
       properties:

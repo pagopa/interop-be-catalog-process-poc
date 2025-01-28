@@ -47,6 +47,11 @@ export function toApiTenantFeature(
         availabilityTimestamp: feature.availabilityTimestamp.toJSON(),
       },
     }))
+    .with({ type: "DelegatedConsumer" }, (feature) => ({
+      delegatedConsumer: {
+        availabilityTimestamp: feature.availabilityTimestamp.toJSON(),
+      },
+    }))
     .exhaustive();
 }
 
@@ -99,6 +104,7 @@ export function toApiTenantAttribute(
         id: attribute.id,
         assignmentTimestamp: attribute.assignmentTimestamp.toJSON(),
         revocationTimestamp: attribute.revocationTimestamp?.toJSON(),
+        delegationId: attribute.delegationId,
       },
     }))
     .exhaustive();
@@ -149,6 +155,10 @@ export function apiTenantFeatureTypeToTenantFeatureType(
     .with(
       tenantApi.TenantFeatureType.Values.PERSISTENT_CERTIFIER,
       () => tenantFeatureType.persistentCertifier
+    )
+    .with(
+      tenantApi.TenantFeatureType.Values.DELEGATED_CONSUMER,
+      () => tenantFeatureType.delegatedConsumer
     )
     .exhaustive();
 }

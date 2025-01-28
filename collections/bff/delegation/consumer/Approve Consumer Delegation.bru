@@ -1,0 +1,20 @@
+meta {
+  name: Approve consumer delegation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host-bff}}/consumer/delegations/:delegationId/approve
+  body: none
+  auth: none
+}
+
+params:path {
+  delegationId: {{delegationId}}
+}
+
+headers {
+  Authorization: {{JWT2}}
+  X-Correlation-Id: {{correlation-id}}
+}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  DelegationId,
   EServiceId,
   PurposeId,
   PurposeVersionDocumentId,
@@ -47,6 +48,7 @@ export const Purpose = z.object({
   id: PurposeId,
   eserviceId: EServiceId,
   consumerId: TenantId,
+  delegationId: DelegationId.optional(),
   versions: z.array(PurposeVersion),
   suspendedByConsumer: z.boolean().optional(),
   suspendedByProducer: z.boolean().optional(),

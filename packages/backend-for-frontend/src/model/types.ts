@@ -208,5 +208,7 @@ export const ConfigurationEservice = z.object({
   descriptor: ConfigurationDescriptor,
   riskAnalysis: z.array(ConfigurationRiskAnalysis),
   isSignalHubEnabled: z.boolean().optional(),
+  isDelegable: z.boolean().optional(),
+  isClientAccessDelegable: z.boolean().optional(),
 });
 export type ConfigurationEservice = z.infer<typeof ConfigurationEservice>;

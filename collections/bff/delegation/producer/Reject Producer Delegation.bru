@@ -1,5 +1,5 @@
 meta {
-  name: Reject delegation
+  name: Reject producer delegation
   type: http
   seq: 1
 }
@@ -12,15 +12,15 @@ post {
 
 body:json {
   {
-    "rejectionReason": "I'm not feel comfortable with this delegation"
+    "rejectionReason": "I don't like computers, please send me a pigeon"
   }
 }
 
 params:path {
-  delegationId: dd10132c-f3c9-45cf-994c-3a312bc4ab4e
+  delegationId: {{delegationId}}
 }
 
 headers {
-  Authorization: {{JWT}}
+  Authorization: {{JWT2}}
   X-Correlation-Id: {{correlation-id}}
 }

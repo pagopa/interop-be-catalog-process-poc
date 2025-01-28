@@ -13,6 +13,8 @@ message EServiceV2 {
   repeated EServiceRiskAnalysisV2 riskAnalysis = 8;
   EServiceModeV2 mode = 9;
   optional bool isSignalHubEnabled = 10;
+  optional bool isDelegable = 11;
+  optional bool isClientAccessDelegable = 12;
 }
 
 

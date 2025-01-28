@@ -225,6 +225,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Duplicated purpose title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /purposes/{id}:
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -247,12 +265,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Purpose"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
         "404":
           description: Purpose Not Found
           content:
@@ -285,6 +297,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Duplicated purpose title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     delete:
       parameters:
         - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -295,12 +325,6 @@ paths:
       responses:
         "204":
           description: Purpose deleted
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
         "403":
           description: Purpose has at least one version that is not in draft state or more than one version
           content:
@@ -309,6 +333,12 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
           content:
             application/json:
               schema:
@@ -341,6 +371,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
       requestBody:
         content:
           application/json:
@@ -368,14 +416,20 @@ paths:
       responses:
         "204":
           description: Purpose Version Deleted
-        "400":
-          description: Bad Request
+        "403":
+          description: Organization not allowed
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Version cannot be deleted
           content:
             application/json:
               schema:
@@ -419,14 +473,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PurposeVersionDocument"
-        "404":
-          description: Resource not found
+        "403":
+          description: Organization not allowed
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "400":
-          description: Bad request
+        "404":
+          description: Document Not Found
           content:
             application/json:
               schema:
@@ -525,6 +579,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Purpose Not Found
           content:
@@ -611,6 +671,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Purpose Not Found
           content:
@@ -647,6 +713,12 @@ paths:
                 $ref: "#/components/schemas/PurposeVersion"
         "400":
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
           content:
             application/json:
               schema:
@@ -911,6 +983,9 @@ components:
           type: boolean
         freeOfChargeReason:
           type: string
+        delegationId:
+          type: string
+          format: uuid
       required:
         - id
         - eserviceId

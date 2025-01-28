@@ -178,6 +178,9 @@ const getPdfPayload = ({
     producerDelegationId: eserviceInfo.producerDelegationId,
     producerDelegateName: eserviceInfo.producerDelegateName,
     producerDelegateIpaCode: eserviceInfo.producerDelegateIpaCode,
+    consumerDelegationId: eserviceInfo.consumerDelegationId,
+    consumerDelegateName: eserviceInfo.consumerDelegateName,
+    consumerDelegateIpaCode: eserviceInfo.consumerDelegateIpaCode,
   };
 };
 

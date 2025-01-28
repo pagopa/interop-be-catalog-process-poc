@@ -174,9 +174,11 @@ export const suspendedByPlatformFlag = (
 export const suspendedByConsumerFlag = (
   agreement: Agreement,
   requesterOrgId: Tenant["id"],
-  targetDestinationState: AgreementState
+  targetDestinationState: AgreementState,
+  delegateConsumerId: TenantId | undefined
 ): boolean | undefined =>
-  requesterOrgId === agreement.consumerId
+  requesterOrgId === agreement.consumerId ||
+  requesterOrgId === delegateConsumerId
     ? targetDestinationState === agreementState.suspended
     : agreement.suspendedByConsumer;
 

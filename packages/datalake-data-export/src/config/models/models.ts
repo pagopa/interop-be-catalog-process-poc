@@ -98,6 +98,7 @@ export const ExportedPurpose = Purpose.pick({
   id: true,
   eserviceId: true,
   consumerId: true,
+  delegationId: true,
   suspendedByConsumer: true,
   suspendedByProducer: true,
   title: true,

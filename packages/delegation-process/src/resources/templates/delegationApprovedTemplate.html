@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Delega all’erogazione</title>
+    <title>Delega {{delegationKindText}}</title>
     <link rel="stylesheet" href="./delegationTemplate.css" type="text/css" />
     {{{paged-pdf-polyfill}}}
   </head>
@@ -35,22 +35,22 @@
     </div>
 
     <!-- Titolo del documento -->
-    <h1>Delega all’erogazione</h1>
+    <h1>Delega {{delegationKindText}}</h1>
 
     <!-- Intro legale -->
     <div class="legal-intro">
       In data <strong>{{todayDate}}</strong> alle ore
       <strong>{{todayTime}}</strong>, l’infrastruttura ha ricevuto la richiesta
-      di delega all’erogazione contraddistinta da id
+      di delega {{delegationKindText}} contraddistinta da id
       <strong>{{delegationId}}</strong> (di seguito “delega”), inviata
       dall’aderente <strong>{{delegatorName}}</strong> ({{#if
-      delegatorIpaCode}}codice IPA: <strong>{{delegatorIpaCode}}</strong> -
+      delegatorIpaCode}}codice IPA: <strong>{{delegatorIpaCode}}</strong> —
       {{/if}}di seguito “delegante”), per il delegato
       <strong>{{delegateName}}</strong> ({{#if delegateIpaCode}}codice IPA:
-      <strong>{{delegateIpaCode}}</strong> - {{/if}}di seguito “delegato
-      all’erogazione”) tramite l’operatore amministrativo con identificativo
-      Area Riservata <strong>{{submitterId}}</strong>, per l’e-service
-      <strong>{{eserviceName}}</strong>, contraddistinto da id
+      <strong>{{delegateIpaCode}}</strong> — {{/if}}di seguito “delegato
+      {{delegationKindText}}”) tramite l’operatore amministrativo con
+      identificativo Area Riservata <strong>{{submitterId}}</strong>, per
+      l’e-service <strong>{{eserviceName}}</strong>, contraddistinto da id
       <strong>{{eserviceId}}</strong>
       (di seguito “e-service”).
     </div>
@@ -60,29 +60,29 @@
       <div>
         In data <strong>{{submissionDate}}</strong> alle ore
         <strong>{{submissionTime}}</strong>, l’Infrastruttura ha trasmesso al
-        delegato la richiesta di delega del delegante.
+        delegato {{delegationKindText}} la richiesta di delega del delegante.
       </div>
 
       <div>
         In data <strong>{{activationDate}}</strong> alle ore
         <strong>{{activationTime}}</strong>, l’Infrastruttura ha ricevuto la
         dichiarazione di accettazione della delega (di seguito “dichiarazione di
-        accettazione”) inviata dal delegato all’erogazione, tramite l’operatore
-        amministrativo con identificativo Area Riservata
+        accettazione”) inviata dal delegato {{delegationKindText}}, tramite
+        l’operatore amministrativo con identificativo Area Riservata
         <strong>{{activatorId}}</strong>.
       </div>
 
       <div>
         In data <strong>{{activationDate}}</strong> alle ore
         <strong>{{activationTime}}</strong>, l’Infrastruttura ha comunicato al
-        delegato all’erogazione la dichiarazione di accettazione.
+        delegato {{delegationKindText}} la dichiarazione di accettazione.
       </div>
 
       <div>
         In data <strong>{{activationDate}}</strong> alle ore
         <strong>{{activationTime}}</strong>, l’Infrastruttura ha registrato il
-        delegato all’erogazione quale soggetto titolato ad erogare l’e-service
-        per conto del delegante.
+        delegato {{delegationKindText}} quale soggetto titolato ad erogare
+        l’e-service per conto del delegante.
       </div>
     </div>
 

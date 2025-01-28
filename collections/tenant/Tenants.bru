@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host-tenant}}/tenants?offset=0&limit=50
+  url: {{host-tenant}}/tenants?offset=0&limit=50&features=["DELEGATED_CONSUMER", "DELEGATED_PRODUCER"]
   body: none
   auth: none
 }
@@ -13,6 +13,7 @@ get {
 params:query {
   offset: 0
   limit: 50
+  features: ["DELEGATED_CONSUMER", "DELEGATED_PRODUCER"]
 }
 
 headers {

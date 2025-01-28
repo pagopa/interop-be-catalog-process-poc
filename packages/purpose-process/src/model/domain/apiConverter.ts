@@ -117,6 +117,7 @@ export const purposeToApiPurpose = (
   id: purpose.id,
   eserviceId: purpose.eserviceId,
   consumerId: purpose.consumerId,
+  delegationId: purpose.delegationId,
   versions: purpose.versions.map(purposeVersionToApiPurposeVersion),
   suspendedByConsumer: purpose.suspendedByConsumer,
   suspendedByProducer: purpose.suspendedByProducer,

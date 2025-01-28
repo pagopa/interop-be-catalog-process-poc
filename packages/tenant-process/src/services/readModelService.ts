@@ -23,6 +23,7 @@ import {
   genericInternalError,
   TenantFeatureType,
   AgreementId,
+  DelegationId,
   Delegation,
   DelegationReadModel,
   delegationKind,
@@ -556,7 +557,6 @@ export function readModelServiceBuilder(
         "data.origin": certifierId,
       });
     },
-
     async getActiveProducerDelegationByEservice(
       eserviceId: EServiceId
     ): Promise<Delegation | undefined> {
@@ -564,6 +564,15 @@ export function readModelServiceBuilder(
         "data.eserviceId": eserviceId,
         "data.kind": delegationKind.delegatedProducer,
         "data.state": delegationState.active,
+      });
+    },
+    async getActiveConsumerDelegation(
+      delegationId: DelegationId
+    ): Promise<Delegation | undefined> {
+      return getDelegation(delegations, {
+        "data.id": delegationId,
+        "data.state": delegationState.active,
+        "data.kind": delegationKind.delegatedConsumer,
       });
     },
   };

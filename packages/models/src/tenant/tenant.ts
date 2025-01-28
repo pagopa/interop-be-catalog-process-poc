@@ -25,6 +25,7 @@ export type ExternalId = z.infer<typeof ExternalId>;
 export const tenantFeatureType = {
   persistentCertifier: "PersistentCertifier",
   delegatedProducer: "DelegatedProducer",
+  delegatedConsumer: "DelegatedConsumer",
 } as const;
 
 export const TenantFeatureType = z.enum([
@@ -48,9 +49,18 @@ export type TenantFeatureDelegatedProducer = z.infer<
   typeof TenantFeatureDelegatedProducer
 >;
 
+export const TenantFeatureDelegatedConsumer = z.object({
+  type: z.literal(tenantFeatureType.delegatedConsumer),
+  availabilityTimestamp: z.coerce.date(),
+});
+export type TenantFeatureDelegatedConsumer = z.infer<
+  typeof TenantFeatureDelegatedConsumer
+>;
+
 export const TenantFeature = z.discriminatedUnion("type", [
   TenantFeatureCertifier,
   TenantFeatureDelegatedProducer,
+  TenantFeatureDelegatedConsumer,
 ]);
 
 export type TenantFeature = z.infer<typeof TenantFeature>;
@@ -109,6 +119,7 @@ export const DeclaredTenantAttribute = z.object({
   id: AttributeId,
   assignmentTimestamp: z.coerce.date(),
   revocationTimestamp: z.coerce.date().optional(),
+  delegationId: DelegationId.optional(),
 });
 export type DeclaredTenantAttribute = z.infer<typeof DeclaredTenantAttribute>;
 

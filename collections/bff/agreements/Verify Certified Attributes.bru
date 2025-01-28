@@ -1,0 +1,24 @@
+meta {
+  name: Verify Certified Attributes
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host-bff}}/agreements/verify
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: {{JWT}}
+  x-correlation-id: {{correlation-id}}
+}
+
+body:json {
+  {
+    "eserviceId": "17f8a7a9-9da2-462e-b327-471ed63d5aa0",
+    "descriptorId": "d4193900-ddaf-4c91-a336-d7cd2cb9b3a7",
+    "tenantId": "69e2865e-65ab-4e48-a638-2037a9ee2ee7"
+  }
+}

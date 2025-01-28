@@ -24,6 +24,7 @@ import {
   ProducerKeychain,
   ProducerKeychainId,
   CorrelationId,
+  Delegation,
 } from "pagopa-interop-models";
 import {
   AuthData,
@@ -33,6 +34,8 @@ import {
   userRoles,
   calculateKid,
   createJWK,
+  WithLogger,
+  AppContext,
 } from "pagopa-interop-commons";
 import {
   authorizationApi,
@@ -60,6 +63,8 @@ import {
   eserviceAlreadyLinkedToProducerKeychain,
   userNotAllowedToDeleteProducerKeychainKey,
   userNotAllowedToDeleteClientKey,
+  eserviceNotDelegableForClientAccess,
+  purposeDelegationNotFound,
 } from "../model/domain/errors.js";
 import {
   toCreateEventClientAdded,
@@ -97,6 +102,7 @@ import {
   assertProducerKeychainKeysCountIsBelowThreshold,
   assertOrganizationIsEServiceProducer,
   assertKeyDoesNotAlreadyExist,
+  assertRequesterIsDelegateConsumer,
 } from "./validators.js";
 
 const retrieveClient = async (
@@ -130,6 +136,24 @@ const retrievePurpose = async (
     throw purposeNotFound(purposeId);
   }
   return purpose;
+};
+
+const retrievePurposeDelegation = async (
+  purpose: Purpose,
+  readModelService: ReadModelService
+): Promise<Delegation | undefined> => {
+  if (!purpose.delegationId) {
+    return undefined;
+  }
+
+  const delegation = await readModelService.getActiveConsumerDelegationById(
+    purpose.delegationId
+  );
+  if (!delegation) {
+    throw purposeDelegationNotFound(purpose.delegationId);
+  }
+
+  return delegation;
 };
 
 const retrieveDescriptor = (
@@ -574,15 +598,11 @@ export function authorizationServiceBuilder(
     async addClientPurpose({
       clientId,
       seed,
-      organizationId,
-      correlationId,
-      logger,
+      ctx: { authData, correlationId, logger },
     }: {
       clientId: ClientId;
       seed: authorizationApi.PurposeAdditionDetails;
-      organizationId: TenantId;
-      correlationId: CorrelationId;
-      logger: Logger;
+      ctx: WithLogger<AppContext>;
     }): Promise<void> {
       logger.info(
         `Adding purpose with id ${seed.purposeId} to client ${clientId}`
@@ -590,10 +610,22 @@ export function authorizationServiceBuilder(
       const purposeId: PurposeId = unsafeBrandId(seed.purposeId);
 
       const client = await retrieveClient(clientId, readModelService);
-      assertOrganizationIsClientConsumer(organizationId, client.data);
+      assertOrganizationIsClientConsumer(authData.organizationId, client.data);
 
       const purpose = await retrievePurpose(purposeId, readModelService);
-      assertOrganizationIsPurposeConsumer(organizationId, purpose);
+      const delegation = await retrievePurposeDelegation(
+        purpose,
+        readModelService
+      );
+
+      const isDelegate =
+        delegation && purpose.consumerId !== authData.organizationId;
+
+      if (isDelegate) {
+        assertRequesterIsDelegateConsumer(authData, purpose, delegation);
+      } else {
+        assertOrganizationIsPurposeConsumer(authData.organizationId, purpose);
+      }
 
       if (client.data.purposes.includes(purposeId)) {
         throw purposeAlreadyLinkedToClient(purposeId, client.data.id);
@@ -604,13 +636,17 @@ export function authorizationServiceBuilder(
         readModelService
       );
 
+      if (isDelegate && !eservice.isClientAccessDelegable) {
+        throw eserviceNotDelegableForClientAccess(eservice);
+      }
+
       const agreement = await readModelService.getActiveOrSuspendedAgreement(
         eservice.id,
-        organizationId
+        purpose.consumerId
       );
 
       if (agreement === undefined) {
-        throw noAgreementFoundInRequiredState(eservice.id, organizationId);
+        throw noAgreementFoundInRequiredState(eservice.id, purpose.consumerId);
       }
 
       retrieveDescriptor(agreement.descriptorId, eservice);

@@ -1,0 +1,27 @@
+meta {
+  name: Producer delegation creation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host-delegation}}/producer/delegations
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}
+
+body:json {
+  {
+    "eserviceId": "{{eserviceId}}",
+    "delegateId": "{{tenantId2}}"
+  }
+}
+
+vars:post-response {
+  delegationId: res.body.id
+}

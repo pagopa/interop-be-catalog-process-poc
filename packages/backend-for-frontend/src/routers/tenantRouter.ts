@@ -445,6 +445,42 @@ const tenantRouter = (
         );
         return res.status(errorRes.status).send(errorRes);
       }
+    })
+    .post("/tenants/delegatedConsumer", async (req, res) => {
+      const ctx = fromBffAppContext(req.ctx, req.headers);
+      const tenantId = ctx.authData.organizationId;
+
+      try {
+        await tenantService.assignTenantDelegatedConsumerFeature(tenantId, ctx);
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          emptyErrorMapper,
+          ctx.logger,
+          ctx.correlationId,
+          `Error while assigning delegated consumer feature to ${tenantId}`
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    })
+    .delete("/tenants/delegatedConsumer", async (req, res) => {
+      const ctx = fromBffAppContext(req.ctx, req.headers);
+      const tenantId = ctx.authData.organizationId;
+
+      try {
+        await tenantService.removeTenantDelegatedConsumerFeature(tenantId, ctx);
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          emptyErrorMapper,
+          ctx.logger,
+          ctx.correlationId,
+          `Error while removing delegated consumer feature to ${tenantId}`
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
     });
 
   return tenantRouter;

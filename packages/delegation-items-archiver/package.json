@@ -1,0 +1,43 @@
+{
+    "name": "pagopa-interop-delegation-items-archiver",
+    "private": true,
+    "version": "1.0.0",
+    "description": "PagoPA Interoperability consumer service that archives purposes and agreements when a consumerDelegation is revoked",
+    "main": "dist",
+    "type": "module",
+    "scripts": {
+      "test": "vitest",
+      "test:it": "vitest integration",
+      "lint": "eslint . --ext .ts,.tsx",
+      "lint:autofix": "eslint . --ext .ts,.tsx --fix",
+      "format:check": "prettier --check src",
+      "format:write": "prettier --write src",
+      "start": "tsx -r 'dotenv-flow/config' --watch ./src/index.ts",
+      "build": "tsc",
+      "check": "tsc --project tsconfig.check.json"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "Apache-2.0",
+    "devDependencies": {
+      "@pagopa/eslint-config": "3.0.0",
+      "@types/node": "20.14.6",
+      "pagopa-interop-commons-test": "workspace:*",
+      "prettier": "2.8.8",
+      "testcontainers": "10.9.0",
+      "tsx": "4.19.1",
+      "typescript": "5.4.5",
+      "vitest": "1.6.0"
+    },
+    "dependencies": {
+      "@protobuf-ts/runtime": "2.9.4",
+      "dotenv-flow": "4.1.0",
+      "kafka-iam-auth": "workspace:*",
+      "kafkajs": "2.2.4",
+      "pagopa-interop-commons": "workspace:*",
+      "pagopa-interop-models": "workspace:*",
+      "pagopa-interop-api-clients": "workspace:*",
+      "ts-pattern": "5.2.0",
+      "zod": "3.23.8"
+    }
+  }

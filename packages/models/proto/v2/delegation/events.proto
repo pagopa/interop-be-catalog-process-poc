@@ -19,3 +19,19 @@ message ProducerDelegationRejectedV2 {
 message ProducerDelegationRevokedV2 {
   DelegationV2 delegation = 1;
 }
+
+message ConsumerDelegationSubmittedV2 {
+  DelegationV2 delegation = 1;
+}
+
+message ConsumerDelegationApprovedV2 {
+  DelegationV2 delegation = 1;
+}
+
+message ConsumerDelegationRejectedV2 {
+  DelegationV2 delegation = 1;
+}
+
+message ConsumerDelegationRevokedV2 {
+  DelegationV2 delegation = 1;
+}

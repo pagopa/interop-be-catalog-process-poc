@@ -64,6 +64,9 @@ describe("get eservices", () => {
       name: "eservice 001 test",
       descriptors: [descriptor1],
       producerId: organizationId1,
+      isSignalHubEnabled: true,
+      isDelegable: true,
+      isClientAccessDelegable: true,
     };
     await addOneEService(eservice1);
 
@@ -112,6 +115,7 @@ describe("get eservices", () => {
       name: "eservice 004 test",
       producerId: organizationId2,
       descriptors: [descriptor4],
+      isDelegable: true,
     };
     await addOneEService(eservice4);
 
@@ -756,6 +760,27 @@ describe("get eservices", () => {
     expect(result).toEqual({
       totalCount: 1,
       results: [eservice6],
+    });
+  });
+
+  it("should get the eServices if they exist (parameters: isDelegable)", async () => {
+    const result = await catalogService.getEServices(
+      getMockAuthData(),
+      {
+        eservicesIds: [],
+        producersIds: [],
+        states: [],
+        agreementStates: [],
+        attributesIds: [],
+        isDelegable: true,
+      },
+      0,
+      50,
+      genericLogger
+    );
+    expect(result).toEqual({
+      totalCount: 2,
+      results: [eservice1, eservice4],
     });
   });
 

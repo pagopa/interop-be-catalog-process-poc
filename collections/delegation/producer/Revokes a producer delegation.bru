@@ -1,11 +1,11 @@
 meta {
-  name: Approves a delegation
+  name: Revokes a producer delegation
   type: http
-  seq: 2
+  seq: 4
 }
 
-post {
-  url: {{host-delegation}}/producer/delegations/:delegationId/approve
+delete {
+  url: {{host-delegation}}/producer/delegations/:delegationId
   body: none
   auth: none
 }
@@ -15,6 +15,6 @@ params:path {
 }
 
 headers {
-  Authorization: {{JWT2}}
+  Authorization: {{JWT}}
   X-Correlation-Id: {{correlation-id}}
 }

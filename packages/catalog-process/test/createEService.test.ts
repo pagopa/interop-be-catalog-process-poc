@@ -14,6 +14,7 @@ import {
   generateId,
 } from "pagopa-interop-models";
 import { expect, describe, it, beforeAll, vi, afterAll } from "vitest";
+import { match } from "ts-pattern";
 import {
   eServiceDuplicate,
   inconsistentDailyCalls,
@@ -41,6 +42,13 @@ describe("create eservice", () => {
   });
   it("should write on event-store for the creation of an eservice", async () => {
     const isSignalHubEnabled = randomArrayItem([false, true, undefined]);
+    const isDelegable = randomArrayItem([false, true, undefined]);
+    const isClientAccessDelegable = match(isDelegable)
+      .with(undefined, () => undefined)
+      .with(true, () => randomArrayItem([false, true, undefined]))
+      .with(false, () => false)
+      .exhaustive();
+
     const eservice = await catalogService.createEService(
       {
         name: mockEService.name,
@@ -49,6 +57,8 @@ describe("create eservice", () => {
         mode: "DELIVER",
         descriptor: buildDescriptorSeedForEserviceCreation(mockDescriptor),
         isSignalHubEnabled,
+        isDelegable,
+        isClientAccessDelegable,
       },
       {
         authData: getMockAuthData(mockEService.producerId),
@@ -96,12 +106,110 @@ describe("create eservice", () => {
       id: eservice.id,
       descriptors: [],
       isSignalHubEnabled,
+      isDelegable,
+      isClientAccessDelegable,
     };
     const expectedEserviceWithDescriptor: EService = {
       ...mockEService,
       createdAt: new Date(),
       id: eservice.id,
       isSignalHubEnabled,
+      isDelegable,
+      isClientAccessDelegable,
+      descriptors: [
+        {
+          ...mockDescriptor,
+          id: eservice.descriptors[0].id,
+          createdAt: new Date(),
+          serverUrls: [],
+        },
+      ],
+    };
+
+    expect(eserviceCreationPayload.eservice).toEqual(
+      toEServiceV2(expectedEservice)
+    );
+    expect(descriptorCreationPayload.eservice).toEqual(
+      toEServiceV2(expectedEserviceWithDescriptor)
+    );
+  });
+
+  it("should create an eservice correctly handling isClientAccessDelegable when isDelegable is not true", async () => {
+    const isSignalHubEnabled = randomArrayItem([false, true, undefined]);
+    const isDelegable: false | undefined = randomArrayItem([false, undefined]);
+    const isClientAccessDelegable = randomArrayItem([false, true, undefined]);
+    const expectedIsClientAccessDelegable = match(isDelegable)
+      .with(false, () => false)
+      .with(undefined, () => undefined)
+      .exhaustive();
+
+    const eservice = await catalogService.createEService(
+      {
+        name: mockEService.name,
+        description: mockEService.description,
+        technology: "REST",
+        mode: "DELIVER",
+        descriptor: buildDescriptorSeedForEserviceCreation(mockDescriptor),
+        isSignalHubEnabled,
+        isDelegable,
+        isClientAccessDelegable,
+      },
+      {
+        authData: getMockAuthData(mockEService.producerId),
+        correlationId: generateId(),
+        serviceName: "",
+        logger: genericLogger,
+      }
+    );
+
+    expect(eservice).toBeDefined();
+
+    const eserviceCreationEvent = await readEventByStreamIdAndVersion(
+      eservice.id,
+      0,
+      "catalog",
+      postgresDB
+    );
+    const descriptorCreationEvent = await readLastEserviceEvent(eservice.id);
+
+    expect(eserviceCreationEvent).toMatchObject({
+      stream_id: eservice.id,
+      version: "0",
+      type: "EServiceAdded",
+      event_version: 2,
+    });
+    expect(descriptorCreationEvent).toMatchObject({
+      stream_id: eservice.id,
+      version: "1",
+      type: "EServiceDescriptorAdded",
+      event_version: 2,
+    });
+
+    const eserviceCreationPayload = decodeProtobufPayload({
+      messageType: EServiceAddedV2,
+      payload: eserviceCreationEvent.data,
+    });
+    const descriptorCreationPayload = decodeProtobufPayload({
+      messageType: EServiceDescriptorAddedV2,
+      payload: descriptorCreationEvent.data,
+    });
+
+    const expectedEservice: EService = {
+      ...mockEService,
+      createdAt: new Date(),
+      id: eservice.id,
+      descriptors: [],
+      isSignalHubEnabled,
+      isDelegable,
+      isClientAccessDelegable: expectedIsClientAccessDelegable,
+    };
+    const expectedEserviceWithDescriptor: EService = {
+      ...mockEService,
+      createdAt: new Date(),
+      id: eservice.id,
+      isSignalHubEnabled,
+      isDelegable,
+      isClientAccessDelegable: expectedIsClientAccessDelegable,
       descriptors: [
         {
           ...mockDescriptor,

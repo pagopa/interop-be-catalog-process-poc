@@ -1,4 +1,4 @@
-import { RiskAnalysisId, unsafeBrandId } from "../brandedIds.js";
+import { DelegationId, RiskAnalysisId, unsafeBrandId } from "../brandedIds.js";
 import {
   PurposeStateV2,
   PurposeVersionDocumentV2,
@@ -86,5 +86,8 @@ export const fromPurposeV2 = (input: PurposeV2): Purpose => ({
   updatedAt: bigIntToDate(input.updatedAt),
   riskAnalysisForm: input.riskAnalysisForm
     ? fromPurposeRiskAnalysisFormV2(input.riskAnalysisForm)
+    : undefined,
+  delegationId: input.delegationId
+    ? unsafeBrandId<DelegationId>(input.delegationId)
     : undefined,
 });
