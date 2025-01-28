@@ -27,37 +27,41 @@ export async function handleMessageV2({
   offset: string;
 }): Promise<void> {
   await match(decodedKafkaMessage)
-    .with({ type: "PurposeArchived" }, async (purposeMsg) => {
-      const correlationId = purposeMsg.correlation_id
-        ? unsafeBrandId<CorrelationId>(purposeMsg.correlation_id)
-        : generateId<CorrelationId>();
+    .with(
+      { type: "PurposeArchived" },
+      { type: "PurposeVersionArchivedByRevokedDelegation" },
+      async (purposeMsg) => {
+        const correlationId = purposeMsg.correlation_id
+          ? unsafeBrandId<CorrelationId>(purposeMsg.correlation_id)
+          : generateId<CorrelationId>();
 
-      const loggerInstance = logger({
-        serviceName: "client-purpose-updater",
-        eventType: purposeMsg.type,
-        eventVersion: purposeMsg.event_version,
-        streamId: purposeMsg.stream_id,
-        correlationId,
-      });
-
-      loggerInstance.info(
-        `Processing ${purposeMsg.type} message - Partition number: ${partition} - Offset: ${offset}`
-      );
-
-      const token = (await refreshableToken.get()).serialized;
-
-      if (!purposeMsg.data.purpose) {
-        throw missingKafkaMessageDataError("purpose", purposeMsg.type);
-      }
-
-      await authorizationClient.client.removePurposeFromClients(undefined, {
-        params: { purposeId: purposeMsg.data.purpose.id },
-        headers: getInteropHeaders({
-          token,
+        const loggerInstance = logger({
+          serviceName: "client-purpose-updater",
+          eventType: purposeMsg.type,
+          eventVersion: purposeMsg.event_version,
+          streamId: purposeMsg.stream_id,
           correlationId,
-        }),
-      });
-    })
+        });
+
+        loggerInstance.info(
+          `Processing ${purposeMsg.type} message - Partition number: ${partition} - Offset: ${offset}`
+        );
+
+        const token = (await refreshableToken.get()).serialized;
+
+        if (!purposeMsg.data.purpose) {
+          throw missingKafkaMessageDataError("purpose", purposeMsg.type);
+        }
+
+        await authorizationClient.client.removePurposeFromClients(undefined, {
+          params: { purposeId: purposeMsg.data.purpose.id },
+          headers: getInteropHeaders({
+            token,
+            correlationId,
+          }),
+        });
+      }
+    )
     .with(
       { type: "PurposeAdded" },
       { type: "DraftPurposeUpdated" },
@@ -76,6 +80,7 @@ export async function handleMessageV2({
       { type: "PurposeCloned" },
       { type: "DraftPurposeDeleted" },
       { type: "WaitingForApprovalPurposeDeleted" },
+      { type: "PurposeDeletedByRevokedDelegation" },
       () => Promise.resolve
     )
     .exhaustive();

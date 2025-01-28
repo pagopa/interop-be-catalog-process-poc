@@ -285,11 +285,35 @@ const purposeRouter = (
     )
     .delete(
       "/purposes/:id",
-      authorizationMiddleware([ADMIN_ROLE, INTERNAL_ROLE]),
+      authorizationMiddleware([ADMIN_ROLE]),
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
           await purposeService.deletePurpose(unsafeBrandId(req.params.id), ctx);
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            deletePurposeErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .delete(
+      "/internal/delegationRevoked/purposes/:id",
+      authorizationMiddleware([INTERNAL_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          await purposeService.internalDeletePurposeAfterDelegationRevocation(
+            unsafeBrandId(req.params.id),
+            unsafeBrandId(req.query.delegationId),
+            ctx.correlationId,
+            ctx.logger
+          );
           return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
@@ -508,7 +532,7 @@ const purposeRouter = (
     )
     .post(
       "/purposes/:purposeId/versions/:versionId/archive",
-      authorizationMiddleware([ADMIN_ROLE, INTERNAL_ROLE]),
+      authorizationMiddleware([ADMIN_ROLE]),
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
@@ -526,6 +550,33 @@ const purposeRouter = (
                 purposeVersionToApiPurposeVersion(archivedVersion)
               )
             );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            archivePurposeVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .post(
+      "/internal/delegationRevoked/purposes/:purposeId/versions/:versionId/archive",
+      authorizationMiddleware([INTERNAL_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          await purposeService.internalArchivePurposeVersionAfterDelegationRevocation(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+              delegationId: unsafeBrandId(req.query.delegationId),
+            },
+            ctx.correlationId,
+            ctx.logger
+          );
+          return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
             error,

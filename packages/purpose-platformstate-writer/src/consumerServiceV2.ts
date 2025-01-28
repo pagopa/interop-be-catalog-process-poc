@@ -141,25 +141,29 @@ export async function handleMessageV2(
         }
       }
     )
-    .with({ type: "PurposeArchived" }, async (msg) => {
-      const { purpose, primaryKey } = await getPurposeData({
-        dynamoDBClient,
-        purposeV2: msg.data.purpose,
-        msgType: msg.type,
-      });
+    .with(
+      { type: "PurposeArchived" },
+      { type: "PurposeVersionArchivedByRevokedDelegation" },
+      async (msg) => {
+        const { purpose, primaryKey } = await getPurposeData({
+          dynamoDBClient,
+          purposeV2: msg.data.purpose,
+          msgType: msg.type,
+        });
 
-      // platform-states
-      await deletePlatformPurposeEntry(dynamoDBClient, primaryKey, logger);
+        // platform-states
+        await deletePlatformPurposeEntry(dynamoDBClient, primaryKey, logger);
 
-      // token-generation-states
-      await updatePurposeDataInTokenGenStatesEntries({
-        dynamoDBClient,
-        purposeId: purpose.id,
-        purposeState: getPurposeStateFromPurposeVersions(purpose.versions),
-        purposeVersionId: unsafeBrandId(msg.data.versionId),
-        logger,
-      });
-    })
+        // token-generation-states
+        await updatePurposeDataInTokenGenStatesEntries({
+          dynamoDBClient,
+          purposeId: purpose.id,
+          purposeState: getPurposeStateFromPurposeVersions(purpose.versions),
+          purposeVersionId: unsafeBrandId(msg.data.versionId),
+          logger,
+        });
+      }
+    )
     .with(
       { type: "DraftPurposeDeleted" },
       { type: "WaitingForApprovalPurposeDeleted" },
@@ -171,6 +175,7 @@ export async function handleMessageV2(
       { type: "PurposeWaitingForApproval" },
       { type: "WaitingForApprovalPurposeVersionDeleted" },
       { type: "PurposeCloned" },
+      { type: "PurposeDeletedByRevokedDelegation" },
       () => Promise.resolve()
     )
     .exhaustive();

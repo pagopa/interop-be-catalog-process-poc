@@ -27,6 +27,97 @@ tags:
       description: Find out more
       url: "http://swagger.io"
 paths:
+  /internal/delegationRevoked/purposes/{id}:
+    delete:
+      parameters:
+        - $ref: "#/components/parameters/CorrelationIdHeader"
+        - name: id
+          in: path
+          description: the purpose id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: delegationId
+          in: query
+          description: the delegation id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      tags:
+        - purpose
+      operationId: internalDeletePurposeAfterDelegationRevocation
+      description: Deletes a specific purpose if there are no version or just a draft version
+      responses:
+        "204":
+          description: Purpose deleted
+        "403":
+          description: Purpose has at least one version that is not in draft state or more than one version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /internal/delegationRevoked/purposes/{purposeId}/versions/{versionId}/archive:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+      - name: purposeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: delegationId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - purpose
+      description: archives the purpose version by id
+      summary: Archive Purpose Version
+      operationId: internalArchivePurposeVersionAfterDelegationRevocation
+      responses:
+        "204":
+          description: Purpose Version Archived
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Organization not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Purpose Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /purposes:
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"

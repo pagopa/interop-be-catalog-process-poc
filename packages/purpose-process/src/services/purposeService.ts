@@ -43,6 +43,7 @@ import {
   RiskAnalysis,
   CorrelationId,
   Delegation,
+  DelegationId,
 } from "pagopa-interop-models";
 import { purposeApi } from "pagopa-interop-api-clients";
 import { P, match } from "ts-pattern";
@@ -78,9 +79,11 @@ import {
   toCreateEventPurposeAdded,
   toCreateEventPurposeArchived,
   toCreateEventPurposeCloned,
+  toCreateEventPurposeDeletedByRevokedDelegation,
   toCreateEventPurposeSuspendedByConsumer,
   toCreateEventPurposeSuspendedByProducer,
   toCreateEventPurposeVersionActivated,
+  toCreateEventPurposeVersionArchivedByRevokedDelegation,
   toCreateEventPurposeVersionOverQuotaUnsuspended,
   toCreateEventPurposeVersionRejected,
   toCreateEventPurposeVersionUnsuspenedByConsumer,
@@ -492,6 +495,40 @@ export function purposeServiceBuilder(
 
       await repository.createEvent(event);
     },
+    async internalDeletePurposeAfterDelegationRevocation(
+      purposeId: PurposeId,
+      delegationId: DelegationId,
+      correlationId: CorrelationId,
+      logger: Logger
+    ): Promise<void> {
+      logger.info(
+        `Deleting Purpose ${purposeId} due to revocation of delegation ${delegationId}`
+      );
+
+      const purpose = await retrievePurpose(purposeId, readModelService);
+
+      if (!isDeletable(purpose.data)) {
+        throw purposeCannotBeDeleted(purpose.data.id);
+      }
+
+      if (
+        !purpose.data.delegationId ||
+        purpose.data.delegationId !== delegationId
+      ) {
+        throw puroposeDelegationNotFound(purposeId, delegationId);
+      }
+      // Check that the delegation exists
+      await retrievePurposeDelegation(purpose.data, readModelService);
+
+      await repository.createEvent(
+        toCreateEventPurposeDeletedByRevokedDelegation({
+          purpose: purpose.data,
+          delegationId,
+          version: purpose.metadata.version,
+          correlationId,
+        })
+      );
+    },
     async archivePurposeVersion(
       {
         purposeId,
@@ -543,6 +580,65 @@ export function purposeServiceBuilder(
 
       await repository.createEvent(event);
       return archivedVersion;
+    },
+    async internalArchivePurposeVersionAfterDelegationRevocation(
+      {
+        purposeId,
+        versionId,
+        delegationId,
+      }: {
+        purposeId: PurposeId;
+        versionId: PurposeVersionId;
+        delegationId: DelegationId;
+      },
+      correlationId: CorrelationId,
+      logger: Logger
+    ): Promise<void> {
+      logger.info(
+        `Archiving Version ${versionId} in Purpose ${purposeId} due to revocation of delegation ${delegationId}`
+      );
+
+      const purpose = await retrievePurpose(purposeId, readModelService);
+      const purposeVersion = retrievePurposeVersion(versionId, purpose);
+
+      if (!isArchivable(purposeVersion)) {
+        throw notValidVersionState(versionId, purposeVersion.state);
+      }
+
+      if (
+        !purpose.data.delegationId ||
+        purpose.data.delegationId !== delegationId
+      ) {
+        throw puroposeDelegationNotFound(purposeId, delegationId);
+      }
+      // Check that the delegation exists
+      await retrievePurposeDelegation(purpose.data, readModelService);
+
+      const purposeWithoutWaitingForApproval: Purpose = {
+        ...purpose.data,
+        versions: purpose.data.versions.filter(
+          (v) => v.state !== purposeVersionState.waitingForApproval
+        ),
+      };
+      const archivedVersion: PurposeVersion = {
+        ...purposeVersion,
+        state: purposeVersionState.archived,
+        updatedAt: new Date(),
+      };
+      const updatedPurpose = replacePurposeVersion(
+        purposeWithoutWaitingForApproval,
+        archivedVersion
+      );
+
+      await repository.createEvent(
+        toCreateEventPurposeVersionArchivedByRevokedDelegation({
+          purpose: updatedPurpose,
+          purposeVersionId: archivedVersion.id,
+          delegationId,
+          version: purpose.metadata.version,
+          correlationId,
+        })
+      );
     },
     async suspendPurposeVersion(
       {

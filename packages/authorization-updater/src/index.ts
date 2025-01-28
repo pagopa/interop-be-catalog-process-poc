@@ -267,7 +267,8 @@ export async function sendPurposeAuthUpdate(
       {
         type: P.union(
           "DraftPurposeDeleted",
-          "WaitingForApprovalPurposeDeleted"
+          "WaitingForApprovalPurposeDeleted",
+          "PurposeDeletedByRevokedDelegation"
         ),
       },
       async (msg): Promise<void> => {
@@ -298,7 +299,8 @@ export async function sendPurposeAuthUpdate(
           "PurposeVersionOverQuotaUnsuspended",
           "NewPurposeVersionActivated",
           "PurposeVersionActivated",
-          "PurposeArchived"
+          "PurposeArchived",
+          "PurposeVersionArchivedByRevokedDelegation"
         ),
       },
       async (msg): Promise<void> => {
