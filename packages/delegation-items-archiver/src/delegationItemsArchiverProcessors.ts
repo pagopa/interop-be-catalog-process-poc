@@ -115,10 +115,14 @@ export const processAgreement = async ({
     .exhaustive();
 
   if (isDeletable) {
-    await agreementProcessClient.deleteAgreement(undefined, {
-      params: { agreementId: agreement.id },
-      headers,
-    });
+    await agreementProcessClient.internalDeleteAgreementAfterDelegationRevocation(
+      undefined,
+      {
+        params: { agreementId: agreement.id },
+        queries: { delegationId: delegation.id },
+        headers,
+      }
+    );
   }
 
   const activeOrSuspendedAgreement = match(agreement.state)
@@ -134,11 +138,13 @@ export const processAgreement = async ({
     .exhaustive();
 
   if (activeOrSuspendedAgreement) {
-    await agreementProcessClient.archiveAgreement(undefined, {
-      params: {
-        agreementId: agreement.id,
-      },
-      headers,
-    });
+    await agreementProcessClient.internalArchiveAgreementAfterDelegationRevocation(
+      undefined,
+      {
+        params: { agreementId: agreement.id },
+        queries: { delegationId: delegation.id },
+        headers,
+      }
+    );
   }
 };

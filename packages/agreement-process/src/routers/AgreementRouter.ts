@@ -290,7 +290,7 @@ const agreementRouter = (
 
   agreementRouter.post(
     "/agreements/:agreementId/archive",
-    authorizationMiddleware([ADMIN_ROLE, INTERNAL_ROLE]),
+    authorizationMiddleware([ADMIN_ROLE]),
     async (req, res) => {
       const ctx = fromAppContext(req.ctx);
 
@@ -510,7 +510,7 @@ const agreementRouter = (
 
   agreementRouter.delete(
     "/agreements/:agreementId",
-    authorizationMiddleware([ADMIN_ROLE, INTERNAL_ROLE]),
+    authorizationMiddleware([ADMIN_ROLE]),
     async (req, res) => {
       const ctx = fromAppContext(req.ctx);
 
@@ -524,6 +524,58 @@ const agreementRouter = (
         const errorRes = makeApiProblem(
           error,
           deleteAgreementErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    }
+  );
+
+  agreementRouter.delete(
+    "/internal/delegationRevoked/agreements/:agreementId",
+    authorizationMiddleware([INTERNAL_ROLE]),
+    async (req, res) => {
+      const ctx = fromAppContext(req.ctx);
+
+      try {
+        await agreementService.internalDeleteAgreementAfterDelegationRevocation(
+          unsafeBrandId(req.params.agreementId),
+          unsafeBrandId(req.query.delegationId),
+          ctx.correlationId,
+          ctx.logger
+        );
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          deleteAgreementErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    }
+  );
+
+  agreementRouter.post(
+    "/internal/delegationRevoked/agreements/:agreementId/archive",
+    authorizationMiddleware([INTERNAL_ROLE]),
+    async (req, res) => {
+      const ctx = fromAppContext(req.ctx);
+
+      try {
+        await agreementService.internalArchiveAgreementAfterDelegationRevocation(
+          unsafeBrandId(req.params.agreementId),
+          unsafeBrandId(req.query.delegationId),
+          ctx.correlationId,
+          ctx.logger
+        );
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          archiveAgreementErrorMapper,
           ctx.logger,
           ctx.correlationId
         );

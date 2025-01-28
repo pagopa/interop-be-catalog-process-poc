@@ -68,10 +68,12 @@ import {
   toCreateEventAgreementActivated,
   toCreateEventAgreementAdded,
   toCreateEventAgreementArchivedByConsumer,
+  toCreateEventAgreementArchivedByRevokedDelegation,
   toCreateEventAgreementArchivedByUpgrade,
   toCreateEventAgreementConsumerDocumentAdded,
   toCreateEventAgreementConsumerDocumentRemoved,
   toCreateEventAgreementDeleted,
+  toCreateEventAgreementDeletedByRevokedDelegation,
   toCreateEventAgreementRejected,
   toCreateEventAgreementSetMissingCertifiedAttributesByPlatform,
   toCreateEventAgreementSubmitted,
@@ -191,11 +193,13 @@ export const retrieveDescriptor = (
   return descriptor;
 };
 
-const retrieveDelegation = (
-  delegations: Delegation[],
-  delegationId: DelegationId
-): Delegation => {
-  const delegation = delegations.find((d) => d.id === delegationId);
+const retrieveConsumerDelegationById = async (
+  delegationId: DelegationId,
+  readModelService: ReadModelService
+): Promise<Delegation> => {
+  const delegation = await readModelService.getConsumerDelegationById(
+    delegationId
+  );
 
   if (!delegation) {
     throw delegationNotFound(delegationId);
@@ -412,6 +416,40 @@ export function agreementServiceBuilder(
       await repository.createEvent(
         toCreateEventAgreementDeleted(
           agreement.data,
+          agreement.metadata.version,
+          correlationId
+        )
+      );
+    },
+    async internalDeleteAgreementAfterDelegationRevocation(
+      agreementId: AgreementId,
+      delegationId: DelegationId,
+      correlationId: CorrelationId,
+      logger: Logger
+    ): Promise<void> {
+      logger.info(
+        `Deleting agreement ${agreementId} due to revocation of delegation ${delegationId}`
+      );
+
+      const agreement = await retrieveAgreement(agreementId, readModelService);
+
+      assertExpectedState(
+        agreementId,
+        agreement.data.state,
+        agreementDeletableStates
+      );
+
+      // Check that the delegation exists
+      await retrieveConsumerDelegationById(delegationId, readModelService);
+
+      for (const d of agreement.data.consumerDocuments) {
+        await fileManager.delete(config.s3Bucket, d.path, logger);
+      }
+
+      await repository.createEvent(
+        toCreateEventAgreementDeletedByRevokedDelegation(
+          agreement.data,
+          delegationId,
           agreement.metadata.version,
           correlationId
         )
@@ -1273,6 +1311,50 @@ export function agreementServiceBuilder(
 
       return updatedAgreement;
     },
+    async internalArchiveAgreementAfterDelegationRevocation(
+      agreementId: AgreementId,
+      delegationId: DelegationId,
+      correlationId: CorrelationId,
+      logger: Logger
+    ): Promise<void> {
+      logger.info(
+        `Archiving agreement ${agreementId} due to revocation of delegation ${delegationId}`
+      );
+
+      const agreement = await retrieveAgreement(agreementId, readModelService);
+
+      assertExpectedState(
+        agreementId,
+        agreement.data.state,
+        agreementArchivableStates
+      );
+
+      const activeConsumerDelegation = await retrieveConsumerDelegationById(
+        delegationId,
+        readModelService
+      );
+
+      const updatedAgreement: Agreement = {
+        ...agreement.data,
+        state: agreementState.archived,
+        stamps: {
+          ...agreement.data.stamps,
+          archiving: createStamp(undefined, {
+            consumerDelegation: activeConsumerDelegation,
+            producerDelegation: undefined,
+          }),
+        },
+      };
+
+      await repository.createEvent(
+        toCreateEventAgreementArchivedByRevokedDelegation(
+          updatedAgreement,
+          delegationId,
+          agreement.metadata.version,
+          correlationId
+        )
+      );
+    },
     async computeAgreementsStateByAttribute(
       attributeId: AttributeId,
       consumer: CompactTenant,
@@ -1464,7 +1546,12 @@ async function getConsumerFromDelegationOrRequester(
 
   if (delegationId) {
     // If a delegation has been passed, the consumer is the delegator
-    const delegation = retrieveDelegation(delegations, delegationId);
+
+    const delegation = delegations.find((d) => d.id === delegationId);
+
+    if (!delegation) {
+      throw delegationNotFound(delegationId);
+    }
 
     assertRequesterIsDelegateConsumer(
       { consumerId: delegation.delegatorId, eserviceId },

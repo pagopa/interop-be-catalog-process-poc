@@ -9,7 +9,11 @@ export const eventV2TypeMapper = (
 ): string =>
   match(eventType)
     .with("AgreementAdded", "AgreementUpgraded", () => "agreement_added")
-    .with("AgreementDeleted", () => "agreement_deleted")
+    .with(
+      "AgreementDeleted",
+      "AgreementDeletedByRevokedDelegation",
+      () => "agreement_deleted"
+    )
     .with(
       "DraftAgreementUpdated",
       "AgreementSubmitted",
@@ -25,6 +29,7 @@ export const eventV2TypeMapper = (
       "AgreementRejected",
       "AgreementArchivedByUpgrade",
       "AgreementArchivedByConsumer",
+      "AgreementArchivedByRevokedDelegation",
       () => "agreement_updated"
     )
     .with(

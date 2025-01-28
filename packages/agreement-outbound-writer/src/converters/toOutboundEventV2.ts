@@ -121,5 +121,21 @@ export function toOutboundEventV2(
         timestamp: new Date(),
       })
     )
+    .with(
+      { type: "AgreementArchivedByRevokedDelegation" },
+      { type: "AgreementDeletedByRevokedDelegation" },
+      (msg) => ({
+        event_version: msg.event_version,
+        type: msg.type,
+        version: msg.version,
+        data: {
+          delegationId: msg.data.delegationId,
+          agreement:
+            msg.data.agreement && toOutboundAgreementV2(msg.data.agreement),
+        },
+        stream_id: msg.stream_id,
+        timestamp: new Date(),
+      })
+    )
     .exhaustive();
 }
