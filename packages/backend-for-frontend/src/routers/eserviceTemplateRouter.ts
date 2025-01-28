@@ -47,7 +47,7 @@ const eserviceTemplateRouter = (
             emptyErrorMapper,
             ctx.logger,
             ctx.correlationId,
-            `Error suspending version ${eServiceTemplateId} for eservice template ${eServiceTemplateVersionId}`
+            `Error suspending version ${eServiceTemplateVersionId} for eservice template ${eServiceTemplateId}`
           );
           return res.status(errorRes.status).send(errorRes);
         }
@@ -72,7 +72,7 @@ const eserviceTemplateRouter = (
             emptyErrorMapper,
             ctx.logger,
             ctx.correlationId,
-            `Error activating version ${eServiceTemplateId} for eservice template ${eServiceTemplateVersionId}`
+            `Error activating version ${eServiceTemplateVersionId} for eservice template ${eServiceTemplateId}`
           );
           return res.status(errorRes.status).send(errorRes);
         }

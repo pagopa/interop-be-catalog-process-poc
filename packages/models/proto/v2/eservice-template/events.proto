@@ -110,12 +110,12 @@ message EServiceTemplateVersionAttributesUpdatedV2 {
   EServiceTemplateV2 eserviceTemplate = 3;
 }
 
-message EServiceTemplateSuspendedV2 {
+message EServiceTemplateVersionSuspendedV2 {
   string eserviceTemplateVersionId = 1;
   EServiceTemplateV2 eserviceTemplate = 2;
 }
 
-message EServiceTemplateActivatedV2 {
+message EServiceTemplateVersionActivatedV2 {
   string eserviceTemplateVersionId = 1;
   EServiceTemplateV2 eserviceTemplate = 2;
 }

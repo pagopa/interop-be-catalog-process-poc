@@ -16,6 +16,9 @@ import {
   DelegationId,
   EServiceEvent,
   EServiceId,
+  EServiceTemplateEvent,
+  eserviceTemplateEventToBinaryDataV2,
+  EServiceTemplateId,
   ProducerKeychainId,
   protobufDecoder,
   PurposeEvent,
@@ -35,7 +38,8 @@ type EventStoreSchema =
   | "tenant"
   | "purpose"
   | '"authorization"'
-  | "delegation";
+  | "delegation"
+  | "eservice_template";
 
 export type StoredEvent<T extends Event> = {
   stream_id: string;
@@ -66,6 +70,8 @@ export async function writeInEventstore<T extends EventStoreSchema>(
     ? StoredEvent<AuthorizationEvent>
     : T extends "delegation"
     ? StoredEvent<DelegationEvent>
+    : T extends "eservice_template"
+    ? StoredEvent<EServiceTemplateEvent>
     : never,
   schema: T,
   postgresDB: IDatabase<unknown>
@@ -99,6 +105,11 @@ export async function writeInEventstore<T extends EventStoreSchema>(
         .with("delegation", () =>
           delegationEventToBinaryDataV2(event.event as DelegationEvent)
         )
+        .with("eservice_template", () =>
+          eserviceTemplateEventToBinaryDataV2(
+            event.event as EServiceTemplateEvent
+          )
+        )
         .exhaustive(),
     ]
   );
@@ -119,6 +130,8 @@ export async function readLastEventByStreamId<T extends EventStoreSchema>(
     ? ClientId | ProducerKeychainId
     : T extends "delegation"
     ? DelegationId
+    : T extends "eservice_template"
+    ? EServiceTemplateId
     : never,
   schema: T,
   postgresDB: IDatabase<unknown>
@@ -138,6 +151,8 @@ export async function readLastEventByStreamId<T extends EventStoreSchema>(
       ? AuthorizationEvent
       : T extends "delegation"
       ? DelegationEvent
+      : T extends "eservice_template"
+      ? EServiceTemplateEvent
       : never
   >
 > {
@@ -162,6 +177,8 @@ export async function readEventByStreamIdAndVersion<T extends EventStoreSchema>(
     ? ClientId | ProducerKeychainId
     : T extends "delegation"
     ? DelegationId
+    : T extends "eservice_template"
+    ? EServiceTemplateId
     : never,
   version: number,
   schema: T,
@@ -182,6 +199,8 @@ export async function readEventByStreamIdAndVersion<T extends EventStoreSchema>(
       ? AuthorizationEvent
       : T extends "delegation"
       ? DelegationEvent
+      : T extends "eservice_template"
+      ? EServiceTemplateEvent
       : never
   >
 > {

@@ -169,6 +169,7 @@ export async function setupTestContainersVitest(
       await readModelRepository?.producerKeychains.deleteMany({});
       await readModelRepository?.producerKeys.deleteMany({});
       await readModelRepository?.delegations.deleteMany({});
+      await readModelRepository?.eserviceTemplates.deleteMany({});
 
       await postgresDB?.none(
         "TRUNCATE TABLE agreement.events RESTART IDENTITY"
@@ -184,6 +185,9 @@ export async function setupTestContainersVitest(
       );
       await postgresDB?.none(
         "TRUNCATE TABLE delegation.events RESTART IDENTITY"
+      );
+      await postgresDB?.none(
+        "TRUNCATE TABLE eservice_template.events RESTART IDENTITY"
       );
 
       if (s3OriginalBucket && fileManagerConfig && fileManager) {

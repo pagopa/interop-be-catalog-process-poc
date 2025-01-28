@@ -9,11 +9,18 @@ import {
   zodiosValidationErrorToApiProblem,
   userRoles,
   authorizationMiddleware,
+  fromAppContext,
 } from "pagopa-interop-commons";
 import { eserviceTemplateApi } from "pagopa-interop-api-clients";
+import { unsafeBrandId } from "pagopa-interop-models";
 import { config } from "../config/config.js";
 import { readModelServiceBuilder } from "../services/readModelService.js";
 import { eserviceTemplateServiceBuilder } from "../services/eserviceTemplateService.js";
+import { makeApiProblem } from "../model/domain/errors.js";
+import {
+  activateEServiceTemplateVersionErrorMapper,
+  suspendEServiceTemplateVersionErrorMapper,
+} from "../utilities/errorMappers.js";
 
 const readModelService = readModelServiceBuilder(
   ReadModelRepository.init(config)
@@ -32,12 +39,11 @@ const eserviceTemplateService = eserviceTemplateServiceBuilder(
   readModelService,
   initFileManager(config)
 );
-void eserviceTemplateService;
 
 const eserviceTemplatesRouter = (
   ctx: ZodiosContext
 ): ZodiosRouter<ZodiosEndpointDefinitions, ExpressContext> => {
-  const { ADMIN_ROLE } = userRoles;
+  const { ADMIN_ROLE, API_ROLE } = userRoles;
 
   return ctx
     .router(eserviceTemplateApi.processApi.api, {
@@ -85,13 +91,51 @@ const eserviceTemplatesRouter = (
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/suspend",
-      authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+
+        try {
+          await eserviceTemplateService.suspendEServiceTemplateVersion(
+            unsafeBrandId(req.params.eServiceTemplateId),
+            unsafeBrandId(req.params.eServiceTemplateVersionId),
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            suspendEServiceTemplateVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/activate",
-      authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+
+        try {
+          await eserviceTemplateService.activateEServiceTemplateVersion(
+            unsafeBrandId(req.params.eServiceTemplateId),
+            unsafeBrandId(req.params.eServiceTemplateVersionId),
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            activateEServiceTemplateVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/quotas/update",
