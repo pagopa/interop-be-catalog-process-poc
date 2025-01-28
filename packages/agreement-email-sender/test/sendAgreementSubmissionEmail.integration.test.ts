@@ -19,6 +19,7 @@ import {
   toAgreementV2,
 } from "pagopa-interop-models";
 import { describe, expect, it, vi } from "vitest";
+import axios, { AxiosResponse } from "axios";
 import {
   agreementEventMailTemplateType,
   getFormattedAgreementStampDate,
@@ -30,6 +31,7 @@ import {
   agreementEmailSenderService,
   interopFeBaseUrl,
   sesEmailManager,
+  sesEmailManagerConfig,
   sesEmailsenderData,
   templateService,
 } from "./utils.js";
@@ -123,6 +125,17 @@ describe("sendAgreementSubmissionEmail", () => {
       mail.subject,
       mail.body
     );
+
+    const response: AxiosResponse = await axios.get(
+      `${sesEmailManagerConfig?.awsSesEndpoint}/store`
+    );
+    expect(response.status).toBe(200);
+    const lastEmail = response.data.emails[0];
+    expect(lastEmail).toBeDefined();
+    expect(lastEmail.subject).toBe(mail.subject);
+    expect(lastEmail.from).toBe(`${mail.from.name} <${mail.from.address}>`);
+    expect(lastEmail.destination.to).toEqual(mail.to);
+    expect(lastEmail.body.html).toBe(mail.body);
   });
 
   it("should should not send email if the producer has no mail", async () => {

@@ -21,24 +21,23 @@ import { readModelServiceBuilder } from "../src/services/readModelService.js";
 
 export const readModelConfig = inject("readModelConfig");
 export const emailManagerConfig = inject("emailManagerConfig");
+export const sesEmailManagerConfig = inject("sesEmailManagerConfig");
 
-export const { cleanup, readModelRepository, pecEmailManager } =
-  await setupTestContainersVitest(
-    readModelConfig,
-    undefined,
-    undefined,
-    emailManagerConfig
-  );
+export const {
+  cleanup,
+  readModelRepository,
+  pecEmailManager,
+  sesEmailManager,
+} = await setupTestContainersVitest(
+  readModelConfig,
+  undefined,
+  undefined,
+  emailManagerConfig,
+  undefined,
+  sesEmailManagerConfig
+);
 export const readModelService = readModelServiceBuilder(readModelRepository);
 export const templateService = buildHTMLTemplateService();
-
-export const sesEmailManager: EmailManagerSES = {
-  kind: "SES",
-  send: vi.fn().mockResolvedValue({ status: 200 } as AxiosResponse),
-  sendWithAttachments: vi
-    .fn()
-    .mockResolvedValue({ status: 200 } as AxiosResponse),
-};
 
 export const sesEmailManagerFailure: EmailManagerSES = {
   kind: "SES",

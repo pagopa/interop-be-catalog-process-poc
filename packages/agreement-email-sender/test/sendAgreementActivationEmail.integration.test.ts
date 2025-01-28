@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import axios, { AxiosResponse } from "axios";
 import { genericLogger } from "pagopa-interop-commons";
 import {
   getMockAgreement,
@@ -38,6 +39,7 @@ import {
   pecEmailManager,
   pecEmailsenderData,
   sesEmailManager,
+  sesEmailManagerConfig,
   sesEmailsenderData,
   templateService,
 } from "./utils.js";
@@ -53,6 +55,7 @@ afterEach(() => {
 describe("sendAgreementActivationEmail", () => {
   describe("Send Simple Email", () => {
     it("should send an email to Consumer to contact email addresses", async () => {
+      vi.spyOn(sesEmailManager, "send");
       const consumerEmail = getMockTenantMail(tenantMailKind.ContactEmail);
       const consumer: Tenant = {
         ...getMockTenant(),
@@ -121,6 +124,17 @@ describe("sendAgreementActivationEmail", () => {
         mail.subject,
         mail.body
       );
+
+      const response: AxiosResponse = await axios.get(
+        `${sesEmailManagerConfig?.awsSesEndpoint}/store`
+      );
+      expect(response.status).toBe(200);
+      const lastEmail = response.data.emails[0];
+      expect(lastEmail).toBeDefined();
+      expect(lastEmail.subject).toBe(mail.subject);
+      expect(lastEmail.from).toBe(`${mail.from.name} <${mail.from.address}>`);
+      expect(lastEmail.destination.to).toEqual(mail.to);
+      expect(lastEmail.body.html).toBe(mail.body);
     });
 
     it("should throw agreementStampDateNotFound for activation date not found", async () => {
