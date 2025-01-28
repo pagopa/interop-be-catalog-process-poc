@@ -63,6 +63,17 @@ export const DelegationTopicConfig = z
   }));
 export type DelegationTopicConfig = z.infer<typeof DelegationTopicConfig>;
 
+export const EServiceTemplateTopicConfig = z
+  .object({
+    ESERVICE_TEMPLATE_TOPIC: z.string(),
+  })
+  .transform((c) => ({
+    eserviceTemplateTopic: c.ESERVICE_TEMPLATE_TOPIC,
+  }));
+export type EServiceTemplateTopicConfig = z.infer<
+  typeof EServiceTemplateTopicConfig
+>;
+
 export const KafkaTopicConfig = z.union([
   CatalogTopicConfig,
   AgreementTopicConfig,
@@ -71,5 +82,6 @@ export const KafkaTopicConfig = z.union([
   PurposeTopicConfig,
   AuthorizationTopicConfig,
   DelegationTopicConfig,
+  EServiceTemplateTopicConfig,
 ]);
 export type KafkaTopicConfig = z.infer<typeof KafkaTopicConfig>;

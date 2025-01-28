@@ -2,7 +2,7 @@ import { z } from "zod";
 import { match } from "ts-pattern";
 
 import {
-  EServiceTemplateActivatedV2,
+  EServiceTemplateVersionActivatedV2,
   EServiceTemplateAddedV2,
   EServiceTemplateAudienceDescriptionUpdatedV2,
   EServiceTemplateEServiceDescriptionUpdatedV2,
@@ -14,7 +14,7 @@ import {
   EServiceTemplateRiskAnalysisAddedV2,
   EServiceTemplateRiskAnalysisDeletedV2,
   EServiceTemplateRiskAnalysisUpdatedV2,
-  EServiceTemplateSuspendedV2,
+  EServiceTemplateVersionSuspendedV2,
   EServiceTemplateVersionAddedV2,
   EServiceTemplateVersionAttributesUpdatedV2,
   EServiceTemplateVersionDocumentAddedV2,
@@ -137,13 +137,13 @@ export const EServiceTemplateEventV2 = z.discriminatedUnion("type", [
   }),
   z.object({
     event_version: z.literal(2),
-    type: z.literal("EServiceTemplateSuspended"),
-    data: protobufDecoder(EServiceTemplateSuspendedV2),
+    type: z.literal("EServiceTemplateVersionSuspended"),
+    data: protobufDecoder(EServiceTemplateVersionSuspendedV2),
   }),
   z.object({
     event_version: z.literal(2),
-    type: z.literal("EServiceTemplateActivated"),
-    data: protobufDecoder(EServiceTemplateActivatedV2),
+    type: z.literal("EServiceTemplateVersionActivated"),
+    data: protobufDecoder(EServiceTemplateVersionActivatedV2),
   }),
 ]);
 
@@ -153,8 +153,8 @@ export function eserviceTemplateEventToBinaryDataV2(
   event: EServiceTemplateEventV2
 ): Uint8Array {
   return match(event)
-    .with({ type: "EServiceTemplateActivated" }, ({ data }) =>
-      EServiceTemplateActivatedV2.toBinary(data)
+    .with({ type: "EServiceTemplateVersionActivated" }, ({ data }) =>
+      EServiceTemplateVersionActivatedV2.toBinary(data)
     )
     .with({ type: "EServiceTemplateAdded" }, ({ data }) =>
       EServiceTemplateAddedV2.toBinary(data)
@@ -189,8 +189,8 @@ export function eserviceTemplateEventToBinaryDataV2(
     .with({ type: "EServiceTemplateRiskAnalysisUpdated" }, ({ data }) =>
       EServiceTemplateRiskAnalysisUpdatedV2.toBinary(data)
     )
-    .with({ type: "EServiceTemplateSuspended" }, ({ data }) =>
-      EServiceTemplateSuspendedV2.toBinary(data)
+    .with({ type: "EServiceTemplateVersionSuspended" }, ({ data }) =>
+      EServiceTemplateVersionSuspendedV2.toBinary(data)
     )
     .with({ type: "EServiceTemplateVersionAdded" }, ({ data }) =>
       EServiceTemplateVersionAddedV2.toBinary(data)
