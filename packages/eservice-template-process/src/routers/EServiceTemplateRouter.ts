@@ -9,11 +9,14 @@ import {
   zodiosValidationErrorToApiProblem,
   userRoles,
   authorizationMiddleware,
+  fromAppContext,
 } from "pagopa-interop-commons";
 import { eserviceTemplateApi } from "pagopa-interop-api-clients";
 import { config } from "../config/config.js";
 import { readModelServiceBuilder } from "../services/readModelService.js";
 import { eserviceTemplateServiceBuilder } from "../services/eserviceTemplateService.js";
+import { makeApiProblem } from "../model/domain/errors.js";
+import { createEServiceTemplateErrorMapper } from "../utilities/errorMappers.js";
 
 const readModelService = readModelServiceBuilder(
   ReadModelRepository.init(config)
@@ -32,12 +35,11 @@ const eserviceTemplateService = eserviceTemplateServiceBuilder(
   readModelService,
   initFileManager(config)
 );
-void eserviceTemplateService;
 
 const eserviceTemplatesRouter = (
   ctx: ZodiosContext
 ): ZodiosRouter<ZodiosEndpointDefinitions, ExpressContext> => {
-  const { ADMIN_ROLE } = userRoles;
+  const { ADMIN_ROLE, API_ROLE } = userRoles;
 
   return ctx
     .router(eserviceTemplateApi.processApi.api, {
@@ -50,8 +52,26 @@ const eserviceTemplatesRouter = (
     )
     .post(
       "/eservices/templates",
-      authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+
+        try {
+          const eserviceTemplate =
+            await eserviceTemplateService.createEServiceTemplate(req.body, ctx);
+          return res
+            .send(eserviceTemplateApi.EServiceTemplate.parse(eserviceTemplate))
+            .status(200);
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            createEServiceTemplateErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     )
     .get(
       "/eservices/templates/:eServiceTemplateId",

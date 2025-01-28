@@ -1,10 +1,69 @@
-import { ReadModelRepository } from "pagopa-interop-commons";
+import {
+  EServiceTemplateCollection,
+  ReadModelRepository,
+} from "pagopa-interop-commons";
+import {
+  EServiceTemplate,
+  TenantId,
+  WithMetadata,
+  genericInternalError,
+} from "pagopa-interop-models";
+import { Filter, WithId } from "mongodb";
+import { z } from "zod";
+
+async function getEServiceTemplate(
+  eserviceTemplates: EServiceTemplateCollection,
+  filter: Filter<WithId<WithMetadata<EServiceTemplate>>>
+): Promise<WithMetadata<EServiceTemplate> | undefined> {
+  const data = await eserviceTemplates.findOne(filter, {
+    projection: { data: true, metadata: true },
+  });
+  if (!data) {
+    return undefined;
+  } else {
+    const result = z
+      .object({
+        metadata: z.object({ version: z.number() }),
+        data: EServiceTemplate,
+      })
+      .safeParse(data);
+    if (!result.success) {
+      throw genericInternalError(
+        `Unable to parse eService item: result ${JSON.stringify(
+          result
+        )} - data ${JSON.stringify(data)} `
+      );
+    }
+    return {
+      data: result.data.data,
+      metadata: { version: result.data.metadata.version },
+    };
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function readModelServiceBuilder(
-  _readModelRepository: ReadModelRepository
+  readModelRepository: ReadModelRepository
 ) {
-  return {};
+  const eserviceTemplates = readModelRepository.eserviceTemplates;
+
+  return {
+    async getEServiceTemplateByNameAndProducerId({
+      name,
+      producerId,
+    }: {
+      name: string;
+      producerId: TenantId;
+    }): Promise<WithMetadata<EServiceTemplate> | undefined> {
+      return getEServiceTemplate(eserviceTemplates, {
+        "data.name": {
+          $regex: `^${ReadModelRepository.escapeRegExp(name)}$$`,
+          $options: "i",
+        },
+        "data.producerId": producerId,
+      });
+    },
+  };
 }
 
 export type ReadModelService = ReturnType<typeof readModelServiceBuilder>;
