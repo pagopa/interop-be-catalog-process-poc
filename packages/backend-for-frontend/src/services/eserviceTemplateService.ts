@@ -58,5 +58,41 @@ export function eserviceTemplateServiceBuilder(
         },
       });
     },
+    updateEServiceTemplateAudienceDescription: async (
+      eServiceTemplateId: EServiceTemplateId,
+      seed: bffApi.EServiceTemplateDescriptionUpdateSeed,
+      { logger, headers }: WithLogger<BffAppContext>
+    ): Promise<void> => {
+      logger.info(
+        `Updating EService template ${eServiceTemplateId} audience description`
+      );
+      await eserviceTemplateClient.updateEServiceTemplateAudienceDescription(
+        seed,
+        {
+          headers,
+          params: {
+            eServiceTemplateId,
+          },
+        }
+      );
+    },
+    updateEServiceTemplateEServiceDescription: async (
+      eServiceTemplateId: EServiceTemplateId,
+      seed: bffApi.EServiceTemplateDescriptionUpdateSeed,
+      { logger, headers }: WithLogger<BffAppContext>
+    ): Promise<void> => {
+      logger.info(
+        `Updating EService template ${eServiceTemplateId} e-service description`
+      );
+      await eserviceTemplateClient.updateEServiceTemplateEServiceDescription(
+        seed,
+        {
+          headers,
+          params: {
+            eServiceTemplateId,
+          },
+        }
+      );
+    },
   };
 }

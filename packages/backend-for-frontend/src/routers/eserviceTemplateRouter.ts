@@ -102,6 +102,56 @@ const eserviceTemplateRouter = (
           return res.status(errorRes.status).send(errorRes);
         }
       }
+    )
+    .post(
+      "/eservices/templates/:eServiceTemplateId/audienceDescription/update",
+      async (req, res) => {
+        const ctx = fromBffAppContext(req.ctx, req.headers);
+        const { eServiceTemplateId } = req.params;
+
+        try {
+          await eserviceTemplateService.updateEServiceTemplateAudienceDescription(
+            unsafeBrandId(eServiceTemplateId),
+            req.body,
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            emptyErrorMapper,
+            ctx.logger,
+            ctx.correlationId,
+            `Error updating eservice template ${eServiceTemplateId} audience description`
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .post(
+      "/eservices/templates/:eServiceTemplateId/eserviceDescription/update",
+      async (req, res) => {
+        const ctx = fromBffAppContext(req.ctx, req.headers);
+        const { eServiceTemplateId } = req.params;
+
+        try {
+          await eserviceTemplateService.updateEServiceTemplateEServiceDescription(
+            unsafeBrandId(eServiceTemplateId),
+            req.body,
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            emptyErrorMapper,
+            ctx.logger,
+            ctx.correlationId,
+            `Error updating eservice template ${eServiceTemplateId} e-service description`
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     );
 
   return eserviceTemplateRouter;

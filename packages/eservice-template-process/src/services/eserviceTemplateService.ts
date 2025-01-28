@@ -26,6 +26,8 @@ import {
   notValidEServiceTemplateVersionState,
 } from "../model/domain/errors.js";
 import {
+  toCreateEventEServiceTemplateAudienceDescriptionUpdated,
+  toCreateEventEServiceTemplateEServiceDescriptionUpdated,
   toCreateEventEServiceTemplateVersionActivated,
   toCreateEventEServiceTemplateVersionSuspended,
   toCreateEventEServiceTemplateNameUpdated,
@@ -309,6 +311,88 @@ export function eserviceTemplateServiceBuilder(
       };
       await repository.createEvent(
         toCreateEventEServiceTemplateNameUpdated(
+          eserviceTemplate.data.id,
+          eserviceTemplate.metadata.version,
+          updatedEserviceTemplate,
+          correlationId
+        )
+      );
+      return updatedEserviceTemplate;
+    },
+
+    async updateEServiceTemplateAudienceDescription(
+      eserviceTemplateId: EServiceTemplateId,
+      audienceDescription: string,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplate> {
+      logger.info(
+        `Updating audience description of EService template ${eserviceTemplateId}`
+      );
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      if (
+        eserviceTemplate.data.versions.every(
+          (version) => version.state === eserviceTemplateVersionState.draft
+        )
+      ) {
+        throw eserviceTemplateWithoutPublishedVersion(eserviceTemplateId);
+      }
+
+      const updatedEserviceTemplate: EServiceTemplate = {
+        ...eserviceTemplate.data,
+        audienceDescription,
+      };
+      await repository.createEvent(
+        toCreateEventEServiceTemplateAudienceDescriptionUpdated(
+          eserviceTemplate.data.id,
+          eserviceTemplate.metadata.version,
+          updatedEserviceTemplate,
+          correlationId
+        )
+      );
+      return updatedEserviceTemplate;
+    },
+
+    async updateEServiceTemplateEServiceDescription(
+      eserviceTemplateId: EServiceTemplateId,
+      eserviceDescription: string,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplate> {
+      logger.info(
+        `Updating e-service description of EService template ${eserviceTemplateId}`
+      );
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      if (
+        eserviceTemplate.data.versions.every(
+          (version) => version.state === eserviceTemplateVersionState.draft
+        )
+      ) {
+        throw eserviceTemplateWithoutPublishedVersion(eserviceTemplateId);
+      }
+
+      const updatedEserviceTemplate: EServiceTemplate = {
+        ...eserviceTemplate.data,
+        eserviceDescription,
+      };
+      await repository.createEvent(
+        toCreateEventEServiceTemplateEServiceDescriptionUpdated(
           eserviceTemplate.data.id,
           eserviceTemplate.metadata.version,
           updatedEserviceTemplate,
