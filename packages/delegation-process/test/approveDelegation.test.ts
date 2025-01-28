@@ -45,8 +45,17 @@ import {
   delegationService,
 } from "./utils.js";
 
-describe("approve consumer delegation", () => {
-  const currentExecutionTime = new Date();
+const currentExecutionTime = new Date();
+
+describe.each([
+  delegationKind.delegatedConsumer,
+  delegationKind.delegatedProducer,
+])("approve %s delegation", (kind) => {
+  const approveFn =
+    kind === delegationKind.delegatedConsumer
+      ? delegationService.approveConsumerDelegation
+      : delegationService.approveProducerDelegation;
+
   beforeAll(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(currentExecutionTime);
@@ -71,7 +80,7 @@ describe("approve consumer delegation", () => {
     const authData = getRandomAuthData(delegate.id);
 
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedConsumer,
+      kind,
       id: delegationId,
       state: "WaitingForApproval",
       delegateId: delegate.id,
@@ -82,7 +91,7 @@ describe("approve consumer delegation", () => {
     const { version } = await readLastDelegationEvent(delegation.id);
     expect(version).toBe("0");
 
-    await delegationService.approveConsumerDelegation(delegation.id, {
+    await approveFn(delegation.id, {
       authData,
       serviceName: "",
       correlationId: generateId(),
@@ -136,7 +145,10 @@ describe("approve consumer delegation", () => {
     expect(actualDelegation).toEqual(expectedDelegation);
 
     const expectedPdfPayload: DelegationActivationPDFPayload = {
-      delegationKindText: "alla fruizione",
+      delegationKindText:
+        kind === delegationKind.delegatedConsumer
+          ? "alla fruizione"
+          : "all’erogazione",
       todayDate: dateAtRomeZone(currentExecutionTime),
       todayTime: timeAtRomeZone(currentExecutionTime),
       delegationId: approvedDelegationWithoutContract.id,
@@ -171,23 +183,21 @@ describe("approve consumer delegation", () => {
       unsafeBrandId<DelegationId>("non-existent-id");
 
     await expect(
-      delegationService.approveConsumerDelegation(nonExistentDelegationId, {
+      approveFn(nonExistentDelegationId, {
         authData: getRandomAuthData(delegateId),
         serviceName: "",
         correlationId: generateId(),
         logger: genericLogger,
       })
-    ).rejects.toThrow(
-      delegationNotFound(
-        nonExistentDelegationId,
-        delegationKind.delegatedConsumer
-      )
-    );
+    ).rejects.toThrow(delegationNotFound(nonExistentDelegationId, kind));
   });
 
-  it("should throw delegationNotFound when delegation kind is not DelegatedConsumer", async () => {
+  it(`should throw delegationNotFound when delegation kind is not ${kind}`, async () => {
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedProducer,
+      kind:
+        kind === delegationKind.delegatedConsumer
+          ? delegationKind.delegatedProducer
+          : delegationKind.delegatedConsumer,
       state: "WaitingForApproval",
       delegateId: delegate.id,
       delegatorId: delegator.id,
@@ -196,22 +206,20 @@ describe("approve consumer delegation", () => {
     await addOneDelegation(delegation);
 
     await expect(
-      delegationService.approveConsumerDelegation(delegation.id, {
+      approveFn(delegation.id, {
         authData: getRandomAuthData(delegate.id),
         serviceName: "",
         correlationId: generateId(),
         logger: genericLogger,
       })
-    ).rejects.toThrow(
-      delegationNotFound(delegation.id, delegationKind.delegatedConsumer)
-    );
+    ).rejects.toThrow(delegationNotFound(delegation.id, kind));
   });
 
   it("should throw operationRestrictedToDelegate when approver is not the delegate", async () => {
     const wrongDelegate = getMockTenant();
     await addOneTenant(wrongDelegate);
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedConsumer,
+      kind,
       state: "WaitingForApproval",
       delegateId: delegate.id,
       delegatorId: delegator.id,
@@ -220,7 +228,7 @@ describe("approve consumer delegation", () => {
     await addOneDelegation(delegation);
 
     await expect(
-      delegationService.approveConsumerDelegation(delegation.id, {
+      approveFn(delegation.id, {
         authData: getRandomAuthData(wrongDelegate.id),
         serviceName: "",
         correlationId: generateId(),
@@ -236,10 +244,10 @@ describe("approve consumer delegation", () => {
       (state) => state !== delegationState.waitingForApproval
     )
   )(
-    "should throw incorrectState when delegation is in %s state",
+    `should throw incorrectState when delegation is in ${kind} state`,
     async (state) => {
       const delegation = getMockDelegation({
-        kind: delegationKind.delegatedConsumer,
+        kind,
         state,
         delegateId: delegate.id,
         delegatorId: delegator.id,
@@ -248,7 +256,7 @@ describe("approve consumer delegation", () => {
       await addOneDelegation(delegation);
 
       await expect(
-        delegationService.approveConsumerDelegation(delegation.id, {
+        approveFn(delegation.id, {
           authData: getRandomAuthData(delegate.id),
           serviceName: "",
           correlationId: generateId(),
@@ -262,7 +270,7 @@ describe("approve consumer delegation", () => {
 
   it("should generete a pdf document for a delegation", async () => {
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedConsumer,
+      kind,
       state: "WaitingForApproval",
       delegateId: delegate.id,
       delegatorId: delegator.id,
@@ -272,7 +280,7 @@ describe("approve consumer delegation", () => {
     const { version } = await readLastDelegationEvent(delegation.id);
     expect(version).toBe("0");
 
-    await delegationService.approveConsumerDelegation(delegation.id, {
+    await approveFn(delegation.id, {
       authData: getRandomAuthData(delegate.id),
       serviceName: "",
       correlationId: generateId(),

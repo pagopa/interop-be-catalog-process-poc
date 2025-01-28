@@ -20,6 +20,7 @@ import {
   delegationKind,
   UserId,
   toDelegationV2,
+  ProducerDelegationRevokedV2,
 } from "pagopa-interop-models";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -49,8 +50,16 @@ import {
   readLastDelegationEvent,
 } from "./utils.js";
 
-describe("revoke consumer delegation", () => {
-  const TEST_EXECUTION_DATE = new Date();
+const TEST_EXECUTION_DATE = new Date();
+
+describe.each([
+  delegationKind.delegatedConsumer,
+  delegationKind.delegatedProducer,
+])("revoke %s delegation", (kind) => {
+  const revokeFn =
+    kind === delegationKind.delegatedConsumer
+      ? delegationService.revokeConsumerDelegation
+      : delegationService.revokeProducerDelegation;
 
   beforeAll(() => {
     vi.useFakeTimers();
@@ -85,7 +94,7 @@ describe("revoke consumer delegation", () => {
 
     const existentDelegation: Delegation = {
       ...getMockDelegation({
-        kind: delegationKind.delegatedConsumer,
+        kind,
         delegatorId,
         delegateId,
       }),
@@ -106,7 +115,7 @@ describe("revoke consumer delegation", () => {
 
     await addOneDelegation(existentDelegation);
 
-    await delegationService.revokeConsumerDelegation(existentDelegation.id, {
+    await revokeFn(existentDelegation.id, {
       authData,
       logger: genericLogger,
       correlationId: generateId(),
@@ -117,7 +126,10 @@ describe("revoke consumer delegation", () => {
     expect(event.version).toBe("1");
 
     const { delegation: actualDelegation } = decodeProtobufPayload({
-      messageType: ConsumerDelegationRevokedV2,
+      messageType:
+        kind === delegationKind.delegatedConsumer
+          ? ConsumerDelegationRevokedV2
+          : ProducerDelegationRevokedV2,
       payload: event.data,
     });
 
@@ -160,7 +172,10 @@ describe("revoke consumer delegation", () => {
     expect(actualDelegation).toEqual(expectedDelegation);
 
     const expectedPdfPayload: DelegationRevocationPDFPayload = {
-      delegationKindText: "alla fruizione",
+      delegationKindText:
+        kind === delegationKind.delegatedConsumer
+          ? "alla fruizione"
+          : "all’erogazione",
       todayDate: dateAtRomeZone(currentExecutionTime),
       todayTime: timeAtRomeZone(currentExecutionTime),
       delegationId: revokedDelegationWithoutContract.id,
@@ -192,36 +207,35 @@ describe("revoke consumer delegation", () => {
     const authData = getRandomAuthData(delegatorId);
     const delegationId = generateId<DelegationId>();
     await expect(
-      delegationService.revokeConsumerDelegation(delegationId, {
+      revokeFn(delegationId, {
         authData,
         logger: genericLogger,
         correlationId: generateId(),
         serviceName: "DelegationServiceTest",
       })
-    ).rejects.toThrow(
-      delegationNotFound(delegationId, delegationKind.delegatedConsumer)
-    );
+    ).rejects.toThrow(delegationNotFound(delegationId, kind));
   });
 
-  it("should throw delegationNotFound when delegation kind is not DelegatedConsumer", async () => {
+  it(`should throw delegationNotFound when delegation kind is not ${kind}`, async () => {
     const delegate = getMockTenant();
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedProducer,
+      kind:
+        kind === delegationKind.delegatedConsumer
+          ? delegationKind.delegatedProducer
+          : delegationKind.delegatedConsumer,
       state: "WaitingForApproval",
       delegateId: delegate.id,
     });
     await addOneDelegation(delegation);
 
     await expect(
-      delegationService.revokeConsumerDelegation(delegation.id, {
+      revokeFn(delegation.id, {
         authData: getRandomAuthData(delegate.id),
         serviceName: "",
         correlationId: generateId(),
         logger: genericLogger,
       })
-    ).rejects.toThrow(
-      delegationNotFound(delegation.id, delegationKind.delegatedConsumer)
-    );
+    ).rejects.toThrow(delegationNotFound(delegation.id, kind));
   });
 
   it("should throw a delegatorNotAllowToRevoke if Requester is not Delegator", async () => {
@@ -231,7 +245,7 @@ describe("revoke consumer delegation", () => {
     const delegationId = generateId<DelegationId>();
 
     const existentDelegation = getMockDelegation({
-      kind: delegationKind.delegatedConsumer,
+      kind,
       id: delegationId,
       delegateId,
     });
@@ -239,7 +253,7 @@ describe("revoke consumer delegation", () => {
     await addOneDelegation(existentDelegation);
 
     await expect(
-      delegationService.revokeConsumerDelegation(delegationId, {
+      revokeFn(delegationId, {
         authData,
         logger: genericLogger,
         correlationId: generateId(),
@@ -259,7 +273,7 @@ describe("revoke consumer delegation", () => {
       const authData = getRandomAuthData(delegatorId);
 
       const existentDelegation: Delegation = getMockDelegation({
-        kind: delegationKind.delegatedConsumer,
+        kind,
         delegatorId,
         delegateId,
         state,
@@ -268,7 +282,7 @@ describe("revoke consumer delegation", () => {
       await addOneDelegation(existentDelegation);
 
       await expect(
-        delegationService.revokeConsumerDelegation(existentDelegation.id, {
+        revokeFn(existentDelegation.id, {
           authData,
           logger: genericLogger,
           correlationId: generateId(),
