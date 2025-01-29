@@ -102,6 +102,7 @@ export function delegationProducerServiceBuilder(
 
       const creationDate = new Date();
       const delegation = {
+        // add type of delegation
         id: generateId<DelegationId>(),
         delegatorId,
         delegateId,
@@ -149,6 +150,7 @@ export function delegationProducerServiceBuilder(
 
       const now = new Date();
       const revokedDelegationWithoutContract = {
+        // add type of revokedDelegationWithoutContract
         ...delegation,
         state: delegationState.revoked,
         revokedAt: now,
@@ -175,6 +177,7 @@ export function delegationProducerServiceBuilder(
       );
 
       const revokedDelegation = {
+        // add type of revokedDelegation
         ...revokedDelegationWithoutContract,
         revocationContract,
       };
@@ -240,6 +243,7 @@ export function delegationProducerServiceBuilder(
       );
 
       const approvedDelegation = {
+        // add type of approvedDelegation
         ...approvedDelegationWithoutContract,
         activationContract,
       };

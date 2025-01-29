@@ -28,10 +28,10 @@ const CONTENT_TYPE_PDF = "application/pdf";
 
 const createDelegationContractPrettyName = (
   eServiceName: string,
-  documentType: "activation" | "revocation"
+  documentType: "activation" | "revocation" // turn these into const in models
 ): string => {
   const prettyName = `${
-    documentType === "activation" ? "Delega" : "Revoca_Delega"
+    documentType === "activation" ? "Delega" : "Revoca_Delega" // turn these into const in models
   }_${eServiceName}`;
   return prettyName.length > 45 ? prettyName.slice(0, 45) : prettyName;
 };
@@ -43,7 +43,7 @@ const getIpaCode = (tenant: Tenant): string | undefined =>
 
 const createDelegationDocumentName = (
   documentCreatedAt: Date,
-  documentType: "activation" | "revocation"
+  documentType: "activation" | "revocation" // same as above
 ): string =>
   `${formatDateyyyyMMddHHmmss(
     documentCreatedAt
@@ -86,10 +86,10 @@ export const contractBuilder = {
     const documentId = generateId<DelegationContractId>();
     const documentName = createDelegationDocumentName(
       documentCreatedAt,
-      "activation"
+      "activation" // use the new model
     );
 
-    assertStampExists(delegation.stamps, "activation");
+    assertStampExists(delegation.stamps, "activation"); // use the new model
 
     const submissionDate = dateAtRomeZone(delegation.stamps.submission.when);
     const submissionTime = timeAtRomeZone(delegation.stamps.submission.when);
@@ -133,7 +133,7 @@ export const contractBuilder = {
       name: documentName,
       prettyName: createDelegationContractPrettyName(
         eservice.name,
-        "activation"
+        "activation" // use the new model
       ),
       contentType: CONTENT_TYPE_PDF,
       path: documentPath,
@@ -172,10 +172,10 @@ export const contractBuilder = {
     const documentId = generateId<DelegationContractId>();
     const documentName = createDelegationDocumentName(
       documentCreatedAt,
-      "revocation"
+      "revocation" // use the new model
     );
 
-    assertStampExists(delegation.stamps, "revocation");
+    assertStampExists(delegation.stamps, "revocation"); // use the new model
     const revocationDate = dateAtRomeZone(delegation.stamps.revocation.when);
     const revocationTime = timeAtRomeZone(delegation.stamps.revocation.when);
 
@@ -215,7 +215,7 @@ export const contractBuilder = {
       name: documentName,
       prettyName: createDelegationContractPrettyName(
         eservice.name,
-        "revocation"
+        "revocation" // use the new model
       ),
       contentType: CONTENT_TYPE_PDF,
       path: documentPath,
