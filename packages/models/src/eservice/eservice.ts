@@ -4,6 +4,8 @@ import {
   DescriptorId,
   EServiceDocumentId,
   EServiceId,
+  EServiceTemplateId,
+  EServiceTemplateVersionId,
   TenantId,
 } from "../brandedIds.js";
 import { RiskAnalysis } from "../risk-analysis/riskAnalysis.js";
@@ -91,6 +93,7 @@ export const Descriptor = z.object({
   archivedAt: z.coerce.date().optional(),
   attributes: EServiceAttributes,
   rejectionReasons: z.array(DescriptorRejectionReason).optional(),
+  templateVersionId: EServiceTemplateVersionId.optional(),
 });
 export type Descriptor = z.infer<typeof Descriptor>;
 
@@ -104,6 +107,25 @@ export const EServiceMode = z.enum([
 ]);
 export type EServiceMode = z.infer<typeof EServiceMode>;
 
+export const EServiceTemplateBindingInterface = z.object({
+  name: z.string(),
+  email: z.string(),
+  url: z.string(),
+  termsAndConditionsUrl: z.string(),
+  serverUrl: z.string(),
+});
+
+export type EServiceTemplateBindingInterface = z.infer<
+  typeof EServiceTemplateBindingInterface
+>;
+
+export const EServiceTemplateBinding = z.object({
+  templateId: EServiceTemplateId,
+  istanceId: z.string().optional(),
+  interfaceInfo: EServiceTemplateBindingInterface.optional(),
+});
+export type EServiceTemplateBinding = z.infer<typeof EServiceTemplateBinding>;
+
 export const EService = z.object({
   id: EServiceId,
   producerId: TenantId,
@@ -116,5 +138,6 @@ export const EService = z.object({
   riskAnalysis: z.array(RiskAnalysis),
   mode: EServiceMode,
   isSignalHubEnabled: z.boolean().optional(),
+  template: EServiceTemplateBinding.optional(),
 });
 export type EService = z.infer<typeof EService>;
