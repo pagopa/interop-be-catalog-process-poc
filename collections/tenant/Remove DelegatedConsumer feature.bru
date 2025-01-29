@@ -1,0 +1,16 @@
+meta {
+  name: Remove DelegatedConsumer feature
+  type: http
+  seq: 26
+}
+
+delete {
+  url: {{host-tenant}}/tenants/delegatedConsumer
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Reject consumer delegation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host-bff}}/consumer/delegations/:delegationId/reject
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "rejectionReason": "I don't like computers, please send me a pigeon"
+  }
+}
+
+params:path {
+  delegationId: {{delegationId}}
+}
+
+headers {
+  Authorization: {{JWT2}}
+  X-Correlation-Id: {{correlation-id}}
+}

@@ -34,6 +34,8 @@ import {
   WaitingForApprovalPurposeVersionDeletedV2,
   PurposeVersionRejectedV2,
   PurposeClonedV2,
+  PurposeDeletedByRevokedDelegationV2,
+  PurposeVersionArchivedByRevokedDelegationV2,
 } from "../gen/v2/purpose/events.js";
 
 export function purposeEventToBinaryData(event: PurposeEvent): Uint8Array {
@@ -134,6 +136,12 @@ export function purposeEventToBinaryDataV2(event: PurposeEventV2): Uint8Array {
     )
     .with({ type: "PurposeCloned" }, ({ data }) =>
       PurposeClonedV2.toBinary(data)
+    )
+    .with({ type: "PurposeDeletedByRevokedDelegation" }, ({ data }) =>
+      PurposeDeletedByRevokedDelegationV2.toBinary(data)
+    )
+    .with({ type: "PurposeVersionArchivedByRevokedDelegation" }, ({ data }) =>
+      PurposeVersionArchivedByRevokedDelegationV2.toBinary(data)
     )
     .exhaustive();
 }
@@ -287,6 +295,16 @@ export const PurposeEventV2 = z.discriminatedUnion("type", [
     event_version: z.literal(2),
     type: z.literal("PurposeCloned"),
     data: protobufDecoder(PurposeClonedV2),
+  }),
+  z.object({
+    event_version: z.literal(2),
+    type: z.literal("PurposeDeletedByRevokedDelegation"),
+    data: protobufDecoder(PurposeDeletedByRevokedDelegationV2),
+  }),
+  z.object({
+    event_version: z.literal(2),
+    type: z.literal("PurposeVersionArchivedByRevokedDelegation"),
+    data: protobufDecoder(PurposeVersionArchivedByRevokedDelegationV2),
   }),
 ]);
 export type PurposeEventV2 = z.infer<typeof PurposeEventV2>;

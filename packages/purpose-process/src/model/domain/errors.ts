@@ -1,5 +1,6 @@
 import {
   ApiError,
+  DelegationId,
   DescriptorId,
   EServiceId,
   EServiceMode,
@@ -41,6 +42,9 @@ export const errorCodes = {
   missingRiskAnalysis: "0024",
   purposeVersionStateConflict: "0025",
   riskAnalysisConfigLatestVersionNotFound: "0026",
+  organizationIsNotTheDelegatedConsumer: "0027",
+  organizationIsNotTheDelegatedProducer: "0028",
+  purposeDelegationNotFound: "0029",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -106,7 +110,7 @@ export function organizationNotAllowed(
   organizationId: TenantId
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Organization ${organizationId} is not allowed to perform the operation`,
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is neither producer/consumer nor delegate`,
     code: "organizationNotAllowed",
     title: "Organization not allowed",
   });
@@ -116,8 +120,21 @@ export function organizationIsNotTheConsumer(
   organizationId: TenantId
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Organization ${organizationId} is not allowed to perform the operation`,
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the consumer`,
     code: "organizationIsNotTheConsumer",
+    title: "Organization not allowed",
+  });
+}
+
+export function organizationIsNotTheDelegatedConsumer(
+  organizationId: TenantId,
+  delegationId: DelegationId | undefined
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the delegated consumer${
+      delegationId ? ` of delegation ${delegationId}` : ""
+    }`,
+    code: "organizationIsNotTheDelegatedConsumer",
     title: "Organization not allowed",
   });
 }
@@ -137,8 +154,21 @@ export function organizationIsNotTheProducer(
   organizationId: TenantId
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Organization ${organizationId} is not allowed to perform the operation`,
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the producer`,
     code: "organizationIsNotTheProducer",
+    title: "Organization not allowed",
+  });
+}
+
+export function organizationIsNotTheDelegatedProducer(
+  organizationId: TenantId,
+  delegationId: DelegationId | undefined
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the delegate producer${
+      delegationId ? ` of delegation ${delegationId}` : ""
+    }`,
+    code: "organizationIsNotTheDelegatedProducer",
     title: "Organization not allowed",
   });
 }
@@ -304,5 +334,16 @@ export function purposeVersionStateConflict(
     detail: `Operation is not allowed on state ${state} for Version ${versionId} of Purpose ${purposeId}`,
     code: "purposeVersionStateConflict",
     title: "Purpose version state conflict",
+  });
+}
+
+export function puroposeDelegationNotFound(
+  purposeId: PurposeId,
+  delegationId: DelegationId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Delegation ${delegationId} not found for delegated purpose ${purposeId}`,
+    code: "purposeDelegationNotFound",
+    title: "Purpose delegation not found",
   });
 }

@@ -61,12 +61,14 @@ export const toAgreementEventNotification = (
       { type: "AgreementRejected" },
       { type: "AgreementArchivedByUpgrade" },
       { type: "AgreementArchivedByConsumer" },
+      { type: "AgreementArchivedByRevokedDelegation" },
       (event): AgreementNotification => ({
         agreement: getAgreement(event),
       })
     )
     .with(
       { type: "AgreementDeleted" },
+      { type: "AgreementDeletedByRevokedDelegation" },
       (event): AgreementIdNotification => ({
         agreementId: getAgreement(event).id,
       })

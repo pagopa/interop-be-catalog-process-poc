@@ -9,14 +9,17 @@ import {
   EServiceId,
   operationForbidden,
   Tenant,
+  tenantFeatureType,
   TenantId,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
 import {
   delegationAlreadyExists,
+  delegationRelatedAgreementExists,
   delegationStampNotFound,
   delegatorAndDelegateSameIdError,
   differentEServiceProducer,
+  eserviceNotConsumerDelegable,
   incorrectState,
   operationRestrictedToDelegate,
   operationRestrictedToDelegator,
@@ -59,11 +62,15 @@ export const assertDelegatorAndDelegateAllowedOrigins = async (
   delegator: Tenant,
   delegate: Tenant
 ): Promise<void> => {
-  if (!config.producerAllowedOrigins.includes(delegator?.externalId?.origin)) {
+  if (
+    !config.delegationsAllowedOrigins.includes(delegator?.externalId?.origin)
+  ) {
     throw originNotCompliant(delegator, "Delegator");
   }
 
-  if (!config.producerAllowedOrigins.includes(delegate?.externalId?.origin)) {
+  if (
+    !config.delegationsAllowedOrigins.includes(delegate?.externalId?.origin)
+  ) {
     throw originNotCompliant(delegate, "Delegate");
   }
 };
@@ -76,8 +83,14 @@ export const assertTenantAllowedToReceiveDelegation = (
     (f) =>
       f.type ===
       match(kind)
-        .with(delegationKind.delegatedProducer, () => "DelegatedProducer")
-        .with(delegationKind.delegatedConsumer, () => "DelegatedConsumer")
+        .with(
+          delegationKind.delegatedProducer,
+          () => tenantFeatureType.delegatedProducer
+        )
+        .with(
+          delegationKind.delegatedConsumer,
+          () => tenantFeatureType.delegatedConsumer
+        )
         .exhaustive()
   );
 
@@ -158,3 +171,28 @@ export function assertStampExists<S extends keyof Delegation["stamps"]>(
     throw delegationStampNotFound(stamp);
   }
 }
+
+export const assertEserviceIsConsumerDelegable = (eservice: EService): void => {
+  if (!eservice.isDelegable) {
+    throw eserviceNotConsumerDelegable(eservice.id);
+  }
+};
+
+export const assertNoDelegationRelatedAgreementExists = async (
+  consumerId: TenantId,
+  eserviceId: EServiceId,
+  readModelService: ReadModelService
+): Promise<void> => {
+  const agreement = await readModelService.getDelegationRelatedAgreement(
+    eserviceId,
+    consumerId
+  );
+
+  if (agreement) {
+    throw delegationRelatedAgreementExists(
+      agreement.id,
+      agreement.eserviceId,
+      agreement.consumerId
+    );
+  }
+};

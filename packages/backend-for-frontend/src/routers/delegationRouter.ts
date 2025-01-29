@@ -83,7 +83,7 @@ const delegationRouter = (
       const ctx = fromBffAppContext(req.ctx, req.headers);
 
       try {
-        const delegation = await delegationService.getDelegationById(
+        const delegation = await delegationService.getDelegation(
           unsafeBrandId(req.params.delegationId),
           ctx
         );

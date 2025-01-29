@@ -27,6 +27,7 @@ export const eventV2TypeMapper = (
     .with(
       "DraftPurposeDeleted",
       "WaitingForApprovalPurposeDeleted",
+      "PurposeDeletedByRevokedDelegation",
       () => "purpose_deleted"
     )
     .with(
@@ -34,7 +35,11 @@ export const eventV2TypeMapper = (
       "PurposeVersionSuspendedByConsumer",
       () => "purpose_version_suspended"
     )
-    .with("PurposeArchived", () => "purpose_version_archived")
+    .with(
+      "PurposeArchived",
+      "PurposeVersionArchivedByRevokedDelegation",
+      () => "purpose_version_archived"
+    )
     .with(
       "WaitingForApprovalPurposeVersionDeleted",
       () => "purpose_version_deleted"

@@ -16,6 +16,7 @@ export async function handleMessageV2(
     .with(
       { type: "DraftPurposeDeleted" },
       { type: "WaitingForApprovalPurposeDeleted" },
+      { type: "PurposeDeletedByRevokedDelegation" },
       async (message) => {
         await purposes.deleteOne({
           "data.id": message.stream_id,
@@ -40,6 +41,7 @@ export async function handleMessageV2(
       { type: "WaitingForApprovalPurposeVersionDeleted" },
       { type: "PurposeVersionActivated" },
       { type: "PurposeCloned" },
+      { type: "PurposeVersionArchivedByRevokedDelegation" },
       async (message) =>
         await purposes.updateOne(
           {

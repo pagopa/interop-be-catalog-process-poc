@@ -9,6 +9,7 @@ import {
   DelegationContractId,
   DelegationKind,
   Tenant,
+  AgreementId,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
 
@@ -26,6 +27,9 @@ export const errorCodes = {
   incorrectState: "0011",
   differentEserviceProducer: "0012",
   delegationContractNotFound: "0013",
+  requesterIsNotConsumerDelegate: "0014",
+  eserviceNotConsumerDelegable: "0015",
+  delegationRelatedAgreementExists: "0016",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -33,10 +37,13 @@ export type ErrorCodes = keyof typeof errorCodes;
 export const makeApiProblem = makeApiProblemBuilder(errorCodes);
 
 export function delegationNotFound(
-  delegationId: DelegationId
+  delegationId: DelegationId,
+  kind: DelegationKind | undefined = undefined
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Delegation ${delegationId} not found`,
+    detail: kind
+      ? `Delegation ${delegationId} of kind ${kind} not found`
+      : `Delegation ${delegationId} not found`,
     code: "delegationNotFound",
     title: "Delegation not found",
   });
@@ -168,5 +175,40 @@ export function delegationStampNotFound(
     detail: `Delegation ${stamp} stamp not found`,
     code: "stampNotFound",
     title: "Stamp not found",
+  });
+}
+
+export function requesterIsNotConsumerDelegate(
+  requesterId: TenantId,
+  delegatorId?: TenantId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Requester ${requesterId} is not a Consumer delegate${
+      delegatorId ? ` for delegator ${delegatorId}` : ""
+    }`,
+    code: "requesterIsNotConsumerDelegate",
+    title: "Requester is not a delegate",
+  });
+}
+
+export function eserviceNotConsumerDelegable(
+  eserviceId: EServiceId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Eservice ${eserviceId} is not consumer delegable`,
+    code: "eserviceNotConsumerDelegable",
+    title: "Eservice is not consumer delegable",
+  });
+}
+
+export function delegationRelatedAgreementExists(
+  agreementId: AgreementId,
+  eserviceId: EServiceId,
+  consumerId: TenantId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Active agreement ${agreementId} for eservice ${eserviceId} and consumer ${consumerId} exists`,
+    code: "delegationRelatedAgreementExists",
+    title: "Active agreement for this eservice and consumer exists",
   });
 }

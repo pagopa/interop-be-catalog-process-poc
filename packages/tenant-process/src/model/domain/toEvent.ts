@@ -337,3 +337,37 @@ export const toCreateEventTenantDelegatedProducerFeatureRemoved = (
   },
   correlationId,
 });
+
+export const toCreateEventTenantDelegatedConsumerFeatureAdded = (
+  version: number,
+  updatedTenant: Tenant,
+  correlationId: CorrelationId
+): CreateEvent<TenantEvent> => ({
+  streamId: updatedTenant.id,
+  version,
+  event: {
+    type: "TenantDelegatedConsumerFeatureAdded",
+    event_version: 2,
+    data: {
+      tenant: toTenantV2(updatedTenant),
+    },
+  },
+  correlationId,
+});
+
+export const toCreateEventTenantDelegatedConsumerFeatureRemoved = (
+  version: number,
+  updatedTenant: Tenant,
+  correlationId: CorrelationId
+): CreateEvent<TenantEvent> => ({
+  streamId: updatedTenant.id,
+  version,
+  event: {
+    type: "TenantDelegatedConsumerFeatureRemoved",
+    event_version: 2,
+    data: {
+      tenant: toTenantV2(updatedTenant),
+    },
+  },
+  correlationId,
+});

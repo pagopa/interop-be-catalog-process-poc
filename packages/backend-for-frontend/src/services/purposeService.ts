@@ -21,6 +21,7 @@ import {
   AgreementProcessClient,
   AuthorizationProcessClient,
   CatalogProcessClient,
+  DelegationProcessClient,
   PurposeProcessClient,
   TenantProcessClient,
 } from "../clients/clientsProvider.js";
@@ -36,9 +37,56 @@ import { BffAppContext, Headers } from "../utilities/context.js";
 import { config } from "../config/config.js";
 import { toBffApiCompactClient } from "../api/authorizationApiConverter.js";
 import { toBffApiPurposeVersion } from "../api/purposeApiConverter.js";
+import { getLatestTenantContactEmail } from "../model/modelMappingUtils.js";
 import { getLatestAgreement } from "./agreementService.js";
 import { getAllClients } from "./clientService.js";
 import { isAgreementUpgradable } from "./validators.js";
+
+const enrichPurposeDelegation = async (
+  delegationId: string,
+  delegationProcessClient: DelegationProcessClient,
+  tenantProcessClient: TenantProcessClient,
+  headers: Headers
+): Promise<bffApi.DelegationWithCompactTenants> => {
+  const delegation = await delegationProcessClient.delegation.getDelegation({
+    headers,
+    params: {
+      delegationId,
+    },
+  });
+
+  const [delegate, delegator] = await Promise.all(
+    [delegation.delegateId, delegation.delegatorId].map((id) =>
+      tenantProcessClient.tenant.getTenant({
+        headers,
+        params: { id },
+      })
+    )
+  );
+
+  if (!delegate) {
+    throw tenantNotFound(delegation.delegateId);
+  }
+  if (!delegator) {
+    throw tenantNotFound(delegation.delegatorId);
+  }
+
+  return {
+    id: delegationId,
+    delegate: {
+      id: delegate.id,
+      name: delegate.name,
+      contactMail: getLatestTenantContactEmail(delegate),
+      kind: delegate.kind,
+    },
+    delegator: {
+      id: delegator.id,
+      name: delegator.name,
+      contactMail: getLatestTenantContactEmail(delegator),
+      kind: delegator.kind,
+    },
+  };
+};
 
 export const getCurrentVersion = (
   purposeVersions: purposeApi.PurposeVersion[]
@@ -62,6 +110,7 @@ export function purposeServiceBuilder(
   catalogProcessClient: CatalogProcessClient,
   tenantProcessClient: TenantProcessClient,
   agreementProcessClient: AgreementProcessClient,
+  delegationProcessClient: DelegationProcessClient,
   authorizationClient: AuthorizationProcessClient,
   fileManager: FileManager
 ) {
@@ -138,6 +187,15 @@ export function purposeServiceBuilder(
         ? latestVersion
         : undefined;
 
+    const delegation = purpose.delegationId
+      ? await enrichPurposeDelegation(
+          purpose.delegationId,
+          delegationProcessClient,
+          tenantProcessClient,
+          headers
+        )
+      : undefined;
+
     return {
       id: purpose.id,
       title: purpose.title,
@@ -175,6 +233,7 @@ export function purposeServiceBuilder(
       dailyCallsTotal: currentDescriptor.dailyCallsTotal,
       rejectedVersion:
         rejectedVersion && toBffApiPurposeVersion(rejectedVersion),
+      delegation,
     };
   };
 
@@ -322,7 +381,6 @@ export function purposeServiceBuilder(
         name?: string | undefined;
         eservicesIds?: string[] | undefined;
         consumersIds?: string[] | undefined;
-        producersIds?: string[] | undefined;
         states?: purposeApi.PurposeVersionState[] | undefined;
       },
       offset: number,
@@ -330,11 +388,15 @@ export function purposeServiceBuilder(
       { headers, authData, logger }: WithLogger<BffAppContext>
     ): Promise<bffApi.Purposes> {
       logger.info(
-        `Retrieving Purposes for name ${filters.name}, EServices ${filters.eservicesIds}, Producers ${filters.producersIds}, offset ${offset}, limit ${limit}`
+        `Retrieving Purposes for name ${filters.name}, EServices ${filters.eservicesIds}, Consumers ${filters.consumersIds} offset ${offset}, limit ${limit}`
       );
       return await getPurposes(
         authData.organizationId,
-        { ...filters, excludeDraft: true },
+        {
+          ...filters,
+          excludeDraft: true,
+          producersIds: [authData.organizationId],
+        },
         offset,
         limit,
         headers
@@ -344,7 +406,6 @@ export function purposeServiceBuilder(
       filters: {
         name?: string | undefined;
         eservicesIds?: string[] | undefined;
-        consumersIds?: string[] | undefined;
         producersIds?: string[] | undefined;
         states?: purposeApi.PurposeVersionState[] | undefined;
       },
@@ -353,11 +414,15 @@ export function purposeServiceBuilder(
       { headers, authData, logger }: WithLogger<BffAppContext>
     ): Promise<bffApi.Purposes> {
       logger.info(
-        `Retrieving Purposes for name ${filters.name}, EServices ${filters.eservicesIds}, Consumers ${filters.consumersIds}, offset ${offset}, limit ${limit}`
+        `Retrieving Purposes for name ${filters.name}, EServices ${filters.eservicesIds}, Producers ${filters.producersIds} offset ${offset}, limit ${limit}`
       );
       return await getPurposes(
         authData.organizationId,
-        { ...filters, excludeDraft: false },
+        {
+          ...filters,
+          excludeDraft: false,
+          consumersIds: [authData.organizationId],
+        },
         offset,
         limit,
         headers

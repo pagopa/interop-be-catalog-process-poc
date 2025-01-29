@@ -17,6 +17,7 @@ import {
   DescriptorId,
   EServiceId,
   unsafeBrandId,
+  DelegationId,
 } from "pagopa-interop-models";
 import { agreementApi } from "pagopa-interop-api-clients";
 import {
@@ -44,6 +45,7 @@ import {
   updateAgreementErrorMapper,
   upgradeAgreementErrorMapper,
   computeAgreementsStateErrorMapper,
+  verifyTenantCertifiedAttributesErrorMapper,
 } from "../utilities/errorMappers.js";
 import { makeApiProblem } from "../model/domain/errors.js";
 
@@ -321,7 +323,16 @@ const agreementRouter = (
       const ctx = fromAppContext(req.ctx);
 
       try {
-        const agreement = await agreementService.createAgreement(req.body, ctx);
+        const agreement = await agreementService.createAgreement(
+          {
+            eserviceId: unsafeBrandId<EServiceId>(req.body.eserviceId),
+            descriptorId: unsafeBrandId<DescriptorId>(req.body.descriptorId),
+            delegationId: req.body.delegationId
+              ? unsafeBrandId<DelegationId>(req.body.delegationId)
+              : undefined,
+          },
+          ctx
+        );
         return res
           .status(200)
           .send(
@@ -521,6 +532,58 @@ const agreementRouter = (
     }
   );
 
+  agreementRouter.delete(
+    "/internal/delegationRevoked/agreements/:agreementId",
+    authorizationMiddleware([INTERNAL_ROLE]),
+    async (req, res) => {
+      const ctx = fromAppContext(req.ctx);
+
+      try {
+        await agreementService.internalDeleteAgreementAfterDelegationRevocation(
+          unsafeBrandId(req.params.agreementId),
+          unsafeBrandId(req.query.delegationId),
+          ctx.correlationId,
+          ctx.logger
+        );
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          deleteAgreementErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    }
+  );
+
+  agreementRouter.post(
+    "/internal/delegationRevoked/agreements/:agreementId/archive",
+    authorizationMiddleware([INTERNAL_ROLE]),
+    async (req, res) => {
+      const ctx = fromAppContext(req.ctx);
+
+      try {
+        await agreementService.internalArchiveAgreementAfterDelegationRevocation(
+          unsafeBrandId(req.params.agreementId),
+          unsafeBrandId(req.query.delegationId),
+          ctx.correlationId,
+          ctx.logger
+        );
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          archiveAgreementErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    }
+  );
+
   agreementRouter.post(
     "/agreements/:agreementId/update",
     authorizationMiddleware([ADMIN_ROLE]),
@@ -671,6 +734,36 @@ const agreementRouter = (
         const errorRes = makeApiProblem(
           error,
           () => 500,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    }
+  );
+
+  agreementRouter.post(
+    "/agreements/verify",
+    authorizationMiddleware([ADMIN_ROLE]),
+    async (req, res) => {
+      const ctx = fromAppContext(req.ctx);
+
+      try {
+        const result = await agreementService.verifyTenantCertifiedAttributes(
+          {
+            tenantId: unsafeBrandId<TenantId>(req.body.tenantId),
+            descriptorId: unsafeBrandId<DescriptorId>(req.body.descriptorId),
+            eserviceId: unsafeBrandId<EServiceId>(req.body.eserviceId),
+          },
+          ctx
+        );
+        return res
+          .status(200)
+          .send(agreementApi.HasCertifiedAttributes.parse(result));
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          verifyTenantCertifiedAttributesErrorMapper,
           ctx.logger,
           ctx.correlationId
         );

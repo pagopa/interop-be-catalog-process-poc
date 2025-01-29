@@ -43,7 +43,7 @@ import {
   operationForbidden,
   unsafeBrandId,
 } from "pagopa-interop-models";
-import { match } from "ts-pattern";
+import { match, P } from "ts-pattern";
 import { RejectDelegatedEServiceDescriptorSeed } from "../../../api-clients/dist/catalogApi.js";
 import { config } from "../config/config.js";
 import {
@@ -65,6 +65,7 @@ import {
   inconsistentAttributesSeedGroupsCount,
   inconsistentDailyCalls,
   interfaceAlreadyExists,
+  invalidEServiceFlags,
   notValidDescriptorState,
   originNotCompliant,
   prettyNameDuplicate,
@@ -96,6 +97,10 @@ import {
   toCreateEventEServiceInterfaceAdded,
   toCreateEventEServiceInterfaceDeleted,
   toCreateEventEServiceInterfaceUpdated,
+  toCreateEventEServiceIsClientAccessDelegableDisabled,
+  toCreateEventEServiceIsClientAccessDelegableEnabled,
+  toCreateEventEServiceIsDelegableDisabled,
+  toCreateEventEServiceIsDelegableEnabled,
   toCreateEventEServiceNameUpdated,
   toCreateEventEServiceRiskAnalysisAdded,
   toCreateEventEServiceRiskAnalysisDeleted,
@@ -402,7 +407,7 @@ export function catalogServiceBuilder(
       logger: Logger
     ): Promise<ListResult<EService>> {
       logger.info(
-        `Getting EServices with name = ${filters.name}, ids = ${filters.eservicesIds}, producers = ${filters.producersIds}, states = ${filters.states}, agreementStates = ${filters.agreementStates}, limit = ${limit}, offset = ${offset}`
+        `Getting EServices with name = ${filters.name}, ids = ${filters.eservicesIds}, producers = ${filters.producersIds}, states = ${filters.states}, agreementStates = ${filters.agreementStates}, mode = ${filters.mode}, isDelegable = ${filters.isDelegable}, limit = ${limit}, offset = ${offset}`
       );
       const eservicesList = await readModelService.getEServices(
         authData,
@@ -498,6 +503,12 @@ export function catalogServiceBuilder(
         createdAt: creationDate,
         riskAnalysis: [],
         isSignalHubEnabled: seed.isSignalHubEnabled,
+        isDelegable: seed.isDelegable,
+        isClientAccessDelegable: match(seed.isDelegable)
+          .with(P.nullish, () => undefined)
+          .with(false, () => false)
+          .with(true, () => seed.isClientAccessDelegable)
+          .exhaustive(),
       };
 
       const eserviceCreationEvent = toCreateEventEServiceAdded(
@@ -624,6 +635,12 @@ export function catalogServiceBuilder(
             }))
           : eservice.data.descriptors,
         isSignalHubEnabled: eserviceSeed.isSignalHubEnabled,
+        isDelegable: eserviceSeed.isDelegable,
+        isClientAccessDelegable: match(eserviceSeed.isDelegable)
+          .with(P.nullish, () => undefined)
+          .with(false, () => false)
+          .with(true, () => eserviceSeed.isClientAccessDelegable)
+          .exhaustive(),
       };
 
       const event = toCreateEventEServiceUpdated(
@@ -1801,6 +1818,161 @@ export function catalogServiceBuilder(
       );
       return updatedEservice;
     },
+    async updateEServiceDelegationFlags(
+      eserviceId: EServiceId,
+      {
+        isDelegable,
+        isClientAccessDelegable,
+      }: {
+        isDelegable: boolean;
+        isClientAccessDelegable: boolean;
+      },
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EService> {
+      logger.info(`Updating EService ${eserviceId} delegation flags`);
+      const eservice = await retrieveEService(eserviceId, readModelService);
+      await assertRequesterIsDelegateProducerOrProducer(
+        eservice.data.producerId,
+        eservice.data.id,
+        authData,
+        readModelService
+      );
+
+      const hasValidDescriptor = eservice.data.descriptors.some(
+        // eslint-disable-next-line sonarjs/no-identical-functions
+        (descriptor) =>
+          descriptor.state !== descriptorState.draft &&
+          descriptor.state !== descriptorState.waitingForApproval &&
+          descriptor.state !== descriptorState.archived
+      );
+      if (!hasValidDescriptor) {
+        throw eserviceWithoutValidDescriptors(eserviceId);
+      }
+
+      if (!isDelegable && isClientAccessDelegable) {
+        throw invalidEServiceFlags(eserviceId);
+      }
+
+      const updatedEservice: EService = {
+        ...eservice.data,
+        isDelegable,
+        isClientAccessDelegable,
+      };
+
+      const events = match({
+        isDelegable,
+        oldIsDelegable: eservice.data.isDelegable || false,
+        isClientAccessDelegable,
+        oldIsClientAccessDelegable:
+          eservice.data.isClientAccessDelegable || false,
+      })
+        .with(
+          {
+            isDelegable: true,
+            oldIsDelegable: false,
+            isClientAccessDelegable: false,
+            oldIsClientAccessDelegable: false,
+          },
+          {
+            isDelegable: true,
+            oldIsDelegable: false,
+            isClientAccessDelegable: false,
+            oldIsClientAccessDelegable: true, // should never happen
+          },
+          () => [
+            toCreateEventEServiceIsDelegableEnabled(
+              eservice.metadata.version,
+              updatedEservice,
+              correlationId
+            ),
+          ]
+        )
+        .with(
+          {
+            isDelegable: true,
+            oldIsDelegable: false,
+            isClientAccessDelegable: true,
+            oldIsClientAccessDelegable: false,
+          },
+          () => [
+            toCreateEventEServiceIsDelegableEnabled(
+              eservice.metadata.version,
+              updatedEservice,
+              correlationId
+            ),
+            toCreateEventEServiceIsClientAccessDelegableEnabled(
+              eservice.metadata.version + 1,
+              updatedEservice,
+              correlationId
+            ),
+          ]
+        )
+        .with(
+          {
+            isDelegable: false,
+            oldIsDelegable: true,
+          },
+          () => [
+            toCreateEventEServiceIsDelegableDisabled(
+              eservice.metadata.version,
+              updatedEservice,
+              correlationId
+            ),
+          ]
+        )
+        .with(
+          {
+            isDelegable: true,
+            oldIsDelegable: true,
+            isClientAccessDelegable: true,
+            oldIsClientAccessDelegable: false,
+          },
+          () => [
+            toCreateEventEServiceIsClientAccessDelegableEnabled(
+              eservice.metadata.version,
+              updatedEservice,
+              correlationId
+            ),
+          ]
+        )
+        .with(
+          {
+            isDelegable: true,
+            oldIsDelegable: true,
+            isClientAccessDelegable: false,
+            oldIsClientAccessDelegable: true,
+          },
+          () => [
+            toCreateEventEServiceIsClientAccessDelegableDisabled(
+              eservice.metadata.version,
+              updatedEservice,
+              correlationId
+            ),
+          ]
+        )
+        .with(
+          {
+            isDelegable: false,
+            oldIsDelegable: false,
+          },
+          {
+            isClientAccessDelegable: true,
+            oldIsClientAccessDelegable: true,
+          },
+          {
+            isClientAccessDelegable: false,
+            oldIsClientAccessDelegable: false,
+          },
+          () => undefined
+        )
+        .exhaustive();
+
+      if (events) {
+        await repository.createEvents(events);
+      }
+
+      return updatedEservice;
+    },
     async updateEServiceName(
       eserviceId: EServiceId,
       name: string,
@@ -1815,7 +1987,6 @@ export function catalogServiceBuilder(
         authData,
         readModelService
       );
-
       if (
         eservice.data.descriptors.every(
           (descriptor) =>

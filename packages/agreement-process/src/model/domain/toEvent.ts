@@ -4,6 +4,7 @@ import {
   AgreementDocumentId,
   AgreementEventV2,
   CorrelationId,
+  DelegationId,
   toAgreementV2,
 } from "pagopa-interop-models";
 
@@ -20,6 +21,27 @@ export function toCreateEventAgreementDeleted(
       event_version: 2,
       data: {
         agreement: toAgreementV2(agreement),
+      },
+    },
+    correlationId,
+  };
+}
+
+export function toCreateEventAgreementDeletedByRevokedDelegation(
+  agreement: Agreement,
+  delegationId: DelegationId,
+  version: number,
+  correlationId: CorrelationId
+): CreateEvent<AgreementEventV2> {
+  return {
+    streamId: agreement.id,
+    version,
+    event: {
+      type: "AgreementDeletedByRevokedDelegation",
+      event_version: 2,
+      data: {
+        agreement: toAgreementV2(agreement),
+        delegationId,
       },
     },
     correlationId,
@@ -95,6 +117,27 @@ export function toCreateEventAgreementArchivedByConsumer(
       event_version: 2,
       data: {
         agreement: toAgreementV2(agreement),
+      },
+    },
+    correlationId,
+  };
+}
+
+export function toCreateEventAgreementArchivedByRevokedDelegation(
+  agreement: Agreement,
+  delegationId: DelegationId,
+  version: number,
+  correlationId: CorrelationId
+): CreateEvent<AgreementEventV2> {
+  return {
+    streamId: agreement.id,
+    version,
+    event: {
+      type: "AgreementArchivedByRevokedDelegation",
+      event_version: 2,
+      data: {
+        agreement: toAgreementV2(agreement),
+        delegationId,
       },
     },
     correlationId,

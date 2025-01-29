@@ -36,6 +36,7 @@ export type PurposeProcessClient = ReturnType<
 
 export type DelegationProcessClient = {
   producer: ReturnType<typeof delegationApi.createProducerApiClient>;
+  consumer: ReturnType<typeof delegationApi.createConsumerApiClient>;
   delegation: ReturnType<typeof delegationApi.createDelegationApiClient>;
 };
 
@@ -107,6 +108,9 @@ export function getInteropBeClients(): PagoPAInteropBeClients {
     },
     delegationProcessClient: {
       producer: delegationApi.createProducerApiClient(
+        config.delegationProcessUrl
+      ),
+      consumer: delegationApi.createConsumerApiClient(
         config.delegationProcessUrl
       ),
       delegation: delegationApi.createDelegationApiClient(

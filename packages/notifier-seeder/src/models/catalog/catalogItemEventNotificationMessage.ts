@@ -12,6 +12,10 @@ export const eventV2TypeMapper = (
     .with(
       "DraftEServiceUpdated",
       "EServiceDescriptionUpdated",
+      "EServiceIsDelegableEnabled",
+      "EServiceIsDelegableDisabled",
+      "EServiceIsClientAccessDelegableEnabled",
+      "EServiceIsClientAccessDelegableDisabled",
       "EServiceNameUpdated",
       () => "catalog_item_updated"
     )

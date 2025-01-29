@@ -1,7 +1,9 @@
 import {
   ApiError,
   AttributeId,
+  DelegationId,
   EServiceId,
+  TenantFeature,
   TenantId,
   makeApiProblemBuilder,
 } from "pagopa-interop-models";
@@ -13,31 +15,32 @@ export const errorCodes = {
   tenantNotFound: "0004",
   eServiceNotFound: "0005",
   tenantNotFoundBySelfcareId: "0006",
-  operationForbidden: "0007",
-  selfcareIdConflict: "0008",
-  verifiedAttributeNotFoundInTenant: "0009",
-  expirationDateCannotBeInThePast: "0010",
-  organizationNotFoundInVerifiers: "0011",
-  expirationDateNotFoundInVerifier: "0012",
-  tenantIsNotACertifier: "0013",
-  attributeDoesNotBelongToCertifier: "0014",
-  certifiedAttributeAlreadyAssigned: "0015",
-  attributeVerificationNotAllowed: "0016",
-  verifiedAttributeSelfVerificationNotAllowed: "0017",
-  mailNotFound: "0018",
-  mailAlreadyExists: "0019",
-  attributeAlreadyRevoked: "0020",
-  attributeRevocationNotAllowed: "0021",
-  verifiedAttributeSelfRevocationNotAllowed: "0022",
-  tenantIsAlreadyACertifier: "0023",
-  certifierWithExistingAttributes: "0024",
-  attributeNotFoundInTenant: "0025",
-  tenantNotFoundByExternalId: "0026",
-  tenantAlreadyHasDelegatedProducerFeature: "0027",
-  tenantHasNoDelegatedProducerFeature: "0028",
-  notValidMailAddress: "0029",
-  agreementNotFound: "0030",
-  descriptorNotFoundInEservice: "0031",
+  selfcareIdConflict: "0007",
+  verifiedAttributeNotFoundInTenant: "0008",
+  expirationDateCannotBeInThePast: "009",
+  organizationNotFoundInVerifiers: "0010",
+  expirationDateNotFoundInVerifier: "0011",
+  tenantIsNotACertifier: "0012",
+  attributeDoesNotBelongToCertifier: "0013",
+  certifiedAttributeAlreadyAssigned: "0014",
+  attributeVerificationNotAllowed: "0015",
+  verifiedAttributeSelfVerificationNotAllowed: "0016",
+  mailNotFound: "0017",
+  mailAlreadyExists: "0018",
+  attributeAlreadyRevoked: "0019",
+  attributeRevocationNotAllowed: "0020",
+  verifiedAttributeSelfRevocationNotAllowed: "0021",
+  tenantIsAlreadyACertifier: "0022",
+  certifierWithExistingAttributes: "0023",
+  attributeNotFoundInTenant: "0024",
+  tenantNotFoundByExternalId: "0025",
+  tenantAlreadyHasFeature: "0026",
+  tenantDoesNotHaveFeature: "0027",
+  notValidMailAddress: "0028",
+  agreementNotFound: "0029",
+  descriptorNotFoundInEservice: "0030",
+  delegationNotFound: "0031",
+  operationRestrictedToDelegate: "0032",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -137,7 +140,7 @@ export function attributeVerificationNotAllowed(
   attributeId: AttributeId
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Organization is not allowed to verify attribute ${attributeId} 
+    detail: `Organization is not allowed to verify attribute ${attributeId}
     for tenant ${consumerId}`,
     code: "attributeVerificationNotAllowed",
     title: "Attribute verification is not allowed",
@@ -149,7 +152,7 @@ export function attributeRevocationNotAllowed(
   attributeId: AttributeId
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Organization is not allowed to revoke attribute ${attributeId} 
+    detail: `Organization is not allowed to revoke attribute ${attributeId}
     for tenant ${consumerId}`,
     code: "attributeRevocationNotAllowed",
     title: "Attribute revocation is not allowed",
@@ -298,22 +301,24 @@ export function attributeNotFoundInTenant(
   });
 }
 
-export function tenantAlreadyHasDelegatedProducerFeature(
-  tenantId: TenantId
+export function tenantAlreadyHasFeature(
+  tenantId: TenantId,
+  featureType: TenantFeature["type"]
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Tenant ${tenantId} already has delegated producer feature assigned`,
-    code: "tenantAlreadyHasDelegatedProducerFeature",
+    detail: `Tenant ${tenantId} already has ${featureType} feature assigned`,
+    code: "tenantAlreadyHasFeature",
     title: "Feature already assigned",
   });
 }
 
-export function tenantHasNoDelegatedProducerFeature(
-  tenantId: TenantId
+export function tenantDoesNotHaveFeature(
+  tenantId: TenantId,
+  featureType: TenantFeature["type"]
 ): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Tenant ${tenantId} has no delegated producer feature assigned`,
-    code: "tenantHasNoDelegatedProducerFeature",
+    detail: `Tenant ${tenantId} doesn't have ${featureType} feature assigned`,
+    code: "tenantDoesNotHaveFeature",
     title: "Feature not assigned",
   });
 }
@@ -342,5 +347,23 @@ export function notValidMailAddress(address: string): ApiError<ErrorCodes> {
     detail: `mail address ${address} not valid`,
     code: "notValidMailAddress",
     title: "Not valid mail address",
+  });
+}
+
+export function delegationNotFound(
+  delegationId: DelegationId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Delegation ${delegationId} not found`,
+    code: "delegationNotFound",
+    title: "Delegation not found",
+  });
+}
+
+export function operationRestrictedToDelegate(): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: "Not allowed to add declared attribute",
+    code: "operationRestrictedToDelegate",
+    title: "Not allowed to add declared attribute",
   });
 }

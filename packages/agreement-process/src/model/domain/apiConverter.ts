@@ -180,6 +180,9 @@ export const fromApiTenantAttribute = (
         revocationTimestamp: declared.revocationTimestamp
           ? new Date(declared.revocationTimestamp)
           : undefined,
+        delegationId: declared.delegationId
+          ? unsafeBrandId<DelegationId>(declared.delegationId)
+          : undefined,
       })
     )
     .otherwise(() => {

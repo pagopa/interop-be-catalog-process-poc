@@ -47,6 +47,11 @@
       <strong>{{todayTime}}</strong>, l’Infrastruttura ha ricevuto la richiesta
       di fruizione contraddistinta da id <strong>{{agreementId}}</strong> (di
       seguito “richiesta di fruizione”), inviata dall’aderente
+      {{#if consumerDelegationId}}
+      <strong>{{consumerDelegateName}}</strong>{{#if consumerDelegateIpaCode}} (codice IPA:
+      <strong>{{consumerDelegateIpaCode}}</strong> - di seguito “delegato
+      alla fruizione”){{else}}(di seguito “delegato alla fruizione”){{/if}}, per conto
+      del fruitore {{/if}}
       <strong>{{consumerName}}</strong> {{#if consumerIpaCode}}(codice IPA:
       <strong>{{consumerIpaCode}}</strong> — di seguito “fruitore”){{else}}(di
       seguito “fruitore”){{/if}}, tramite l’operatore amministrativo con
@@ -55,17 +60,14 @@
       <strong>{{eserviceId}}</strong>, versione {{descriptorVersion}},
       contraddistinta da id <strong>{{descriptorId}}</strong> (di seguito
       “e-service”), reso disponibile dall’aderente
-      {{#if producerDelegationId}}
-      <strong>{{producerDelegatorName}}</strong>{{#if producerDelegatorIpaCode}} (codice IPA:
-      <strong>{{producerDelegatorIpaCode}}</strong> - di seguito “erogatore”){{else}}
-      (di seguito “erogatore”){{/if}}, per tramite dell’aderente
-      <strong>{{producerDelegateName}}</strong> {{#if producerDelegateIpaCode}}(codice IPA: 
-      <strong>{{producerDelegateIpaCode}}</strong> - di seguito “delegato all’erogazione”){{else}}(di seguito “delegato all’erogazione”){{/if}}
-      {{else}}
       <strong>{{producerName}}</strong> {{#if producerIpaCode}}(codice IPA: 
-      <strong>{{producerIpaCode}}</strong> — di seguito “erogatore”){{else}}(di
-      seguito “erogatore”){{/if}} 
-      {{/if}}, di cui il fruitore soddisfa i seguenti requisiti di fruizione per lo stesso previsti dall’erogatore.
+      <strong>{{producerIpaCode}}</strong> — di seguito “erogatore”){{else}}
+      (di seguito “erogatore”){{/if}}{{#if producerDelegationId}}, per tramite dell’aderente
+      <strong>{{producerDelegateName}}</strong> {{#if producerDelegateIpaCode}}(codice IPA: 
+      <strong>{{producerDelegateIpaCode}}</strong> - di seguito “delegato all’erogazione”){{else}}
+      (di seguito “delegato all’erogazione”){{/if}}{{/if}}, di cui il
+      fruitore soddisfa i seguenti requisiti di
+      fruizione per lo stesso previsti dall’erogatore.
     </div>
     <div class="content">
       {{#if declaredAttributes}}
@@ -77,7 +79,9 @@
         <strong>{{this.assignmentDate}}</strong>
         alle ore
         <strong>{{this.assignmentTime}}</strong>, l’infrastruttura ha registrato
-        la dichiarazione del fruitore di possedere l’attributo dichiarato
+        la dichiarazione del {{#if this.delegationId}}
+        delegato alla fruizione che il fruitore possegga
+        {{else}} fruitore di possedere{{/if}} l’attributo dichiarato
         <strong>{{this.attributeName}}</strong>, contraddistinto da id
         <strong>{{this.attributeId}}</strong>, necessario a soddisfare il
         requisito di fruizione stabilito dall’erogatore per l’accesso
@@ -94,7 +98,7 @@
         <strong>{{this.assignmentDate}}</strong>
         alle ore
         <strong>{{this.assignmentTime}}</strong>, l’infrastruttura ha registrato
-        la verifica {{#if producerDelegationId}}del delegato all’erogazione{{else}}dell’erogatore{{/if}}
+        la verifica {{#if this.delegationId}}del delegato all’erogazione{{else}}dell’erogatore{{/if}}
         che il fruitore possegga l’attributo verificato <strong>{{this.attributeName}}</strong>, 
         contraddistinto da id <strong>{{this.attributeId}}</strong>, {{#if this.expirationDate}} ed
         avente scadenza il <strong>{{this.expirationDate}}</strong>,{{/if}}
@@ -131,20 +135,22 @@
         In data <strong>{{activationDate}}</strong> alle ore
         <strong>{{activationTime}}</strong>, l’infrastruttura ha ricevuto
         la dichiarazione di accettazione della richiesta di fruizione
-        (di seguito “dichiarazione di accettazione”) inviata {{#if producerDelegationId}}dal delegato all’erogazione,{{else}}dall’erogatore,{{/if}}
+        (di seguito “dichiarazione di accettazione”), inviata {{#if producerDelegationId}}dal delegato all’erogazione,{{else}}dall’erogatore,{{/if}}
         tramite l’operatore amministrativo con identificativo Area Riservata
         <strong>{{activatorId}}</strong>.
       </div>
       <div>
         In data <strong>{{activationDate}}</strong> alle ore
         <strong>{{activationTime}}</strong>, l’Infrastruttura ha comunicato al
-        fruitore la dichiarazione di accettazione inviata {{#if producerDelegationId}}dal delegato all’erogazione{{else}}dall’erogatore{{/if}}.
+        fruitore {{#if consumerDelegationId}}e al delegato alla fruizione{{/if}} la dichiarazione di accettazione inviata {{#if producerDelegationId}}dal delegato all’erogazione{{else}}dall’erogatore{{/if}}.
       </div>
 
       <div>
         In data <strong>{{activationDate}}</strong> alle ore
-        <strong>{{activationTime}}</strong>, l’Infrastruttura ha registrato il
-        fruitore quale soggetto titolato ad accedere all’e-service.
+        <strong>{{activationTime}}</strong>, l’Infrastruttura ha registrato
+        {{#if consumerDelegationId}} il fruitore e il delegato alla fruizione
+        (esclusivamente per conto del fruitore), quali soggetti titolati
+        {{else}} il fruitore quale soggetto titolato{{/if}} ad accedere all’e-service.
       </div>
     </div>
 

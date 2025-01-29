@@ -10,7 +10,7 @@ import {
 } from "pagopa-interop-commons-test/index.js";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  ProducerDelegationApprovedV2,
+  ConsumerDelegationApprovedV2,
   DelegationContractId,
   DelegationId,
   EService,
@@ -34,18 +34,28 @@ import {
   incorrectState,
 } from "../src/model/domain/errors.js";
 import { config } from "../src/config/config.js";
+import { DelegationActivationPDFPayload } from "../src/model/domain/models.js";
 import {
   addOneDelegation,
   addOneTenant,
   addOneEservice,
-  delegationProducerService,
   fileManager,
   readLastDelegationEvent,
   pdfGenerator,
+  delegationService,
 } from "./utils.js";
 
-describe("approve producer delegation", () => {
-  const currentExecutionTime = new Date();
+const currentExecutionTime = new Date();
+
+describe.each([
+  delegationKind.delegatedConsumer,
+  delegationKind.delegatedProducer,
+])("approve %s delegation", (kind) => {
+  const approveFn =
+    kind === delegationKind.delegatedConsumer
+      ? delegationService.approveConsumerDelegation
+      : delegationService.approveProducerDelegation;
+
   beforeAll(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(currentExecutionTime);
@@ -70,7 +80,7 @@ describe("approve producer delegation", () => {
     const authData = getRandomAuthData(delegate.id);
 
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedProducer,
+      kind,
       id: delegationId,
       state: "WaitingForApproval",
       delegateId: delegate.id,
@@ -81,7 +91,7 @@ describe("approve producer delegation", () => {
     const { version } = await readLastDelegationEvent(delegation.id);
     expect(version).toBe("0");
 
-    await delegationProducerService.approveProducerDelegation(delegation.id, {
+    await approveFn(delegation.id, {
       authData,
       serviceName: "",
       correlationId: generateId(),
@@ -92,7 +102,7 @@ describe("approve producer delegation", () => {
     expect(event.version).toBe("1");
 
     const { delegation: actualDelegation } = decodeProtobufPayload({
-      messageType: ProducerDelegationApprovedV2,
+      messageType: ConsumerDelegationApprovedV2,
       payload: event.data,
     });
 
@@ -102,7 +112,6 @@ describe("approve producer delegation", () => {
     const expectedContractName = `${formatDateyyyyMMddHHmmss(
       currentExecutionTime
     )}_delegation_activation_contract.pdf`;
-
     const expectedContract = {
       id: expectedContractId,
       contentType: "application/pdf",
@@ -135,6 +144,28 @@ describe("approve producer delegation", () => {
     });
     expect(actualDelegation).toEqual(expectedDelegation);
 
+    const expectedPdfPayload: DelegationActivationPDFPayload = {
+      delegationKindText:
+        kind === delegationKind.delegatedConsumer
+          ? "alla fruizione"
+          : "all’erogazione",
+      todayDate: dateAtRomeZone(currentExecutionTime),
+      todayTime: timeAtRomeZone(currentExecutionTime),
+      delegationId: approvedDelegationWithoutContract.id,
+      delegatorName: delegator.name,
+      delegateIpaCode: delegate.externalId.value,
+      delegateName: delegate.name,
+      delegatorIpaCode: delegator.externalId.value,
+      eserviceId: eservice.id,
+      eserviceName: eservice.name,
+      submitterId: approvedDelegationWithoutContract.stamps.submission.who,
+      submissionDate: dateAtRomeZone(currentExecutionTime),
+      submissionTime: timeAtRomeZone(currentExecutionTime),
+      activatorId: approvedDelegationWithoutContract.stamps.activation!.who,
+      activationDate: dateAtRomeZone(currentExecutionTime),
+      activationTime: timeAtRomeZone(currentExecutionTime),
+    };
+
     expect(pdfGenerator.generate).toHaveBeenCalledWith(
       path.resolve(
         path.dirname(fileURLToPath(import.meta.url)),
@@ -142,23 +173,7 @@ describe("approve producer delegation", () => {
         "resources/templates",
         "delegationApprovedTemplate.html"
       ),
-      {
-        todayDate: dateAtRomeZone(currentExecutionTime),
-        todayTime: timeAtRomeZone(currentExecutionTime),
-        delegationId: approvedDelegationWithoutContract.id,
-        delegatorName: delegator.name,
-        delegatorIpaCode: delegator.externalId.value,
-        delegateName: delegate.name,
-        delegateIpaCode: delegate.externalId.value,
-        eserviceId: eservice.id,
-        eserviceName: eservice.name,
-        submitterId: approvedDelegationWithoutContract.stamps.submission.who,
-        submissionDate: dateAtRomeZone(currentExecutionTime),
-        submissionTime: timeAtRomeZone(currentExecutionTime),
-        activatorId: approvedDelegationWithoutContract.stamps.activation!.who,
-        activationDate: dateAtRomeZone(currentExecutionTime),
-        activationTime: timeAtRomeZone(currentExecutionTime),
-      }
+      expectedPdfPayload
     );
   });
 
@@ -168,23 +183,21 @@ describe("approve producer delegation", () => {
       unsafeBrandId<DelegationId>("non-existent-id");
 
     await expect(
-      delegationProducerService.approveProducerDelegation(
-        nonExistentDelegationId,
-        {
-          authData: getRandomAuthData(delegateId),
-          serviceName: "",
-          correlationId: generateId(),
-          logger: genericLogger,
-        }
-      )
-    ).rejects.toThrow(delegationNotFound(nonExistentDelegationId));
+      approveFn(nonExistentDelegationId, {
+        authData: getRandomAuthData(delegateId),
+        serviceName: "",
+        correlationId: generateId(),
+        logger: genericLogger,
+      })
+    ).rejects.toThrow(delegationNotFound(nonExistentDelegationId, kind));
   });
 
-  it("should throw operationRestrictedToDelegate when approver is not the delegate", async () => {
-    const wrongDelegate = getMockTenant();
-    await addOneTenant(wrongDelegate);
+  it(`should throw delegationNotFound when delegation kind is not ${kind}`, async () => {
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedProducer,
+      kind:
+        kind === delegationKind.delegatedConsumer
+          ? delegationKind.delegatedProducer
+          : delegationKind.delegatedConsumer,
       state: "WaitingForApproval",
       delegateId: delegate.id,
       delegatorId: delegator.id,
@@ -193,7 +206,29 @@ describe("approve producer delegation", () => {
     await addOneDelegation(delegation);
 
     await expect(
-      delegationProducerService.approveProducerDelegation(delegation.id, {
+      approveFn(delegation.id, {
+        authData: getRandomAuthData(delegate.id),
+        serviceName: "",
+        correlationId: generateId(),
+        logger: genericLogger,
+      })
+    ).rejects.toThrow(delegationNotFound(delegation.id, kind));
+  });
+
+  it("should throw operationRestrictedToDelegate when approver is not the delegate", async () => {
+    const wrongDelegate = getMockTenant();
+    await addOneTenant(wrongDelegate);
+    const delegation = getMockDelegation({
+      kind,
+      state: "WaitingForApproval",
+      delegateId: delegate.id,
+      delegatorId: delegator.id,
+      eserviceId: eservice.id,
+    });
+    await addOneDelegation(delegation);
+
+    await expect(
+      approveFn(delegation.id, {
         authData: getRandomAuthData(wrongDelegate.id),
         serviceName: "",
         correlationId: generateId(),
@@ -212,7 +247,7 @@ describe("approve producer delegation", () => {
     "should throw incorrectState when delegation is in %s state",
     async (state) => {
       const delegation = getMockDelegation({
-        kind: delegationKind.delegatedProducer,
+        kind,
         state,
         delegateId: delegate.id,
         delegatorId: delegator.id,
@@ -221,7 +256,7 @@ describe("approve producer delegation", () => {
       await addOneDelegation(delegation);
 
       await expect(
-        delegationProducerService.approveProducerDelegation(delegation.id, {
+        approveFn(delegation.id, {
           authData: getRandomAuthData(delegate.id),
           serviceName: "",
           correlationId: generateId(),
@@ -235,7 +270,7 @@ describe("approve producer delegation", () => {
 
   it("should generete a pdf document for a delegation", async () => {
     const delegation = getMockDelegation({
-      kind: delegationKind.delegatedProducer,
+      kind,
       state: "WaitingForApproval",
       delegateId: delegate.id,
       delegatorId: delegator.id,
@@ -245,7 +280,7 @@ describe("approve producer delegation", () => {
     const { version } = await readLastDelegationEvent(delegation.id);
     expect(version).toBe("0");
 
-    await delegationProducerService.approveProducerDelegation(delegation.id, {
+    await approveFn(delegation.id, {
       authData: getRandomAuthData(delegate.id),
       serviceName: "",
       correlationId: generateId(),

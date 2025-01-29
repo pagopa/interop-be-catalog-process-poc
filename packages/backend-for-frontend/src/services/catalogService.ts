@@ -3,7 +3,12 @@
 /* eslint-disable functional/immutable-data */
 import { randomUUID } from "crypto";
 import AdmZip from "adm-zip";
-import { bffApi, catalogApi, tenantApi } from "pagopa-interop-api-clients";
+import {
+  bffApi,
+  catalogApi,
+  delegationApi,
+  tenantApi,
+} from "pagopa-interop-api-clients";
 import {
   FileManager,
   WithLogger,
@@ -62,6 +67,10 @@ import {
   assertRequesterCanActAsProducer,
   isInvalidDescriptor,
 } from "./validators.js";
+import {
+  getAllDelegations,
+  getTenantsFromDelegation,
+} from "./delegationService.js";
 
 export type CatalogService = ReturnType<typeof catalogServiceBuilder>;
 
@@ -106,7 +115,6 @@ export const enhanceCatalogEservices = async (
     ): ((eservice: catalogApi.EService) => Promise<bffApi.CatalogEService>) =>
     async (eservice: catalogApi.EService): Promise<bffApi.CatalogEService> => {
       const producerTenant = getCachedTenant(eservice.producerId as TenantId);
-      const requesterTenant = getCachedTenant(requesterId);
 
       const latestActiveDescriptor = getLatestActiveDescriptor(eservice);
 
@@ -122,7 +130,6 @@ export const enhanceCatalogEservices = async (
       return toBffCatalogApiEService(
         eservice,
         producerTenant,
-        requesterTenant,
         isRequesterEqProducer,
         latestActiveDescriptor,
         latestAgreement
@@ -232,10 +239,19 @@ export function catalogServiceBuilder(
       { headers, authData, logger }: WithLogger<BffAppContext>,
       queries: catalogApi.GetEServicesQueryParams
     ): Promise<bffApi.CatalogEServices> => {
-      const { offset, limit, producersIds, states, attributesIds, name } =
-        queries;
+      const {
+        offset,
+        limit,
+        producersIds,
+        states,
+        attributesIds,
+        name,
+        mode,
+        agreementStates,
+        isDelegable,
+      } = queries;
       logger.info(
-        `Retrieving EServices for name = ${name}, producersIds = ${producersIds}, attributesIds = ${attributesIds}, states = ${states}, offset = ${offset}, limit = ${limit}`
+        `Retrieving EServices for name = ${name}, producersIds = ${producersIds}, attributesIds = ${attributesIds}, states = ${states}, agreementStates = ${agreementStates}, isDelegable = ${isDelegable}, mode = ${mode}, offset = ${offset}, limit = ${limit}`
       );
       const requesterId = authData.organizationId;
       const eservicesResponse: catalogApi.EServices =
@@ -364,6 +380,8 @@ export function catalogServiceBuilder(
           toBffCatalogApiEserviceRiskAnalysis
         ),
         isSignalHubEnabled: eservice.isSignalHubEnabled,
+        isDelegable: eservice.isDelegable,
+        isClientAccessDelegable: eservice.isClientAccessDelegable,
       };
     },
     updateEServiceDescription: async (
@@ -376,6 +394,24 @@ export function catalogServiceBuilder(
       );
       const updatedEservice =
         await catalogProcessClient.updateEServiceDescription(updateSeed, {
+          headers,
+          params: {
+            eServiceId,
+          },
+        });
+
+      return {
+        id: updatedEservice.id,
+      };
+    },
+    updateEServiceFlags: async (
+      { headers, logger }: WithLogger<BffAppContext>,
+      eServiceId: EServiceId,
+      updateSeed: bffApi.EServiceDelegationFlagsUpdateSeed
+    ): Promise<bffApi.CreatedResource> => {
+      logger.info(`Updating EService Flags for eserviceId = ${eServiceId}`);
+      const updatedEservice =
+        await catalogProcessClient.updateEServiceDelegationFlags(updateSeed, {
           headers,
           params: {
             eServiceId,
@@ -590,6 +626,26 @@ export function catalogServiceBuilder(
           id: requesterId,
         },
       });
+      if (!requesterTenant) {
+        throw tenantNotFound(requesterId);
+      }
+
+      const delegationTenantsSet = await getTenantsFromDelegation(
+        tenantProcessClient,
+        await getAllDelegations(delegationProcessClient, headers, {
+          delegateIds: [requesterId],
+          delegationStates: [delegationApi.DelegationState.Values.ACTIVE],
+          kind: delegationApi.DelegationKind.Values.DELEGATED_CONSUMER,
+          eserviceIds: [eserviceId],
+        }),
+        headers
+      );
+
+      const delegationTenants = Array.from(delegationTenantsSet.values());
+      const consumerDelegators = delegationTenants.filter(
+        (t) => t.id !== requesterId
+      );
+
       const producerTenant = await tenantProcessClient.tenant.getTenant({
         headers,
         params: {
@@ -627,7 +683,8 @@ export function catalogServiceBuilder(
           descriptor,
           producerTenant,
           agreement,
-          requesterTenant
+          requesterTenant,
+          consumerDelegators
         ),
       };
     },
@@ -1187,6 +1244,8 @@ export function catalogServiceBuilder(
             importedEservice.descriptor.agreementApprovalPolicy,
         },
         isSignalHubEnabled: importedEservice.isSignalHubEnabled,
+        isDelegable: importedEservice.isDelegable,
+        isClientAccessDelegable: importedEservice.isClientAccessDelegable,
       };
 
       const pollEServiceById = createPollingByCondition(() =>

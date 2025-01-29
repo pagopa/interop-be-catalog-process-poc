@@ -90,6 +90,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   "/agreements/{agreementId}/activate":
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -128,6 +134,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
       tags:
         - agreement
       description: Activates the pending agreement if all the pre-requisites are met.
@@ -162,14 +174,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Document"
-        "400":
-          description: Bad Request
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Resource Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
           content:
             application/json:
               schema:
@@ -204,8 +222,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Document"
-        "400":
-          description: Bad Request
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -227,8 +245,8 @@ paths:
       responses:
         "204":
           description: Document removed
-        "400":
-          description: Bad Request
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -383,6 +401,18 @@ paths:
                 $ref: "#/components/schemas/Agreement"
         "400":
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
           content:
             application/json:
               schema:
@@ -599,12 +629,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "400":
-          description: Invalid ID supplied
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
     delete:
       tags:
         - agreement
@@ -615,6 +639,12 @@ paths:
           description: Agreement deleted
         "400":
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -655,14 +685,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Agreement"
-        "404":
-          description: Agreement not found
+        "400":
+          description: Invalid ID supplied
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "400":
-          description: Invalid ID supplied
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Agreement not found
           content:
             application/json:
               schema:
@@ -691,18 +727,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Agreement"
-        "404":
-          description: Agreement not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
         "400":
           description: Invalid ID supplied
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Agreement not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
   "/agreements/{agreementId}/clone":
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -847,6 +890,151 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  "/agreements/verify":
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+    post:
+      tags:
+        - agreement
+      summary: Verify a Tenant has required certified attributes
+      description: Verify a Tenant has required certified attributes
+      operationId: verifyTenantCertifiedAttributes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tenantId
+                - descriptorId
+                - eserviceId
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+                  description: The Tenant id
+                eserviceId:
+                  type: string
+                  format: uuid
+                  description: The E-Service id
+                descriptorId:
+                  type: string
+                  format: uuid
+                  description: The E-Service descriptor id
+      responses:
+        "200":
+          description: Tenant has required certified attributes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HasCertifiedAttributes"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Tenant not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  "/internal/delegationRevoked/agreements/{agreementId}":
+    parameters:
+    - $ref: "#/components/parameters/CorrelationIdHeader"
+    - name: agreementId
+      in: path
+      description: The identifier of the agreement
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: delegationId
+      in: query
+      description: The identifier of the delegation
+      required: true
+      schema:
+        type: string
+        format: uuid
+    delete:
+      tags:
+        - agreement
+      summary: Delete an agreement. This operation is valid only for agreements in DRAFT or MISSING_CERTIFIED_ATTRIBUTES
+      operationId: internalDeleteAgreementAfterDelegationRevocation
+      responses:
+        "204":
+          description: Agreement deleted
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Agreement not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  "/internal/delegationRevoked/agreements/{agreementId}/archive":
+    parameters:
+    - $ref: "#/components/parameters/CorrelationIdHeader"
+    - name: agreementId
+      in: path
+      description: The identifier of the agreement
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: delegationId
+      in: query
+      description: The identifier of the delegation
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      tags:
+        - agreement
+      description: Archive the agreement.
+      summary: Archive Agreement
+      operationId: internalArchiveAgreementAfterDelegationRevocation
+      responses:
+        "204":
+          description: Agreement archived.
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Agreement not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
 components:
   parameters:
     CorrelationIdHeader:
@@ -865,6 +1053,9 @@ components:
           type: string
           format: uuid
         descriptorId:
+          type: string
+          format: uuid
+        delegationId:
           type: string
           format: uuid
       required:
@@ -1059,6 +1250,9 @@ components:
         revocationTimestamp:
           type: string
           format: date-time
+        delegationId:
+          type: string
+          format: uuid
       required:
         - id
         - assignmentTimestamp
@@ -1276,6 +1470,14 @@ components:
       required:
         - results
         - totalCount
+    HasCertifiedAttributes:
+      type: object
+      additionalProperties: false
+      properties:
+        hasCertifiedAttributes:
+          type: boolean
+      required:
+        - hasCertifiedAttributes
     Problem:
       properties:
         type:

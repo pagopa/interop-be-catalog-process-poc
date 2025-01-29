@@ -12,11 +12,13 @@ import {
   Delegation,
   DelegationContractDocument,
   DelegationContractId,
+  delegationKind,
   EService,
   generateId,
   PUBLIC_ADMINISTRATIONS_IDENTIFIER,
   Tenant,
 } from "pagopa-interop-models";
+import { match } from "ts-pattern";
 import { DelegationProcessConfig } from "../config/config.js";
 import {
   DelegationActivationPDFPayload,
@@ -52,6 +54,13 @@ const createDelegationDocumentName = (
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+function getDelegationText(delegation: Delegation): string {
+  return match(delegation.kind)
+    .with(delegationKind.delegatedProducer, () => "all’erogazione")
+    .with(delegationKind.delegatedConsumer, () => "alla fruizione")
+    .exhaustive();
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const contractBuilder = {
   createActivationContract: async ({
@@ -79,6 +88,7 @@ export const contractBuilder = {
       "resources/templates",
       "delegationApprovedTemplate.html"
     );
+
     const documentCreatedAt = new Date();
     const todayDate = dateAtRomeZone(documentCreatedAt);
     const todayTime = timeAtRomeZone(documentCreatedAt);
@@ -96,6 +106,7 @@ export const contractBuilder = {
     const activationDate = dateAtRomeZone(delegation.stamps.activation.when);
     const activationTime = timeAtRomeZone(delegation.stamps.activation.when);
     const activationContractPayload: DelegationActivationPDFPayload = {
+      delegationKindText: getDelegationText(delegation),
       todayDate,
       todayTime,
       delegationId: delegation.id,
@@ -180,6 +191,7 @@ export const contractBuilder = {
     const revocationTime = timeAtRomeZone(delegation.stamps.revocation.when);
 
     const revocationContractPayload: DelegationRevocationPDFPayload = {
+      delegationKindText: getDelegationText(delegation),
       todayDate,
       todayTime,
       delegationId: delegation.id,

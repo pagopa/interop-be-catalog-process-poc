@@ -96,6 +96,11 @@ paths:
           schema:
             $ref: "#/components/schemas/EServiceMode"
         - in: query
+          name: isDelegable
+          description: EService isDelegable filter
+          schema:
+            type: boolean
+        - in: query
           name: delegated
           description: if true only delegated e-services will be returned, if false only non-delegated e-services will be returned, if not present all e-services will be returned
           schema:
@@ -1074,6 +1079,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /eservices/{eServiceId}/delegationFlags/update:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - process
+      summary: Update an e-service isDelegable and isClientAccessDelegable flags
+      operationId: updateEServiceDelegationFlags
+      parameters:
+        - name: eServiceId
+          in: path
+          description: the eservice id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: A payload containing the new flags
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EServiceDelegationFlagsUpdateSeed"
+      responses:
+        "200":
+          description: EService flags updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EService"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: EService not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /eservices/{eServiceId}/name/update:
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -1336,6 +1397,10 @@ components:
           $ref: "#/components/schemas/DescriptorSeedForEServiceCreation"
         isSignalHubEnabled:
           type: boolean
+        isDelegable:
+          type: boolean
+        isClientAccessDelegable:
+          type: boolean
     UpdateEServiceSeed:
       type: object
       additionalProperties: false
@@ -1358,6 +1423,10 @@ components:
         mode:
           $ref: "#/components/schemas/EServiceMode"
         isSignalHubEnabled:
+          type: boolean
+        isDelegable:
+          type: boolean
+        isClientAccessDelegable:
           type: boolean
     DescriptorSeedForEServiceCreation:
       required:
@@ -1655,6 +1724,10 @@ components:
           $ref: "#/components/schemas/EServiceMode"
         isSignalHubEnabled:
           type: boolean
+        isDelegable:
+          type: boolean
+        isClientAccessDelegable:
+          type: boolean
     EServiceMode:
       type: string
       description: Risk Analysis Mode
@@ -1816,6 +1889,17 @@ components:
           maxLength: 250
       required:
         - description
+    EServiceDelegationFlagsUpdateSeed:
+      type: object
+      additionalProperties: false
+      properties:
+        isDelegable:
+          type: boolean
+        isClientAccessDelegable:
+          type: boolean
+      required:
+        - isDelegable
+        - isClientAccessDelegable
     EServiceNameUpdateSeed:
       type: object
       additionalProperties: false

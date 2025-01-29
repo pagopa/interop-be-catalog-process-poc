@@ -39,10 +39,8 @@ const producerDelegationRouter = (
     .post("/producer/delegations", async (req, res) => {
       const ctx = fromBffAppContext(req.ctx, req.headers);
       try {
-        const delegationResource = await delegationService.createDelegation(
-          req.body,
-          ctx
-        );
+        const delegationResource =
+          await delegationService.createProducerDelegation(req.body, ctx);
 
         return res
           .status(200)
@@ -62,7 +60,7 @@ const producerDelegationRouter = (
     .post("/producer/delegations/:delegationId/approve", async (req, res) => {
       const ctx = fromBffAppContext(req.ctx, req.headers);
       try {
-        await delegationService.delegateApproveDelegation(
+        await delegationService.approveProducerDelegation(
           unsafeBrandId(req.params.delegationId),
           ctx
         );
@@ -83,7 +81,7 @@ const producerDelegationRouter = (
     .post("/producer/delegations/:delegationId/reject", async (req, res) => {
       const ctx = fromBffAppContext(req.ctx, req.headers);
       try {
-        await delegationService.delegateRejectDelegation(
+        await delegationService.rejectProducerDelegation(
           unsafeBrandId(req.params.delegationId),
           req.body,
           ctx
@@ -106,7 +104,7 @@ const producerDelegationRouter = (
       const ctx = fromBffAppContext(req.ctx, req.headers);
 
       try {
-        await delegationService.delegatorRevokeDelegation(
+        await delegationService.revokeProducerDelegation(
           unsafeBrandId(req.params.delegationId),
           ctx
         );
@@ -118,7 +116,7 @@ const producerDelegationRouter = (
           emptyErrorMapper,
           ctx.logger,
           ctx.correlationId,
-          `Error revoke delegation with id ${req.params.delegationId}`
+          `Error revoking delegation with id ${req.params.delegationId}`
         );
 
         return res.status(errorRes.status).send(errorRes);

@@ -10,6 +10,7 @@ import {
   makeApiProblemBuilder,
   AttributeId,
   Agreement,
+  DelegationId,
 } from "pagopa-interop-models";
 
 export const errorCodes = {
@@ -19,7 +20,7 @@ export const errorCodes = {
   descriptorNotInExpectedState: "0004",
   eServiceNotFound: "0005",
   contractAlreadyExists: "0006",
-  operationNotAllowed: "0007",
+  organizationNotAllowed: "0007",
   agreementActivationFailed: "0008",
   agreementNotFound: "0009",
   agreementAlreadyExists: "0010",
@@ -36,6 +37,11 @@ export const errorCodes = {
   invalidAttributeStructure: "0023",
   consumerWithNotValidEmail: "0024",
   agreementDocumentAlreadyExists: "0025",
+  delegationNotFound: "0026",
+  organizationIsNotTheConsumer: "0027",
+  organizationIsNotTheDelegateConsumer: "0028",
+  organizationIsNotTheProducer: "0029",
+  organizationIsNotTheDelegateProducer: "0030",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -117,10 +123,12 @@ export function agreementAlreadyExists(
   });
 }
 
-export function operationNotAllowed(requesterId: string): ApiError<ErrorCodes> {
+export function organizationNotAllowed(
+  organizationId: string
+): ApiError<ErrorCodes> {
   return new ApiError({
-    detail: `Operation not allowed by ${requesterId}`,
-    code: "operationNotAllowed",
+    detail: `Organization ${organizationId} is not allowed to perform the operation`,
+    code: "organizationNotAllowed",
     title: "Operation not allowed",
   });
 }
@@ -275,5 +283,61 @@ export function attributeNotFound(
     detail: `Attribute ${attributeId} not found`,
     code: "attributeNotFound",
     title: "Attribute not found",
+  });
+}
+
+export function delegationNotFound(
+  delegationId: DelegationId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Delegation ${delegationId} not found`,
+    code: "delegationNotFound",
+    title: "Delegation not found",
+  });
+}
+
+export function organizationIsNotTheConsumer(
+  organizationId: TenantId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the consumer`,
+    code: "organizationIsNotTheConsumer",
+    title: "Organization not allowed",
+  });
+}
+
+export function organizationIsNotTheDelegateConsumer(
+  organizationId: TenantId,
+  delegationId: DelegationId | undefined
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the delegate consumer${
+      delegationId ? ` of delegation ${delegationId}` : ""
+    }`,
+    code: "organizationIsNotTheDelegateConsumer",
+    title: "Organization not allowed",
+  });
+}
+
+export function organizationIsNotTheProducer(
+  organizationId: TenantId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the producer`,
+    code: "organizationIsNotTheProducer",
+    title: "Organization not allowed",
+  });
+}
+
+export function organizationIsNotTheDelegateProducer(
+  organizationId: TenantId,
+  delegationId: DelegationId | undefined
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Organization ${organizationId} is not allowed to perform the operation because is not the delegate producer${
+      delegationId ? ` of delegation ${delegationId}` : ""
+    }`,
+    code: "organizationIsNotTheDelegateProducer",
+    title: "Organization not allowed",
   });
 }

@@ -42,7 +42,6 @@ export function toEserviceCatalogProcessQueryParams(
 export function toBffCatalogApiEService(
   eservice: catalogApi.EService,
   producerTenant: tenantApi.Tenant,
-  requesterTenant: tenantApi.Tenant,
   isRequesterEqProducer: boolean,
   activeDescriptor?: catalogApi.EServiceDescriptor,
   agreement?: agreementApi.Agreement
@@ -56,10 +55,6 @@ export function toBffCatalogApiEService(
       name: producerTenant.name,
     },
     isMine: isRequesterEqProducer,
-    hasCertifiedAttributes: hasCertifiedAttributes(
-      activeDescriptor,
-      requesterTenant
-    ),
   };
 
   return {
@@ -91,7 +86,8 @@ export function toBffCatalogDescriptorEService(
   descriptor: catalogApi.EServiceDescriptor,
   producerTenant: tenantApi.Tenant,
   agreement: agreementApi.Agreement | undefined,
-  requesterTenant: tenantApi.Tenant
+  requesterTenant: tenantApi.Tenant,
+  consumerDelegators: tenantApi.Tenant[]
 ): bffApi.CatalogDescriptorEService {
   const activeDescriptor = getLatestActiveDescriptor(eservice);
   return {
@@ -107,7 +103,13 @@ export function toBffCatalogDescriptorEService(
     descriptors: getValidDescriptor(eservice).map(toCompactDescriptor),
     agreement: agreement && toBffCompactAgreement(agreement, eservice),
     isMine: isRequesterEserviceProducer(requesterTenant.id, eservice),
-    hasCertifiedAttributes: hasCertifiedAttributes(descriptor, requesterTenant),
+    hasCertifiedAttributes: [requesterTenant, ...consumerDelegators].some(
+      (t) => hasCertifiedAttributes(descriptor, t)
+      /* True in case:
+      - the requester has the certified attributes required to consume the eservice, or
+      - the requester is the delegated consumer for the eservice and
+        the delegator has the certified attributes required to consume the eservice */
+    ),
     isSubscribed: isAgreementSubscribed(agreement),
     activeDescriptor: activeDescriptor
       ? toCompactDescriptor(activeDescriptor)
@@ -118,6 +120,8 @@ export function toBffCatalogDescriptorEService(
       toBffCatalogApiEserviceRiskAnalysis
     ),
     isSignalHubEnabled: eservice.isSignalHubEnabled,
+    isDelegable: eservice.isDelegable,
+    isClientAccessDelegable: eservice.isClientAccessDelegable,
   };
 }
 
@@ -266,6 +270,8 @@ export function toBffCatalogApiProducerDescriptorEService(
     ),
     descriptors: notDraftDecriptors,
     isSignalHubEnabled: eservice.isSignalHubEnabled,
+    isDelegable: eservice.isDelegable,
+    isClientAccessDelegable: eservice.isClientAccessDelegable,
   };
 }
 

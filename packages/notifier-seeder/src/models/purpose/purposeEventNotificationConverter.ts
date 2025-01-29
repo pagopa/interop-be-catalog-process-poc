@@ -41,6 +41,7 @@ export const toPurposeEventNotification = (
       { type: "PurposeCloned" },
       { type: "NewPurposeVersionWaitingForApproval" },
       { type: "PurposeVersionOverQuotaUnsuspended" },
+      { type: "PurposeVersionArchivedByRevokedDelegation" },
       (event): PurposeNotification => ({
         purpose: getPurpose(event),
       })
@@ -55,6 +56,7 @@ export const toPurposeEventNotification = (
     .with(
       { type: "DraftPurposeDeleted" },
       { type: "WaitingForApprovalPurposeDeleted" },
+      { type: "PurposeDeletedByRevokedDelegation" },
       (event): PurposeIdNotification => ({
         purposeId: getPurpose(event).id,
       })

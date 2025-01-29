@@ -1,0 +1,27 @@
+meta {
+  name: Update Eservice delegation flags
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host-catalog}}/eservices/:eserviceId/delegationFlags
+  body: json
+  auth: none
+}
+
+params:path {
+  eserviceId: {{eserviceId}}
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}
+
+body:json {
+  {
+      "isDelegable": true,
+      "isClientAccessDelegable": false
+  }
+}

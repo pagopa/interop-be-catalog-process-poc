@@ -1,17 +1,17 @@
 meta {
-  name: Revoke a delegation by ID
+  name: Revokes a consumer delegation
   type: http
-  seq: 1
+  seq: 4
 }
 
 delete {
-  url: {{host-bff}}/producer/delegations/:delegationId
+  url: {{host-delegation}}/consumer/delegations/:delegationId
   body: none
   auth: none
 }
 
 params:path {
-  delegationId: dd10132c-f3c9-45cf-994c-3a312bc4ab4e
+  delegationId: {{delegationId}}
 }
 
 headers {

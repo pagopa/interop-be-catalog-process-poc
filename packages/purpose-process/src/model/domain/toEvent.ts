@@ -1,6 +1,7 @@
 import { CreateEvent } from "pagopa-interop-commons";
 import {
   CorrelationId,
+  DelegationId,
   Purpose,
   PurposeEventV2,
   PurposeId,
@@ -109,6 +110,27 @@ export const toCreateEventWaitingForApprovalPurposeDeleted = ({
   correlationId,
 });
 
+export const toCreateEventPurposeDeletedByRevokedDelegation = ({
+  purpose,
+  delegationId,
+  version,
+  correlationId,
+}: {
+  purpose: Purpose;
+  delegationId: DelegationId;
+  version: number;
+  correlationId: CorrelationId;
+}): CreateEvent<PurposeEventV2> => ({
+  streamId: purpose.id,
+  version,
+  event: {
+    type: "PurposeDeletedByRevokedDelegation",
+    event_version: 2,
+    data: { purpose: toPurposeV2(purpose), delegationId },
+  },
+  correlationId,
+});
+
 export const toCreateEventPurposeArchived = ({
   purpose,
   purposeVersionId,
@@ -126,6 +148,33 @@ export const toCreateEventPurposeArchived = ({
     type: "PurposeArchived",
     event_version: 2,
     data: { purpose: toPurposeV2(purpose), versionId: purposeVersionId },
+  },
+  correlationId,
+});
+
+export const toCreateEventPurposeVersionArchivedByRevokedDelegation = ({
+  purpose,
+  purposeVersionId,
+  delegationId,
+  version,
+  correlationId,
+}: {
+  purpose: Purpose;
+  purposeVersionId: PurposeVersionId;
+  delegationId: DelegationId;
+  version: number;
+  correlationId: CorrelationId;
+}): CreateEvent<PurposeEventV2> => ({
+  streamId: purpose.id,
+  version,
+  event: {
+    type: "PurposeVersionArchivedByRevokedDelegation",
+    event_version: 2,
+    data: {
+      purpose: toPurposeV2(purpose),
+      versionId: purposeVersionId,
+      delegationId,
+    },
   },
   correlationId,
 });

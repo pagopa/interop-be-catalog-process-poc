@@ -40,6 +40,7 @@ import {
   suspendPurposeVersionErrorMapper,
   updatePurposeErrorMapper,
   updateReversePurposeErrorMapper,
+  getPurposesErrorMapper,
 } from "../utilities/errorMappers.js";
 import { purposeServiceBuilder } from "../services/purposeService.js";
 
@@ -126,7 +127,7 @@ const purposeRouter = (
         } catch (error) {
           const errorRes = makeApiProblem(
             error,
-            () => 500,
+            getPurposesErrorMapper,
             ctx.logger,
             ctx.correlationId
           );
@@ -141,12 +142,7 @@ const purposeRouter = (
         const ctx = fromAppContext(req.ctx);
         try {
           const { purpose, isRiskAnalysisValid } =
-            await purposeService.createPurpose(
-              req.body,
-              req.ctx.authData.organizationId,
-              req.ctx.correlationId,
-              ctx.logger
-            );
+            await purposeService.createPurpose(req.body, ctx);
           return res
             .status(200)
             .send(
@@ -172,12 +168,7 @@ const purposeRouter = (
         const ctx = fromAppContext(req.ctx);
         try {
           const { purpose, isRiskAnalysisValid } =
-            await purposeService.createReversePurpose(
-              req.ctx.authData.organizationId,
-              req.body,
-              ctx.correlationId,
-              ctx.logger
-            );
+            await purposeService.createReversePurpose(req.body, ctx);
           return res
             .status(200)
             .send(
@@ -203,13 +194,11 @@ const purposeRouter = (
         const ctx = fromAppContext(req.ctx);
         try {
           const { purpose, isRiskAnalysisValid } =
-            await purposeService.updateReversePurpose({
-              purposeId: unsafeBrandId(req.params.id),
-              reversePurposeUpdateContent: req.body,
-              organizationId: req.ctx.authData.organizationId,
-              correlationId: req.ctx.correlationId,
-              logger: ctx.logger,
-            });
+            await purposeService.updateReversePurpose(
+              unsafeBrandId(req.params.id),
+              req.body,
+              ctx
+            );
           return res
             .status(200)
             .send(
@@ -271,13 +260,11 @@ const purposeRouter = (
         const ctx = fromAppContext(req.ctx);
         try {
           const { purpose, isRiskAnalysisValid } =
-            await purposeService.updatePurpose({
-              purposeId: unsafeBrandId(req.params.id),
-              purposeUpdateContent: req.body,
-              organizationId: req.ctx.authData.organizationId,
-              correlationId: req.ctx.correlationId,
-              logger: ctx.logger,
-            });
+            await purposeService.updatePurpose(
+              unsafeBrandId(req.params.id),
+              req.body,
+              ctx
+            );
           return res
             .status(200)
             .send(
@@ -302,12 +289,31 @@ const purposeRouter = (
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          await purposeService.deletePurpose({
-            purposeId: unsafeBrandId(req.params.id),
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          await purposeService.deletePurpose(unsafeBrandId(req.params.id), ctx);
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            deletePurposeErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .delete(
+      "/internal/delegationRevoked/purposes/:id",
+      authorizationMiddleware([INTERNAL_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          await purposeService.internalDeletePurposeAfterDelegationRevocation(
+            unsafeBrandId(req.params.id),
+            unsafeBrandId(req.query.delegationId),
+            ctx.correlationId,
+            ctx.logger
+          );
           return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
@@ -326,13 +332,11 @@ const purposeRouter = (
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          const purposeVersion = await purposeService.createPurposeVersion({
-            purposeId: unsafeBrandId(req.params.purposeId),
-            seed: req.body,
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          const purposeVersion = await purposeService.createPurposeVersion(
+            unsafeBrandId(req.params.purposeId),
+            req.body,
+            ctx
+          );
           return res
             .status(200)
             .send(
@@ -357,13 +361,13 @@ const purposeRouter = (
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          await purposeService.deletePurposeVersion({
-            purposeId: unsafeBrandId(req.params.purposeId),
-            versionId: unsafeBrandId(req.params.versionId),
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          await purposeService.deletePurposeVersion(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+            },
+            ctx
+          );
           return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
@@ -413,14 +417,14 @@ const purposeRouter = (
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          await purposeService.rejectPurposeVersion({
-            purposeId: unsafeBrandId(req.params.purposeId),
-            versionId: unsafeBrandId(req.params.versionId),
-            organizationId: req.ctx.authData.organizationId,
-            rejectionReason: req.body.rejectionReason,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          await purposeService.rejectPurposeVersion(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+              rejectionReason: req.body.rejectionReason,
+            },
+            ctx
+          );
           return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
@@ -440,13 +444,13 @@ const purposeRouter = (
         const ctx = fromAppContext(req.ctx);
         try {
           const { purposeId, versionId } = req.params;
-          const purposeVersion = await purposeService.activatePurposeVersion({
-            purposeId: unsafeBrandId(purposeId),
-            versionId: unsafeBrandId(versionId),
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          const purposeVersion = await purposeService.activatePurposeVersion(
+            {
+              purposeId: unsafeBrandId(purposeId),
+              versionId: unsafeBrandId(versionId),
+            },
+            ctx
+          );
           return res
             .status(200)
             .send(
@@ -474,10 +478,8 @@ const purposeRouter = (
           const { purpose, isRiskAnalysisValid } =
             await purposeService.clonePurpose({
               purposeId: unsafeBrandId(req.params.purposeId),
-              organizationId: req.ctx.authData.organizationId,
               seed: req.body,
-              correlationId: req.ctx.correlationId,
-              logger: ctx.logger,
+              ctx,
             });
           return res
             .status(200)
@@ -503,13 +505,13 @@ const purposeRouter = (
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          const suspendedVersion = await purposeService.suspendPurposeVersion({
-            purposeId: unsafeBrandId(req.params.purposeId),
-            versionId: unsafeBrandId(req.params.versionId),
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          const suspendedVersion = await purposeService.suspendPurposeVersion(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+            },
+            ctx
+          );
           return res
             .status(200)
             .send(
@@ -530,17 +532,17 @@ const purposeRouter = (
     )
     .post(
       "/purposes/:purposeId/versions/:versionId/archive",
-      authorizationMiddleware([ADMIN_ROLE, INTERNAL_ROLE]),
+      authorizationMiddleware([ADMIN_ROLE]),
       async (req, res) => {
         const ctx = fromAppContext(req.ctx);
         try {
-          const archivedVersion = await purposeService.archivePurposeVersion({
-            purposeId: unsafeBrandId(req.params.purposeId),
-            versionId: unsafeBrandId(req.params.versionId),
-            organizationId: req.ctx.authData.organizationId,
-            correlationId: req.ctx.correlationId,
-            logger: ctx.logger,
-          });
+          const archivedVersion = await purposeService.archivePurposeVersion(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+            },
+            ctx
+          );
           return res
             .status(200)
             .send(
@@ -548,6 +550,33 @@ const purposeRouter = (
                 purposeVersionToApiPurposeVersion(archivedVersion)
               )
             );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            archivePurposeVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .post(
+      "/internal/delegationRevoked/purposes/:purposeId/versions/:versionId/archive",
+      authorizationMiddleware([INTERNAL_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+        try {
+          await purposeService.internalArchivePurposeVersionAfterDelegationRevocation(
+            {
+              purposeId: unsafeBrandId(req.params.purposeId),
+              versionId: unsafeBrandId(req.params.versionId),
+              delegationId: unsafeBrandId(req.query.delegationId),
+            },
+            ctx.correlationId,
+            ctx.logger
+          );
+          return res.status(204).send();
         } catch (error) {
           const errorRes = makeApiProblem(
             error,

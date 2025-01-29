@@ -81,3 +81,13 @@ message AgreementSetDraftByPlatformV2 {
 message AgreementSetMissingCertifiedAttributesByPlatformV2 {
   AgreementV2 agreement = 1;
 }
+
+message AgreementDeletedByRevokedDelegationV2 {
+  AgreementV2 agreement = 1;
+  string delegationId = 2;
+}
+
+message AgreementArchivedByRevokedDelegationV2 {
+  AgreementV2 agreement = 1;
+  string delegationId = 2;
+}

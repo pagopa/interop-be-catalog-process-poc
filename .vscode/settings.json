@@ -4,7 +4,7 @@
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit"
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsdk": "packages/commons/node_modules/typescript/lib",
   "files.watcherExclude": {
     "**/target": true
   }

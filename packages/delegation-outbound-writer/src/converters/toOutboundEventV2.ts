@@ -69,6 +69,10 @@ export function toOutboundEventV2(
       { type: "ProducerDelegationApproved" },
       { type: "ProducerDelegationRejected" },
       { type: "ProducerDelegationRevoked" },
+      { type: "ConsumerDelegationSubmitted" },
+      { type: "ConsumerDelegationApproved" },
+      { type: "ConsumerDelegationRejected" },
+      { type: "ConsumerDelegationRevoked" },
       (msg) => ({
         event_version: msg.event_version,
         type: msg.type,

@@ -1,8 +1,11 @@
-import { userRoles } from "pagopa-interop-commons";
+import { AuthData, userRoles } from "pagopa-interop-commons";
 import {
   Client,
   ClientId,
   CorrelationId,
+  Delegation,
+  delegationKind,
+  delegationState,
   EService,
   ProducerKeychain,
   ProducerKeychainId,
@@ -70,6 +73,26 @@ export const assertOrganizationIsPurposeConsumer = (
 ): void => {
   if (organizationId !== purpose.consumerId) {
     throw organizationNotAllowedOnPurpose(organizationId, purpose.id);
+  }
+};
+
+export const assertRequesterIsDelegateConsumer = (
+  authData: AuthData,
+  purpose: Purpose,
+  delegation: Delegation
+): void => {
+  if (
+    delegation.delegateId !== authData.organizationId ||
+    delegation.delegatorId !== purpose.consumerId ||
+    delegation.eserviceId !== purpose.eserviceId ||
+    delegation.kind !== delegationKind.delegatedConsumer ||
+    delegation.state !== delegationState.active
+  ) {
+    throw organizationNotAllowedOnPurpose(
+      authData.organizationId,
+      purpose.id,
+      delegation.id
+    );
   }
 };
 

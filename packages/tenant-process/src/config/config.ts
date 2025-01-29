@@ -11,13 +11,13 @@ const TenantProcessConfig = CommonHTTPServiceConfig.and(EventStoreConfig)
   .and(
     z
       .object({
-        PRODUCER_ALLOWED_ORIGINS: z
+        DELEGATIONS_ALLOWED_ORIGINS: z
           .string()
           .optional()
           .default(PUBLIC_ADMINISTRATIONS_IDENTIFIER),
       })
       .transform((c) => ({
-        producerAllowedOrigins: c.PRODUCER_ALLOWED_ORIGINS.split(","),
+        delegationsAllowedOrigins: c.DELEGATIONS_ALLOWED_ORIGINS.split(","),
       }))
   );
 export type TenantProcessConfig = z.infer<typeof TenantProcessConfig>;

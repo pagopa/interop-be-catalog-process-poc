@@ -39,6 +39,8 @@
     "start:authorization-server": "turbo start --filter pagopa-interop-authorization-server",
     "start:token-details-persister": "turbo start --filter pagopa-interop-token-details-persister",
     "start:token-generation-readmodel-checker": "turbo start --filter pagopa-interop-token-generation-readmodel-checker",
+    "start:process": "turbo start --concurrency 20 --filter pagopa-interop-*-process",
+    "start:readmodel-writer": "turbo start --concurrency 20 --filter pagopa-interop-*-readmodel-writer",
     "start:ipa-certified-attributes-importer": "turbo start --filter pagopa-interop-ipa-certified-attributes-importer",
     "test": "turbo test",
     "build": "turbo build",

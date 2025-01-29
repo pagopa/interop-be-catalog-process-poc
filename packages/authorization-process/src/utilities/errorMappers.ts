@@ -89,15 +89,11 @@ export const addClientPurposeErrorMapper = (
   error: ApiError<ErrorCodes>
 ): number =>
   match(error.code)
-    .with(
-      "clientNotFound",
-      "purposeNotFound",
-
-      () => HTTP_STATUS_NOT_FOUND
-    )
+    .with("clientNotFound", "purposeNotFound", () => HTTP_STATUS_NOT_FOUND)
     .with(
       "noAgreementFoundInRequiredState",
       "noPurposeVersionsFoundInRequiredState",
+      "eserviceNotDelegableForClientAccess",
       () => HTTP_STATUS_BAD_REQUEST
     )
     .with("purposeAlreadyLinkedToClient", () => HTTP_STATUS_CONFLICT)
@@ -106,6 +102,7 @@ export const addClientPurposeErrorMapper = (
       "organizationNotAllowedOnPurpose",
       () => HTTP_STATUS_FORBIDDEN
     )
+    .with("purposeDelegationNotFound", () => HTTP_STATUS_INTERNAL_SERVER_ERROR)
     .otherwise(() => HTTP_STATUS_INTERNAL_SERVER_ERROR);
 
 export const getClientKeysErrorMapper = (error: ApiError<ErrorCodes>): number =>

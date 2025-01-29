@@ -88,3 +88,14 @@ message PurposeClonedV2 {
   string sourceVersionId = 2;
   PurposeV2 purpose = 3;
 }
+
+message PurposeDeletedByRevokedDelegationV2 {
+  PurposeV2 purpose = 1;
+  string delegationId = 2;
+}
+
+message PurposeVersionArchivedByRevokedDelegationV2 {
+  string versionId = 1;
+  PurposeV2 purpose = 2;
+  string delegationId = 3;
+}

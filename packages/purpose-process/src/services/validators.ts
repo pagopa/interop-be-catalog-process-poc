@@ -10,12 +10,16 @@ import {
   purposeVersionState,
   EServiceId,
   delegationKind,
+  Delegation,
+  delegationState,
+  DelegationId,
 } from "pagopa-interop-models";
 import {
   validateRiskAnalysis,
   riskAnalysisFormToRiskAnalysisFormToValidate,
   RiskAnalysisValidatedForm,
   riskAnalysisValidatedFormToNewRiskAnalysisForm,
+  AuthData,
 } from "pagopa-interop-commons";
 import { purposeApi } from "pagopa-interop-api-clients";
 import {
@@ -24,13 +28,18 @@ import {
   eServiceModeNotAllowed,
   missingFreeOfChargeReason,
   organizationIsNotTheConsumer,
+  organizationIsNotTheDelegatedConsumer,
+  organizationIsNotTheDelegatedProducer,
   organizationIsNotTheProducer,
   organizationNotAllowed,
   purposeNotInDraftState,
   riskAnalysisValidationFailed,
 } from "../model/domain/errors.js";
 import { ReadModelService } from "./readModelService.js";
-import { retrieveActiveAgreement } from "./purposeService.js";
+import {
+  retrieveActiveAgreement,
+  retrievePurposeDelegation,
+} from "./purposeService.js";
 
 export const isRiskAnalysisFormValid = (
   riskAnalysisForm: RiskAnalysisForm | undefined,
@@ -81,12 +90,12 @@ export const assertConsistentFreeOfCharge = (
   }
 };
 
-export const assertOrganizationIsAConsumer = (
-  organizationId: TenantId,
-  consumerId: TenantId
+const assertRequesterIsConsumer = (
+  purpose: Pick<Purpose, "consumerId">,
+  authData: Pick<AuthData, "organizationId">
 ): void => {
-  if (organizationId !== consumerId) {
-    throw organizationIsNotTheConsumer(organizationId);
+  if (authData.organizationId !== purpose.consumerId) {
+    throw organizationIsNotTheConsumer(authData.organizationId);
   }
 };
 
@@ -252,61 +261,146 @@ export async function isOverQuota(
   );
 }
 
-export const assertRequesterIsAllowedToRetrieveRiskAnalysisDocument = async ({
-  eserviceId,
-  organizationId,
-  producerId,
-  consumerId,
-  readModelService,
-}: {
-  eserviceId: EServiceId;
-  organizationId: TenantId;
-  producerId: TenantId;
-  consumerId: TenantId;
-  readModelService: ReadModelService;
-}): Promise<void> => {
-  if (organizationId === producerId || organizationId === consumerId) {
-    return;
+export const assertRequesterIsAllowedToRetrieveRiskAnalysisDocument = async (
+  purpose: Purpose,
+  eservice: EService,
+  authData: Pick<AuthData, "organizationId">,
+  readModelService: ReadModelService
+): Promise<void> => {
+  // This operation has a dedicated assertion because it's the only operation that
+  // can be performed also by the producer/consumer even when active producer/consumer delegations exist
+  try {
+    assertRequesterIsConsumer(purpose, authData);
+  } catch {
+    try {
+      assertRequesterIsProducer(eservice, authData);
+    } catch {
+      try {
+        assertRequesterIsDelegateProducer(
+          eservice,
+          authData,
+          await readModelService.getActiveProducerDelegationByEserviceId(
+            purpose.eserviceId
+          )
+        );
+      } catch {
+        try {
+          assertRequesterIsDelegateConsumer(
+            purpose,
+            authData,
+            await retrievePurposeDelegation(purpose, readModelService)
+          );
+        } catch {
+          throw organizationNotAllowed(authData.organizationId);
+        }
+      }
+    }
   }
-
-  const activeProducerDelegation = await readModelService.getActiveDelegation(
-    eserviceId,
-    delegationKind.delegatedProducer
-  );
-
-  if (
-    activeProducerDelegation &&
-    organizationId === activeProducerDelegation.delegateId
-  ) {
-    return;
-  }
-
-  throw organizationNotAllowed(organizationId);
 };
 
-export const assertRequesterIsProducer = async ({
-  eserviceId,
-  organizationId,
-  producerId,
-  readModelService,
-}: {
-  eserviceId: EServiceId;
-  organizationId: TenantId;
-  producerId: TenantId;
-  readModelService: ReadModelService;
-}): Promise<void> => {
-  const activeProducerDelegation = await readModelService.getActiveDelegation(
-    eserviceId,
-    delegationKind.delegatedProducer
-  );
-
-  if (
-    (activeProducerDelegation &&
-      organizationId === activeProducerDelegation.delegateId) ||
-    (!activeProducerDelegation && organizationId === producerId)
-  ) {
-    return;
+const assertRequesterIsProducer = (
+  eservice: Pick<EService, "producerId">,
+  authData: Pick<AuthData, "organizationId">
+): void => {
+  if (authData.organizationId !== eservice.producerId) {
+    throw organizationIsNotTheProducer(authData.organizationId);
   }
+};
 
-  throw organizationIsNotTheProducer(organizationId);
+const assertRequesterIsDelegateProducer = (
+  eservice: Pick<EService, "producerId" | "id">,
+  authData: Pick<AuthData, "organizationId">,
+  activeProducerDelegation: Delegation | undefined
+): void => {
+  if (
+    activeProducerDelegation?.delegateId !== authData.organizationId ||
+    activeProducerDelegation?.delegatorId !== eservice.producerId ||
+    activeProducerDelegation?.kind !== delegationKind.delegatedProducer ||
+    activeProducerDelegation?.state !== delegationState.active ||
+    activeProducerDelegation?.eserviceId !== eservice.id
+  ) {
+    throw organizationIsNotTheDelegatedProducer(
+      authData.organizationId,
+      activeProducerDelegation?.id
+    );
+  }
+};
+
+export const assertRequesterCanActAsProducer = (
+  eservice: Pick<EService, "producerId" | "id">,
+  authData: AuthData,
+  activeProducerDelegation: Delegation | undefined
+): void => {
+  if (!activeProducerDelegation) {
+    // No active producer delegation, the requester is authorized only if they are the producer
+    assertRequesterIsProducer(eservice, authData);
+  } else {
+    // Active producer delegation, the requester is authorized only if they are the delegate
+    assertRequesterIsDelegateProducer(
+      eservice,
+      authData,
+      activeProducerDelegation
+    );
+  }
+};
+
+export const assertRequesterCanActAsConsumer = (
+  purpose: Pick<Purpose, "consumerId" | "eserviceId">,
+  authData: AuthData,
+  activeConsumerDelegation: Delegation | undefined
+): void => {
+  if (!activeConsumerDelegation) {
+    // No active consumer delegation, the requester is authorized only if they are the consumer
+    assertRequesterIsConsumer(purpose, authData);
+  } else {
+    // Active consumer delegation, the requester is authorized only if they are the delegate
+    assertRequesterIsDelegateConsumer(
+      purpose,
+      authData,
+      activeConsumerDelegation
+    );
+  }
+};
+
+const assertRequesterIsDelegateConsumer = (
+  purpose: Pick<Purpose, "consumerId" | "eserviceId">,
+  authData: Pick<AuthData, "organizationId">,
+  activeConsumerDelegation: Delegation | undefined
+): void => {
+  if (
+    activeConsumerDelegation?.delegateId !== authData.organizationId ||
+    activeConsumerDelegation?.delegatorId !== purpose.consumerId ||
+    activeConsumerDelegation?.eserviceId !== purpose.eserviceId ||
+    activeConsumerDelegation?.kind !== delegationKind.delegatedConsumer ||
+    activeConsumerDelegation?.state !== delegationState.active
+  ) {
+    throw organizationIsNotTheDelegatedConsumer(
+      authData.organizationId,
+      activeConsumerDelegation?.id
+    );
+  }
+};
+
+export const verifyRequesterIsConsumerOrDelegateConsumer = async (
+  purpose: Pick<Purpose, "consumerId" | "eserviceId">,
+  authData: AuthData,
+  readModelService: ReadModelService
+): Promise<DelegationId | undefined> => {
+  try {
+    assertRequesterIsConsumer(purpose, authData);
+    return undefined;
+  } catch {
+    const consumerDelegation =
+      await readModelService.getActiveConsumerDelegationByEserviceAndConsumerIds(
+        purpose
+      );
+
+    if (!consumerDelegation) {
+      throw organizationIsNotTheConsumer(authData.organizationId);
+    }
+
+    assertRequesterIsDelegateConsumer(purpose, authData, consumerDelegation);
+
+    return consumerDelegation?.id;
+  }
 };

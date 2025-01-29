@@ -137,6 +137,10 @@ export async function sendCatalogAuthUpdate(
           "EServiceRiskAnalysisDeleted",
           "EServiceDescriptorAttributesUpdated",
           "EServiceDescriptionUpdated",
+          "EServiceIsDelegableEnabled",
+          "EServiceIsDelegableDisabled",
+          "EServiceIsClientAccessDelegableEnabled",
+          "EServiceIsClientAccessDelegableDisabled",
           "EServiceNameUpdated",
           "EServiceDescriptorSubmittedByDelegate",
           "EServiceDescriptorRejectedByDelegator"
@@ -168,7 +172,8 @@ export async function sendAgreementAuthUpdate(
           "AgreementSuspendedByPlatform",
           "AgreementSuspendedByConsumer",
           "AgreementSuspendedByProducer",
-          "AgreementArchivedByConsumer"
+          "AgreementArchivedByConsumer",
+          "AgreementArchivedByRevokedDelegation"
         ),
       },
       async (msg) => {
@@ -232,7 +237,8 @@ export async function sendAgreementAuthUpdate(
           "AgreementConsumerDocumentRemoved",
           "AgreementSetDraftByPlatform",
           "AgreementSetMissingCertifiedAttributesByPlatform",
-          "AgreementArchivedByUpgrade"
+          "AgreementArchivedByUpgrade",
+          "AgreementDeletedByRevokedDelegation"
         ),
       },
       () => {
@@ -261,7 +267,8 @@ export async function sendPurposeAuthUpdate(
       {
         type: P.union(
           "DraftPurposeDeleted",
-          "WaitingForApprovalPurposeDeleted"
+          "WaitingForApprovalPurposeDeleted",
+          "PurposeDeletedByRevokedDelegation"
         ),
       },
       async (msg): Promise<void> => {
@@ -292,7 +299,8 @@ export async function sendPurposeAuthUpdate(
           "PurposeVersionOverQuotaUnsuspended",
           "NewPurposeVersionActivated",
           "PurposeVersionActivated",
-          "PurposeArchived"
+          "PurposeArchived",
+          "PurposeVersionArchivedByRevokedDelegation"
         ),
       },
       async (msg): Promise<void> => {

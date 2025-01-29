@@ -5,22 +5,21 @@ meta {
 }
 
 get {
-  url: {{host-bff}}/tenants
+  url: {{host-bff}}/tenants?limit=10&features=["DELEGATED_CONSUMER", "DELEGATED_PRODUCER"]&name=Test
   body: none
   auth: none
 }
 
 params:query {
-  name: 
   limit: 10
+  features: ["DELEGATED_CONSUMER", "DELEGATED_PRODUCER"]
+  name: Test
 }
 
 headers {
   Authorization: {{JWT}}
   x-correlation-id: {{correlation-id}}
 }
-
-
 
 docs {
   Retrieve Tenants by name

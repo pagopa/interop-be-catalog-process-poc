@@ -13,12 +13,16 @@ export async function handleMessageV2(
   const agreement = message.data.agreement;
 
   await match(message)
-    .with({ type: "AgreementDeleted" }, async (message) => {
-      await agreements.deleteOne({
-        "data.id": message.stream_id,
-        "metadata.version": { $lte: message.version },
-      });
-    })
+    .with(
+      { type: "AgreementDeleted" },
+      { type: "AgreementDeletedByRevokedDelegation" },
+      async (message) => {
+        await agreements.deleteOne({
+          "data.id": message.stream_id,
+          "metadata.version": { $lte: message.version },
+        });
+      }
+    )
     .with(
       { type: "AgreementAdded" },
       { type: "DraftAgreementUpdated" },
@@ -38,6 +42,7 @@ export async function handleMessageV2(
       { type: "AgreementArchivedByUpgrade" },
       { type: "AgreementSetDraftByPlatform" },
       { type: "AgreementSetMissingCertifiedAttributesByPlatform" },
+      { type: "AgreementArchivedByRevokedDelegation" },
       async (message) =>
         await agreements.updateOne(
           {

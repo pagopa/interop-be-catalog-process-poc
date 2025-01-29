@@ -1,0 +1,23 @@
+meta {
+  name: getConsumerEservices
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host-bff}}/consumer/delegations/eservices
+  body: none
+  auth: none
+}
+
+params:query {
+  offset: 0
+  limit: 10
+  delegatorId: {{tenantId}}
+  ~q: 
+}
+
+headers {
+  Authorization: {{JWT}}
+  x-correlation-id: {{correlation-id}}
+}

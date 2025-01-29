@@ -61,6 +61,9 @@ export function toTenantAttribute(
     revocationTimestamp: att.declared.revocationTimestamp
       ? new Date(att.declared.revocationTimestamp)
       : undefined,
+    delegationId: att.declared.delegationId
+      ? unsafeBrandId<DelegationId>(att.declared.delegationId)
+      : undefined,
   };
 
   return [certified, verified, declared].filter(
@@ -119,6 +122,7 @@ const toBffApiDeclaredTenantAttribute = (
         description: registryAttribute.description,
         assignmentTimestamp: tenantAttribute.assignmentTimestamp,
         revocationTimestamp: tenantAttribute.revocationTimestamp,
+        delegationId: tenantAttribute.delegationId,
       }
     : undefined;
 };

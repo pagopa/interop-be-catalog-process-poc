@@ -58,6 +58,7 @@ import {
   updateEServiceNameErrorMapper,
   approveDelegatedEServiceDescriptorErrorMapper,
   rejectDelegatedEServiceDescriptorErrorMapper,
+  updateEServiceFlagsErrorMapper,
 } from "../utilities/errorMappers.js";
 
 const readModelService = readModelServiceBuilder(
@@ -115,6 +116,7 @@ const eservicesRouter = (
             agreementStates,
             mode,
             delegated,
+            isDelegable,
             offset,
             limit,
           } = req.query;
@@ -131,6 +133,7 @@ const eservicesRouter = (
               ),
               name,
               mode: mode ? apiEServiceModeToEServiceMode(mode) : undefined,
+              isDelegable,
               delegated,
             },
             offset,
@@ -745,6 +748,36 @@ const eservicesRouter = (
       }
     )
     .post(
+      "/eservices/:eServiceId/delegationFlags/update",
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+
+        try {
+          const updatedEService =
+            await catalogService.updateEServiceDelegationFlags(
+              unsafeBrandId(req.params.eServiceId),
+              req.body,
+              ctx
+            );
+
+          return res
+            .status(200)
+            .send(
+              catalogApi.EService.parse(eServiceToApiEService(updatedEService))
+            );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            updateEServiceFlagsErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .post(
       "/eservices/:eServiceId/name/update",
       authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
       async (req, res) => {
@@ -755,6 +788,7 @@ const eservicesRouter = (
             req.body.name,
             ctx
           );
+
           return res
             .status(200)
             .send(
