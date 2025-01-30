@@ -5,7 +5,7 @@ import path from "path";
 import { Readable } from "stream";
 import crypto from "crypto";
 import AdmZip from "adm-zip";
-import { catalogApi } from "pagopa-interop-api-clients";
+import { catalogApi, eserviceTemplateApi } from "pagopa-interop-api-clients";
 import { FileManager, Logger } from "pagopa-interop-commons";
 import { DescriptorId, genericError } from "pagopa-interop-models";
 import { missingInterface } from "../model/errors.js";
@@ -221,4 +221,43 @@ export async function calculateChecksum(stream: Readable): Promise<string> {
       reject(err);
     });
   });
+}
+
+export async function cloneEServiceDocument({
+  doc,
+  documentsContainer,
+  documentsPath,
+  fileManager,
+  logger,
+}: {
+  doc: eserviceTemplateApi.EServiceDoc | catalogApi.EServiceDoc;
+  documentsContainer: string;
+  documentsPath: string;
+  fileManager: FileManager;
+  logger: Logger;
+}): Promise<
+  | eserviceTemplateApi.CreateEServiceTemplateVersionDocumentSeed
+  | catalogApi.CreateEServiceDescriptorDocumentSeed
+> {
+  const clonedDocumentId = crypto.randomUUID();
+
+  const clonedPath = await fileManager.copy(
+    documentsContainer,
+    doc.path,
+    documentsPath,
+    clonedDocumentId,
+    doc.name,
+    logger
+  );
+
+  return {
+    documentId: clonedDocumentId,
+    kind: "DOCUMENT",
+    contentType: doc.contentType,
+    prettyName: doc.prettyName,
+    fileName: doc.name,
+    filePath: clonedPath,
+    checksum: doc.checksum,
+    serverUrls: [],
+  };
 }

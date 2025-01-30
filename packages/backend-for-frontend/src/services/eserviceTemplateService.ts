@@ -4,13 +4,16 @@ import {
   EServiceTemplateId,
   EServiceTemplateVersionId,
 } from "pagopa-interop-models";
-import { bffApi } from "pagopa-interop-api-clients";
+import { bffApi, eserviceTemplateApi } from "pagopa-interop-api-clients";
 import { EServiceTemplateProcessClient } from "../clients/clientsProvider.js";
 import { BffAppContext } from "../utilities/context.js";
+import { config } from "../config/config.js";
+import { cloneEServiceDocument } from "../utilities/fileUtils.js";
+import { noVersionInEServiceTemplate } from "../model/errors.js";
 
 export function eserviceTemplateServiceBuilder(
   eserviceTemplateClient: EServiceTemplateProcessClient,
-  _fileManager: FileManager
+  fileManager: FileManager
 ) {
   return {
     suspendEServiceTemplateVersion: async (
@@ -127,6 +130,70 @@ export function eserviceTemplateServiceBuilder(
           eServiceTemplateVersionId,
         },
       });
+    },
+    createEServiceTemplateVersion: async (
+      eServiceTemplateId: EServiceTemplateId,
+      { headers, logger }: WithLogger<BffAppContext>
+    ): Promise<bffApi.CreatedResource> => {
+      logger.info(
+        `Creating new version for EService template ${eServiceTemplateId}`
+      );
+      const eServiceTemplate =
+        await eserviceTemplateClient.getEServiceTemplateById({
+          params: { eServiceTemplateId },
+          headers,
+        });
+
+      if (eServiceTemplate.versions.length === 0) {
+        throw noVersionInEServiceTemplate(eServiceTemplateId);
+      }
+
+      const retrieveLatestEServiceTemplateVersion = (
+        versions: eserviceTemplateApi.EServiceTemplateVersion[]
+      ): eserviceTemplateApi.EServiceTemplateVersion =>
+        versions.reduce(
+          (latestVersions, curr) =>
+            parseInt(curr.version, 10) > parseInt(latestVersions.version, 10)
+              ? curr
+              : latestVersions,
+          versions[0]
+        );
+
+      const previousVersion = retrieveLatestEServiceTemplateVersion(
+        eServiceTemplate.versions
+      );
+
+      const clonedDocumentsCalls = previousVersion.docs.map((doc) =>
+        cloneEServiceDocument({
+          doc,
+          documentsContainer: config.eserviceDocumentsContainer,
+          documentsPath: config.eserviceDocumentsPath,
+          fileManager,
+          logger,
+        })
+      );
+
+      const clonedDocuments = await Promise.all(clonedDocumentsCalls);
+
+      const { id } = await eserviceTemplateClient.createEServiceTemplateVersion(
+        {
+          description: previousVersion.description,
+          voucherLifespan: previousVersion.voucherLifespan,
+          dailyCallsPerConsumer: previousVersion.dailyCallsPerConsumer,
+          dailyCallsTotal: previousVersion.dailyCallsTotal,
+          agreementApprovalPolicy: previousVersion.agreementApprovalPolicy,
+          attributes: previousVersion.attributes,
+          docs: clonedDocuments,
+        },
+        {
+          headers,
+          params: {
+            eServiceTemplateId,
+          },
+        }
+      );
+
+      return { id };
     },
   };
 }

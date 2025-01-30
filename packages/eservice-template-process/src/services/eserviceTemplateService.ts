@@ -9,6 +9,7 @@ import {
 } from "pagopa-interop-commons";
 import {
   AttributeId,
+  Document,
   EServiceAttribute,
   EserviceAttributes,
   EServiceTemplate,
@@ -18,6 +19,7 @@ import {
   EServiceTemplateVersionId,
   EServiceTemplateVersionState,
   eserviceTemplateVersionState,
+  generateId,
   unsafeBrandId,
   WithMetadata,
 } from "pagopa-interop-models";
@@ -43,9 +45,16 @@ import {
   toCreateEventEServiceTemplateNameUpdated,
   toCreateEventEServiceTemplateVersionQuotasUpdated,
   toCreateEventEServiceTemplateVersionAttributesUpdated,
+  toCreateEventEServiceTemplateVersionDocumentAdded,
+  toCreateEventEServiceTemplateVersionAdded,
 } from "../model/domain/toEvent.js";
+import { nextEServiceTemplateVersion } from "../utilities/versionGenerator.js";
+import { apiAgreementApprovalPolicyToAgreementApprovalPolicy } from "../model/domain/apiConverter.js";
 import { ReadModelService } from "./readModelService.js";
-import { assertRequesterEServiceTemplateCreator } from "./validators.js";
+import {
+  assertNoDraftEServiceTemplateVersions,
+  assertRequesterEServiceTemplateCreator,
+} from "./validators.js";
 
 const retrieveEServiceTemplate = async (
   eserviceTemplateId: EServiceTemplateId,
@@ -623,6 +632,132 @@ export function eserviceTemplateServiceBuilder(
       );
 
       return updatedEServiceTemplate;
+    },
+
+    async createEServiceTemplateVersion(
+      eserviceTemplateId: EServiceTemplateId,
+      seed: eserviceTemplateApi.EServiceTemplateVersionSeed,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplateVersion> {
+      logger.info(
+        `Creating new eservice template version for EService template ${eserviceTemplateId}`
+      );
+
+      if (
+        seed.dailyCallsPerConsumer &&
+        seed.dailyCallsTotal &&
+        seed.dailyCallsPerConsumer > seed.dailyCallsTotal
+      ) {
+        throw inconsistentDailyCalls();
+      }
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      assertNoDraftEServiceTemplateVersions(eserviceTemplate.data);
+
+      const newVersion = nextEServiceTemplateVersion(eserviceTemplate.data);
+
+      const parsedAttributes = await parseAndCheckAttributes(
+        seed.attributes,
+        readModelService
+      );
+
+      const newEServiceTemplateVersionId: EServiceTemplateVersionId =
+        generateId();
+
+      const newEServiceTemplateVersion: EServiceTemplateVersion = {
+        id: newEServiceTemplateVersionId,
+        description: seed.description,
+        version: newVersion,
+        interface: undefined,
+        docs: [],
+        state: eserviceTemplateVersionState.draft,
+        voucherLifespan: seed.voucherLifespan,
+        dailyCallsPerConsumer: seed.dailyCallsPerConsumer,
+        dailyCallsTotal: seed.dailyCallsTotal,
+        agreementApprovalPolicy:
+          seed.agreementApprovalPolicy &&
+          apiAgreementApprovalPolicyToAgreementApprovalPolicy(
+            seed.agreementApprovalPolicy
+          ),
+        publishedAt: undefined,
+        suspendedAt: undefined,
+        deprecatedAt: undefined,
+        createdAt: new Date(),
+        attributes: parsedAttributes,
+      };
+
+      const newEServiceTemplate: EServiceTemplate = {
+        ...eserviceTemplate.data,
+        versions: [
+          ...eserviceTemplate.data.versions,
+          newEServiceTemplateVersion,
+        ],
+      };
+
+      const eserviceTemplateVersionCreationEvent =
+        toCreateEventEServiceTemplateVersionAdded(
+          eserviceTemplateId,
+          eserviceTemplate.metadata.version,
+          newEServiceTemplateVersionId,
+          newEServiceTemplate,
+          correlationId
+        );
+
+      const eserviceTemplateVersion = eserviceTemplate.metadata.version;
+
+      const { events, eserviceTemplateVersionWithDocs } = seed.docs.reduce(
+        (acc, document, index) => {
+          const newDocument: Document = {
+            id: unsafeBrandId(document.documentId),
+            name: document.fileName,
+            contentType: document.contentType,
+            prettyName: document.prettyName,
+            path: document.filePath,
+            checksum: document.checksum,
+            uploadDate: new Date(),
+          };
+
+          const eserviceTemplateVersionWithDocs: EServiceTemplateVersion = {
+            ...acc.eserviceTemplateVersionWithDocs,
+            docs: [...acc.eserviceTemplateVersionWithDocs.docs, newDocument],
+          };
+          const updatedEServiceTemplate = replaceEServiceTemplateVersion(
+            newEServiceTemplate,
+            eserviceTemplateVersionWithDocs
+          );
+          const version = eserviceTemplateVersion + index + 1;
+          const documentEvent =
+            toCreateEventEServiceTemplateVersionDocumentAdded(
+              eserviceTemplateId,
+              version,
+              newEServiceTemplateVersionId,
+              unsafeBrandId(document.documentId),
+              updatedEServiceTemplate,
+              correlationId
+            );
+          return {
+            events: [...acc.events, documentEvent],
+            eserviceTemplateVersionWithDocs,
+          };
+        },
+        {
+          events: [eserviceTemplateVersionCreationEvent],
+          eserviceTemplateVersionWithDocs: newEServiceTemplateVersion,
+        }
+      );
+
+      await repository.createEvents(events);
+
+      return eserviceTemplateVersionWithDocs;
     },
   };
 }

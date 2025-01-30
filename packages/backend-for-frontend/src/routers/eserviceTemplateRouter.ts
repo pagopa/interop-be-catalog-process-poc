@@ -12,6 +12,7 @@ import { PagoPAInteropBeClients } from "../clients/clientsProvider.js";
 import { eserviceTemplateServiceBuilder } from "../services/eserviceTemplateService.js";
 import { fromBffAppContext } from "../utilities/context.js";
 import { emptyErrorMapper, makeApiProblem } from "../model/errors.js";
+import { createEServiceTemplateVersionErrorMapper } from "../utilities/errorMappers.js";
 
 const eserviceTemplateRouter = (
   ctx: ZodiosContext,
@@ -200,6 +201,30 @@ const eserviceTemplateRouter = (
             ctx.logger,
             ctx.correlationId,
             `Error updating eservice template ${eServiceTemplateId} version ${eServiceTemplateVersionId} attributes`
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
+    )
+    .post(
+      "/eservices/templates/:eServiceTemplateId/versions",
+      async (req, res) => {
+        const ctx = fromBffAppContext(req.ctx, req.headers);
+        const { eServiceTemplateId } = req.params;
+
+        try {
+          await eserviceTemplateService.createEServiceTemplateVersion(
+            unsafeBrandId(eServiceTemplateId),
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            createEServiceTemplateVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId,
+            `Error creating new eservice template ${eServiceTemplateId} version`
           );
           return res.status(errorRes.status).send(errorRes);
         }

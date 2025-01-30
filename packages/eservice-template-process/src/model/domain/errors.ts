@@ -18,6 +18,8 @@ export const errorCodes = {
   versionAttributeGroupSupersetMissingInAttributesSeed: "0008",
   unchangedAttributes: "0009",
   attributeNotFound: "0010",
+  invalidEServiceTemplateVersion: "0011",
+  draftEServiceTemplateVersionAlreadyExists: "0012",
 };
 
 export type ErrorCodes = keyof typeof errorCodes;
@@ -124,5 +126,25 @@ export function attributeNotFound(
     detail: `Attribute ${attributeId} not found`,
     code: "attributeNotFound",
     title: "Attribute not found",
+  });
+}
+
+export function invalidEServiceTemplateVersion(
+  details: string
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: details,
+    code: "invalidEServiceTemplateVersion",
+    title: "Version is not a valid e-service template version",
+  });
+}
+
+export function draftEServiceTemplateVersionAlreadyExists(
+  eserviceTemplateId: EServiceTemplateId
+): ApiError<ErrorCodes> {
+  return new ApiError({
+    detail: `Draft version for EService Template ${eserviceTemplateId} already exists`,
+    code: "draftEServiceTemplateVersionAlreadyExists",
+    title: "Draft version already exists",
   });
 }

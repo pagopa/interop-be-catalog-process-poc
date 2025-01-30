@@ -13983,6 +13983,83 @@ paths:
               schema:
                 type: integer
               description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+  /eservices/templates/{eServiceTemplateId}/versions:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - eserviceTemplates
+      summary: Adds a mew version to the specified e-service template
+      operationId: createEServiceTemplateVersion
+      parameters:
+        - name: eServiceTemplateId
+          in: path
+          description: The E-Service template id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: EService template version created.
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedResource"
+        "400":
+          description: Invalid input
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Not found
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  
   "/status":
     get:
       security: []

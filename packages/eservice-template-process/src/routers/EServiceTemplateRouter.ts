@@ -25,8 +25,12 @@ import {
   updateEServiceTemplateEServiceDescriptionErrorMapper,
   updateEServiceTemplateVersionQuotasErrorMapper,
   updateEServiceTemplateVersionAttributesErrorMapper,
+  createEServiceTemplateVersionErrorMapper,
 } from "../utilities/errorMappers.js";
-import { eserviceTemplateToApiEServiceTemplate } from "../model/domain/apiConverter.js";
+import {
+  eserviceTemplateToApiEServiceTemplate,
+  eserviceTemplateVersionToApiEServiceTemplateVersion,
+} from "../model/domain/apiConverter.js";
 
 const readModelService = readModelServiceBuilder(
   ReadModelRepository.init(config)
@@ -77,8 +81,36 @@ const eserviceTemplatesRouter = (
     )
     .post(
       "/eservices/templates/:eServiceTemplateId/versions",
-      authorizationMiddleware([ADMIN_ROLE]),
-      async (_req, res) => res.status(504)
+      authorizationMiddleware([ADMIN_ROLE, API_ROLE]),
+      async (req, res) => {
+        const ctx = fromAppContext(req.ctx);
+
+        try {
+          const eserviceTemplateVersion =
+            await eserviceTemplateService.createEServiceTemplateVersion(
+              unsafeBrandId(req.params.eServiceTemplateId),
+              req.body,
+              ctx
+            );
+          return res
+            .status(200)
+            .send(
+              eserviceTemplateApi.EServiceTemplateVersion.parse(
+                eserviceTemplateVersionToApiEServiceTemplateVersion(
+                  eserviceTemplateVersion
+                )
+              )
+            );
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            createEServiceTemplateVersionErrorMapper,
+            ctx.logger,
+            ctx.correlationId
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     )
     .delete(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId",

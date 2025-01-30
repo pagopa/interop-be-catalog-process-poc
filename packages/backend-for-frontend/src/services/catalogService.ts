@@ -41,7 +41,10 @@ import {
   verifyAndCreateEServiceDocument,
   verifyAndCreateImportedDoc,
 } from "../utilities/eserviceDocumentUtils.js";
-import { createDescriptorDocumentZipFile } from "../utilities/fileUtils.js";
+import {
+  cloneEServiceDocument,
+  createDescriptorDocumentZipFile,
+} from "../utilities/fileUtils.js";
 import {
   toBffCatalogApiEService,
   toBffCatalogApiDescriptorAttributes,
@@ -800,33 +803,14 @@ export function catalogServiceBuilder(
 
       const previousDescriptor = retrieveLatestDescriptor(eService.descriptors);
 
-      const cloneDocument = async (
-        clonedDocumentId: string,
-        doc: catalogApi.EServiceDoc
-      ): Promise<catalogApi.CreateEServiceDescriptorDocumentSeed> => {
-        const clonedPath = await fileManager.copy(
-          config.eserviceDocumentsContainer,
-          doc.path,
-          config.eserviceDocumentsPath,
-          clonedDocumentId,
-          doc.name,
-          logger
-        );
-
-        return {
-          documentId: clonedDocumentId,
-          kind: "DOCUMENT",
-          contentType: doc.contentType,
-          prettyName: doc.prettyName,
-          fileName: doc.name,
-          filePath: clonedPath,
-          checksum: doc.checksum,
-          serverUrls: [],
-        };
-      };
-
       const clonedDocumentsCalls = previousDescriptor.docs.map((doc) =>
-        cloneDocument(randomUUID(), doc)
+        cloneEServiceDocument({
+          doc,
+          documentsContainer: config.eserviceDocumentsContainer,
+          documentsPath: config.eserviceDocumentsPath,
+          fileManager,
+          logger,
+        })
       );
 
       const clonedDocuments = await Promise.all(clonedDocumentsCalls);

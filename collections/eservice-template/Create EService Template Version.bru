@@ -1,0 +1,43 @@
+meta {
+  name: Create EService Template Version
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host-catalog}}/eservices/templates/:eserviceTemplateId/versions
+  body: json
+  auth: none
+}
+
+params:path {
+  eserviceTemplateId: {{eserviceTemplateId}}
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}
+
+body:json {
+  {
+      "description": "test descrizione template",
+      "voucherLifespan": 86400,
+      "dailyCallsPerConsumer": 100,
+      "dailyCallsTotal": 100,
+      "agreementApprovalPolicy": "AUTOMATIC",
+      "attributes": {
+          "certified": [
+          ],
+          "declared": [
+          ],
+          "verified": [
+          ]
+      },
+      "docs": []
+  }
+}
+
+vars:post-response {
+  eserviceTemplateVersionId: res.body.id
+}
