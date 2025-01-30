@@ -43,6 +43,7 @@ import {
 import { getAllBulkAttributes } from "./attributeService.js";
 import { enhanceTenantAttributes } from "./tenantService.js";
 import { isAgreementUpgradable } from "./validators.js";
+import { getTenantById } from "./delegationService.js";
 
 export async function getAllAgreements(
   agreementProcessClient: AgreementProcessClient,
@@ -654,6 +655,15 @@ async function enrichAgreementListEntry(
 
   const currentDescriptor = getCurrentDescriptor(eservice, agreement);
 
+  const delegate =
+    delegation !== undefined
+      ? await getTenantById(
+          clients.tenantProcessClient,
+          ctx.headers,
+          delegation.delegateId
+        )
+      : undefined;
+
   return {
     id: agreement.id,
     state: agreement.state,
@@ -668,7 +678,24 @@ async function enrichAgreementListEntry(
     suspendedByConsumer: agreement.suspendedByConsumer,
     suspendedByProducer: agreement.suspendedByProducer,
     suspendedByPlatform: agreement.suspendedByPlatform,
-    isDelegated: !!delegation,
+    delegation:
+      delegation !== undefined && delegate !== undefined
+        ? {
+            id: delegation.id,
+            delegate: {
+              id: delegation.delegateId,
+              name: delegate.name,
+              kind: delegate.kind,
+              contactMail: getLatestTenantContactEmail(delegate),
+            },
+            delegator: {
+              id: delegation.delegatorId,
+              name: consumer.name,
+              kind: consumer.kind,
+              contactMail: getLatestTenantContactEmail(consumer),
+            },
+          }
+        : undefined,
   };
 }
 

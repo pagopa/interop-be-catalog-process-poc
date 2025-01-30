@@ -15676,8 +15676,8 @@ components:
           type: boolean
         descriptor:
           $ref: "#/components/schemas/CompactDescriptor"
-        isDelegated:
-          type: boolean
+        delegation:
+          $ref: "#/components/schemas/DelegationWithCompactTenants"
     CompactAttribute:
       type: object
       additionalProperties: false
@@ -16009,6 +16009,8 @@ components:
           $ref: "#/components/schemas/CompactProducerDescriptor"
         draftDescriptor:
           $ref: "#/components/schemas/CompactProducerDescriptor"
+        delegation:
+          $ref: "#/components/schemas/DelegationWithCompactTenants"
     ProducerEServices:
       type: object
       additionalProperties: false
