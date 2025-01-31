@@ -1,0 +1,29 @@
+meta {
+  name: Update EService Template Version Quotas
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host-catalog}}/eservices/templates/:eserviceTemplateId/versions/:eserviceTemplateVersionId/quotas/update
+  body: json
+  auth: none
+}
+
+params:path {
+  eserviceTemplateId: {{eserviceTemplateId}}
+  eserviceTemplateVersionId: {{eserviceTemplateVersionId}}
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}
+
+body:json {
+  {
+      "voucherLifespan": 86400,
+      "dailyCallsPerConsumer": 100,
+      "dailyCallsTotal": 100
+  }
+}
