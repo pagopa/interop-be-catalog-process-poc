@@ -26,6 +26,7 @@ import {
   toCreateEventEServiceTemplateVersionSuspended,
   toCreateEventEServiceTemplateNameUpdated,
   toCreateEventEServiceTemplateAudienceDescriptionUpdated,
+  toCreateEventEServiceTemplateEServiceDescriptionUpdated,
 } from "../model/domain/toEvent.js";
 import {
   eServiceTemplateDuplicate,
