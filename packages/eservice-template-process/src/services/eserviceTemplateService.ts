@@ -25,6 +25,7 @@ import {
   toCreateEventEServiceTemplateVersionActivated,
   toCreateEventEServiceTemplateVersionSuspended,
   toCreateEventEServiceTemplateNameUpdated,
+  toCreateEventEServiceTemplateAudienceDescriptionUpdated,
 } from "../model/domain/toEvent.js";
 import {
   eServiceTemplateDuplicate,
@@ -37,11 +38,6 @@ import {
 } from "../model/domain/errors.js";
 import { config } from "../config/config.js";
 import {
-  toCreateEventEServiceTemplateAudienceDescriptionUpdated,
-  toCreateEventEServiceTemplateEServiceDescriptionUpdated,
-  toCreateEventEServiceTemplateVersionActivated,
-  toCreateEventEServiceTemplateVersionSuspended,
-  toCreateEventEServiceTemplateNameUpdated,
   apiAgreementApprovalPolicyToAgreementApprovalPolicy,
   apiEServiceModeToEServiceMode,
   apiTechnologyToTechnology,
