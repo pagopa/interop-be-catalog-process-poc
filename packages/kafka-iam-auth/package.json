@@ -18,8 +18,8 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@aws-sdk/client-sso-oidc": "3.693.0",
-    "@aws-sdk/client-sts": "3.693.0",
+    "@aws-sdk/client-sso-oidc": "3.738.0",
+    "@aws-sdk/client-sts": "3.738.0",
     "aws-msk-iam-sasl-signer-js": "1.0.0",
     "kafkajs": "2.2.4",
     "pagopa-interop-commons": "workspace:*",

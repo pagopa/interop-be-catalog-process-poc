@@ -30,7 +30,7 @@
     "vitest": "1.6.0"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.693.0",
+    "@aws-sdk/client-s3": "3.738.0",
     "nodemailer": "6.9.9",
     "axios": "1.7.4",
     "dotenv-flow": "4.1.0",
