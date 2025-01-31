@@ -30,8 +30,8 @@
     "vitest": "1.6.0"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "3.693.0",
-    "@aws-sdk/util-dynamodb": "3.693.0",
+    "@aws-sdk/client-dynamodb": "3.738.0",
+    "@aws-sdk/util-dynamodb": "3.738.0",
     "@protobuf-ts/runtime": "2.9.4",
     "connection-string": "4.4.0",
     "dotenv-flow": "4.1.0",
