@@ -1,0 +1,31 @@
+meta {
+  name: Update EService Template
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host-template}}/eservices/templates/:eserviceTemplateId
+  body: json
+  auth: none
+}
+
+params:path {
+  eserviceTemplateId: {{eserviceTemplateId}}
+}
+
+headers {
+  x-correlation-id: {{correlation-id}}
+  Authorization: {{JWT}}
+}
+
+body:json {
+  {
+    "name": "Test name",
+    "audienceDescription": "This is the description of the audience",
+    "eserviceDescription": "This is the description of the EService",
+    "technology": "REST",
+    "mode": "DELIVER",
+    "isSignalHubEnabled": false
+  }
+}

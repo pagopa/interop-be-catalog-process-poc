@@ -1071,7 +1071,7 @@ components:
       additionalProperties: false
       required:
         - name
-        - audienceDecription
+        - audienceDescription
         - eserviceDescription
         - technology
         - mode
@@ -1081,7 +1081,11 @@ components:
           type: string
           minLength: 5
           maxLength: 60
-        description:
+        audienceDescription:
+          type: string
+          minLength: 10
+          maxLength: 250
+        eserviceDescription:
           type: string
           minLength: 10
           maxLength: 250
@@ -1131,12 +1135,6 @@ components:
           type: string
           minLength: 10
           maxLength: 250
-        audience:
-          type: array
-          items:
-            type: string
-            minLength: 0
-            maxLength: 250
         voucherLifespan:
           type: integer
           format: int32
@@ -1638,7 +1636,7 @@ components:
       description: EService Document Kind
       enum:
         - INTERFACE
-        - DOCUMENT    
+        - DOCUMENT
     Problem:
       properties:
         type:

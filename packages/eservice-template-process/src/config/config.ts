@@ -17,11 +17,13 @@ const EServiceTemplateProcessConfig = CommonHTTPServiceConfig.and(
     z
       .object({
         PRODUCER_ALLOWED_ORIGINS: z.string(),
+        ESERVICE_TEMPLATE_DOCUMENTS_PATH: z.string(),
       })
       .transform((c) => ({
         producerAllowedOrigins: c.PRODUCER_ALLOWED_ORIGINS.split(",")
           .map((origin) => origin.trim())
           .filter(Boolean),
+        eserviceTemplateDocumentsPath: c.ESERVICE_TEMPLATE_DOCUMENTS_PATH,
       }))
   );
 

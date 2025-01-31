@@ -40,6 +40,7 @@
     "start:token-details-persister": "turbo start --filter pagopa-interop-token-details-persister",
     "start:token-generation-readmodel-checker": "turbo start --filter pagopa-interop-token-generation-readmodel-checker",
     "start:ipa-certified-attributes-importer": "turbo start --filter pagopa-interop-ipa-certified-attributes-importer",
+    "start:eservice-template": "turbo start --filter pagopa-interop-eservice-template-process",
     "test": "turbo test",
     "build": "turbo build",
     "check": "turbo check",
