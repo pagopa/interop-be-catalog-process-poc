@@ -12,6 +12,7 @@ import { PagoPAInteropBeClients } from "../clients/clientsProvider.js";
 import { eserviceTemplateServiceBuilder } from "../services/eserviceTemplateService.js";
 import { fromBffAppContext } from "../utilities/context.js";
 import { emptyErrorMapper, makeApiProblem } from "../model/errors.js";
+import { toBffCreatedEServiceTemplateVersion } from "../api/eserviceTemplateApiConverter.js";
 
 const eserviceTemplateRouter = (
   ctx: ZodiosContext,
@@ -28,6 +29,49 @@ const eserviceTemplateRouter = (
   );
 
   eserviceTemplateRouter
+    .post("/eservices/templates", async (req, res) => {
+      const ctx = fromBffAppContext(req.ctx, req.headers);
+
+      try {
+        const eserviceTemplate =
+          await eserviceTemplateService.createEServiceTemplate(req.body, ctx);
+        return res
+          .status(204)
+          .send(
+            bffApi.CreatedEServiceTemplateVersion.parse(
+              toBffCreatedEServiceTemplateVersion(eserviceTemplate)
+            )
+          );
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          emptyErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    })
+    .post("/eservices/templates/:eServiceTemplateId", async (req, res) => {
+      const ctx = fromBffAppContext(req.ctx, req.headers);
+
+      try {
+        await eserviceTemplateService.updateEServiceTemplate(
+          unsafeBrandId(req.params.eServiceTemplateId),
+          req.body,
+          ctx
+        );
+        return res.status(204).send();
+      } catch (error) {
+        const errorRes = makeApiProblem(
+          error,
+          emptyErrorMapper,
+          ctx.logger,
+          ctx.correlationId
+        );
+        return res.status(errorRes.status).send(errorRes);
+      }
+    })
     .post(
       "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/suspend",
       async (req, res) => {

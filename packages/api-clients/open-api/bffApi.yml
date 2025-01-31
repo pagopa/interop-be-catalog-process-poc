@@ -4326,7 +4326,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Problem"  
+                $ref: "#/components/schemas/Problem"
   /export/eservices/{eserviceId}/descriptors/{descriptorId}:
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -13298,6 +13298,161 @@ paths:
               schema:
                 type: integer
               description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+  /eservices/templates:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - eserviceTemplates
+      summary: Create a new e-service template
+      operationId: createEServiceTemplate
+      requestBody:
+        description: An E-Service template seed
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EServiceTemplateSeed"
+        required: true
+      responses:
+        "200":
+          description: EService template created
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedEServiceTemplateVersion"
+        "400":
+          description: Invalid input
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Name Conflict
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /eservices/templates/{eServiceTemplateId}:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationIdHeader"
+    post:
+      tags:
+        - eserviceTemplates
+      summary: Updates e-service template general information
+      operationId: updateEServiceTemplate
+      parameters:
+        - name: eServiceTemplateId
+          in: path
+          description: The E-Service id to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: An E-Service template update seed containing the possible updatable fields
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEServiceTemplateSeed"
+      responses:
+        "200":
+          description: E-Service Template updated
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EServiceTemplate"
+        "404":
+          description: E-Service template not found
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad request
+          headers:
+            "X-Rate-Limit-Limit":
+              schema:
+                type: integer
+              description: Max allowed requests within time interval
+            "X-Rate-Limit-Remaining":
+              schema:
+                type: integer
+              description: Remaining requests within time interval
+            "X-Rate-Limit-Interval":
+              schema:
+                type: integer
+              description: Time interval in milliseconds. Allowed requests will be constantly replenished during the interval. At the end of the interval the max allowed requests will be available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /eservices/templates/{eServiceTemplateId}/versions/{eServiceTemplateVersionId}/suspend:
     parameters:
       - $ref: "#/components/parameters/CorrelationIdHeader"
@@ -14450,7 +14605,7 @@ components:
       type: object
       additionalProperties: false
       required:
-        - id        
+        - id
       properties:
         id:
           type: string
@@ -14494,7 +14649,7 @@ components:
           format: date-time
       required:
         - rejectionReason
-        - rejectedAt 
+        - rejectedAt
     AgreementApprovalPolicy:
       type: string
       description: |
@@ -16165,7 +16320,7 @@ components:
         extensionDate:
           type: string
           format: date-time
-        delegationId: 
+        delegationId:
           type: string
           format: uuid
       required:
@@ -16190,7 +16345,7 @@ components:
         revocationDate:
           type: string
           format: date-time
-        delegationId: 
+        delegationId:
           type: string
           format: uuid
 
@@ -16375,7 +16530,7 @@ components:
           format: uuid
         producerName:
           type: string
-        descriptors: 
+        descriptors:
           type: array
           items:
             $ref: "#/components/schemas/CompactDescriptor"
@@ -16490,6 +16645,207 @@ components:
           type: string
       required:
         - description
+    CreatedEServiceTemplateVersion:
+      type: object
+      additionalProperties: false
+      description: contains the id of the created resource with the versionId
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionId:
+          type: string
+          format: uuid
+      required:
+        - id
+        - versionId
+    UpdateEServiceTemplateSeed:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - audienceDescription
+        - eserviceDescription
+        - technology
+        - mode
+      properties:
+        name:
+          type: string
+          minLength: 5
+          maxLength: 60
+        audienceDescription:
+          type: string
+          minLength: 10
+          maxLength: 250
+        eserviceDescription:
+          type: string
+          minLength: 10
+          maxLength: 250
+        technology:
+          $ref: "#/components/schemas/EServiceTechnology"
+        mode:
+          $ref: "#/components/schemas/EServiceMode"
+        isSignalHubEnabled:
+          type: boolean
+    EServiceTemplate:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - creatorId
+        - name
+        - audienceDescription
+        - eserviceDescription
+        - technology
+        - versions
+        - riskAnalysis
+        - mode
+      properties:
+        id:
+          type: string
+          format: uuid
+        creatorId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        audienceDescription:
+          type: string
+        eserviceDescription:
+          type: string
+        technology:
+          $ref: "#/components/schemas/EServiceTechnology"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EServiceTemplateVersion"
+        riskAnalysis:
+          type: array
+          items:
+            $ref: "#/components/schemas/EServiceRiskAnalysis"
+        mode:
+          $ref: "#/components/schemas/EServiceMode"
+        isSignalHubEnabled:
+          type: boolean
+    EServiceTemplateVersion:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - docs
+        - state
+        - creationDate
+        - voucherLifespan
+        - attributes
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        description:
+          type: string
+        voucherLifespan:
+          type: integer
+          format: int32
+        dailyCallsPerConsumer:
+          description: "maximum number of daily calls that this descriptor can afford per consumer."
+          type: integer
+          format: int32
+          minimum: 1
+        dailyCallsTotal:
+          description: "total daily calls available for this e-service."
+          type: integer
+          format: int32
+          minimum: 1
+        interface:
+          $ref: "#/components/schemas/EServiceDoc"
+        docs:
+          type: array
+          items:
+            $ref: "#/components/schemas/EServiceDoc"
+        state:
+          $ref: "#/components/schemas/EServiceTemplateVersionState"
+        agreementApprovalPolicy:
+          $ref: "#/components/schemas/AgreementApprovalPolicy"
+        publishedAt:
+          type: string
+          format: date-time
+        suspendedAt:
+          type: string
+          format: date-time
+        deprecatedAt:
+          type: string
+          format: date-time
+        attributes:
+          $ref: "#/components/schemas/Attributes"
+    EServiceTemplateVersionState:
+      type: string
+      description: EService Descriptor State
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - DEPRECATED
+        - SUSPENDED
+    EServiceTemplateSeed:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - audienceDescription
+        - eserviceDescription
+        - technology
+        - mode
+        - version
+      properties:
+        name:
+          type: string
+          minLength: 5
+          maxLength: 60
+        audienceDescription:
+          type: string
+          minLength: 10
+          maxLength: 250
+        eserviceDescription:
+          type: string
+          minLength: 10
+          maxLength: 250
+        technology:
+          $ref: "#/components/schemas/EServiceTechnology"
+        mode:
+          $ref: "#/components/schemas/EServiceMode"
+        version:
+          $ref: "#/components/schemas/VersionSeedForEServiceTemplateCreation"
+        isSignalHubEnabled:
+          type: boolean
+    VersionSeedForEServiceTemplateCreation:
+      required:
+        - voucherLifespan
+      type: object
+      additionalProperties: false
+      properties:
+        description:
+          type: string
+          minLength: 10
+          maxLength: 250
+        voucherLifespan:
+          type: integer
+          format: int32
+          minimum: 60
+          maximum: 86400
+        dailyCallsPerConsumer:
+          description: "maximum number of daily calls that this descriptor can afford."
+          type: integer
+          format: int32
+          minimum: 1
+        dailyCallsTotal:
+          description: "total daily calls available for this e-service."
+          type: integer
+          format: int32
+          minimum: 1
+        agreementApprovalPolicy:
+          $ref: "#/components/schemas/AgreementApprovalPolicy"
     Problem:
       type: object
       additionalProperties: false
