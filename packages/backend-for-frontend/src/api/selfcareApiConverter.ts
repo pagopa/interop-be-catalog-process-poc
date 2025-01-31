@@ -28,13 +28,17 @@ export const toApiSelfcareInstitution = (
         institutionDescription: P.nonNullable,
         products: P.nonNullable,
       },
-      (institution) => ({
-        id: institution.institutionId,
-        description: institution.institutionDescription,
-        userProductRoles: institution.products.flatMap((product) =>
-          product.productRole ? [product.productRole] : []
-        ),
-      })
+      (institution) => {
+        const pdndRole = institution.products.find((p) =>
+          p.productId?.includes("prod-interop")
+        )?.productRole;
+
+        return {
+          id: institution.institutionId,
+          description: institution.institutionDescription,
+          userProductRoles: pdndRole ? [pdndRole] : [],
+        };
+      }
     )
     .with({ institutionId: P.nullish }, () => {
       throw selfcareEntityNotFilled("UserInstitutionResource", "institutionId");
