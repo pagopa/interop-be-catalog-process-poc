@@ -16,7 +16,7 @@ export const toCreateEventEServiceTemplateAdded = (
   correlationId: CorrelationId
 ): CreateEvent<EServiceTemplateEvent> => ({
   streamId: eserviceTemplate.id,
-  version: 0,
+  version: undefined,
   event: {
     type: "EServiceTemplateAdded",
     event_version: 2,
