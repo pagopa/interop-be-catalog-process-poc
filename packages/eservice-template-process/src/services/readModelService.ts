@@ -3,6 +3,8 @@ import {
   ReadModelRepository,
 } from "pagopa-interop-commons";
 import {
+  Attribute,
+  AttributeId,
   EServiceTemplate,
   EServiceTemplateId,
   TenantId,
@@ -47,6 +49,7 @@ export function readModelServiceBuilder(
   readModelRepository: ReadModelRepository
 ) {
   const eserviceTemplates = readModelRepository.eserviceTemplates;
+  const attributes = readModelRepository.attributes;
 
   return {
     async getEServiceTemplateById(
@@ -69,6 +72,27 @@ export function readModelServiceBuilder(
         },
         "data.creatorId": creatorId,
       });
+    },
+
+    async getAttributesByIds(
+      attributesIds: AttributeId[]
+    ): Promise<Attribute[]> {
+      const data = await attributes
+        .find({
+          "data.id": { $in: attributesIds },
+        })
+        .toArray();
+
+      const result = z.array(Attribute).safeParse(data.map((d) => d.data));
+      if (!result.success) {
+        throw genericInternalError(
+          `Unable to parse attributes items: result ${JSON.stringify(
+            result
+          )} - data ${JSON.stringify(data)} `
+        );
+      }
+
+      return result.data;
     },
   };
 }

@@ -1,0 +1,29 @@
+meta {
+  name: Update EService Template Version Attributes
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host-catalog}}/eservices/templates/:eserviceTemplateId/versions/:eserviceTemplateVersionId/attributes/update
+  body: json
+  auth: none
+}
+
+params:path {
+  eserviceTemplateId: {{eserviceTemplateId}}
+  eserviceTemplateVersionId: {{eserviceTemplateVersionId}}
+}
+
+headers {
+  Authorization: {{JWT}}
+  X-Correlation-Id: {{correlation-id}}
+}
+
+body:json {
+  {
+      "certified": [],
+      "declared": [],
+      "verified": []
+  }
+}

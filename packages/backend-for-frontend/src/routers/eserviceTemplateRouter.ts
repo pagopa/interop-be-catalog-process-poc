@@ -178,6 +178,32 @@ const eserviceTemplateRouter = (
           return res.status(errorRes.status).send(errorRes);
         }
       }
+    )
+    .post(
+      "/eservices/templates/:eServiceTemplateId/versions/:eServiceTemplateVersionId/attributes/update",
+      async (req, res) => {
+        const ctx = fromBffAppContext(req.ctx, req.headers);
+        const { eServiceTemplateId, eServiceTemplateVersionId } = req.params;
+
+        try {
+          await eserviceTemplateService.updateEServiceTemplateVersionAttributes(
+            unsafeBrandId(eServiceTemplateId),
+            unsafeBrandId(eServiceTemplateVersionId),
+            req.body,
+            ctx
+          );
+          return res.status(204).send();
+        } catch (error) {
+          const errorRes = makeApiProblem(
+            error,
+            emptyErrorMapper,
+            ctx.logger,
+            ctx.correlationId,
+            `Error updating eservice template ${eServiceTemplateId} version ${eServiceTemplateVersionId} attributes`
+          );
+          return res.status(errorRes.status).send(errorRes);
+        }
+      }
     );
 
   return eserviceTemplateRouter;

@@ -8,6 +8,9 @@ import {
   eventRepository,
 } from "pagopa-interop-commons";
 import {
+  AttributeId,
+  EServiceAttribute,
+  EserviceAttributes,
   EServiceTemplate,
   eserviceTemplateEventToBinaryDataV2,
   EServiceTemplateId,
@@ -15,17 +18,22 @@ import {
   EServiceTemplateVersionId,
   EServiceTemplateVersionState,
   eserviceTemplateVersionState,
+  unsafeBrandId,
   WithMetadata,
 } from "pagopa-interop-models";
 import { match } from "ts-pattern";
 import { eserviceTemplateApi } from "pagopa-interop-api-clients";
 import {
+  attributeNotFound,
+  versionAttributeGroupSupersetMissingInAttributesSeed,
   eServiceTemplateDuplicate,
   eServiceTemplateNotFound,
   eServiceTemplateVersionNotFound,
   eserviceTemplateWithoutPublishedVersion,
+  inconsistentAttributesSeedGroupsCount,
   inconsistentDailyCalls,
   notValidEServiceTemplateVersionState,
+  unchangedAttributes,
 } from "../model/domain/errors.js";
 import {
   toCreateEventEServiceTemplateAudienceDescriptionUpdated,
@@ -34,6 +42,7 @@ import {
   toCreateEventEServiceTemplateVersionSuspended,
   toCreateEventEServiceTemplateNameUpdated,
   toCreateEventEServiceTemplateVersionQuotasUpdated,
+  toCreateEventEServiceTemplateVersionAttributesUpdated,
 } from "../model/domain/toEvent.js";
 import { ReadModelService } from "./readModelService.js";
 import { assertRequesterEServiceTemplateCreator } from "./validators.js";
@@ -481,6 +490,193 @@ export function eserviceTemplateServiceBuilder(
 
       return updatedEserviceTemplate;
     },
+
+    async updateEServiceTemplateVersionAttributes(
+      eserviceTemplateId: EServiceTemplateId,
+      eserviceTemplateVersionId: EServiceTemplateVersionId,
+      seed: eserviceTemplateApi.AttributesSeed,
+      { authData, correlationId, logger }: WithLogger<AppContext>
+    ): Promise<EServiceTemplate> {
+      logger.info(
+        `Updating attributes of eservice template version ${eserviceTemplateVersionId} for EService template ${eserviceTemplateId}`
+      );
+
+      const eserviceTemplate = await retrieveEServiceTemplate(
+        eserviceTemplateId,
+        readModelService
+      );
+
+      assertRequesterEServiceTemplateCreator(
+        eserviceTemplate.data.creatorId,
+        authData
+      );
+
+      const eserviceTemplateVersion = retrieveEServiceTemplateVersion(
+        eserviceTemplateVersionId,
+        eserviceTemplate.data
+      );
+
+      if (
+        eserviceTemplateVersion.state !==
+          eserviceTemplateVersionState.published &&
+        eserviceTemplateVersion.state !== eserviceTemplateVersionState.suspended
+      ) {
+        throw notValidEServiceTemplateVersionState(
+          eserviceTemplateVersionId,
+          eserviceTemplateVersion.state
+        );
+      }
+
+      /**
+       * In order for the e-service template version attributes to be updatable,
+       * each attribute group contained in the seed must be a superset
+       * of the corresponding attribute group in the e-service template version,
+       * meaning that each attribute group in the seed must contain all the attributes
+       * of his corresponding group in the e-service template version, plus, optionally, some ones.
+       */
+      function validateAndRetrieveNewAttributes(
+        attributesVersion: EServiceAttribute[][],
+        attributesSeed: eserviceTemplateApi.Attribute[][]
+      ): string[] {
+        // If the seed has a different number of attribute groups than the e-service template version, it's invalid
+        if (attributesVersion.length !== attributesSeed.length) {
+          throw inconsistentAttributesSeedGroupsCount(
+            eserviceTemplateId,
+            eserviceTemplateVersionId
+          );
+        }
+
+        return attributesVersion.flatMap((attributeGroup) => {
+          // Get the seed group that is a superset of the e-service template version group
+          const supersetSeed = attributesSeed.find((seedGroup) =>
+            attributeGroup.every((versionAttribute) =>
+              seedGroup.some(
+                (seedAttribute) => versionAttribute.id === seedAttribute.id
+              )
+            )
+          );
+
+          if (!supersetSeed) {
+            throw versionAttributeGroupSupersetMissingInAttributesSeed(
+              eserviceTemplateId,
+              eserviceTemplateVersionId
+            );
+          }
+
+          // Return only the new attributes
+          return supersetSeed
+            .filter(
+              (seedAttribute) =>
+                !attributeGroup.some((att) => att.id === seedAttribute.id)
+            )
+            .flatMap((seedAttribute) => seedAttribute.id);
+        });
+      }
+
+      const certifiedAttributes = validateAndRetrieveNewAttributes(
+        eserviceTemplateVersion.attributes.certified,
+        seed.certified
+      );
+
+      const verifiedAttributes = validateAndRetrieveNewAttributes(
+        eserviceTemplateVersion.attributes.verified,
+        seed.verified
+      );
+
+      const declaredAttributes = validateAndRetrieveNewAttributes(
+        eserviceTemplateVersion.attributes.declared,
+        seed.declared
+      );
+
+      const newAttributes = [
+        ...certifiedAttributes,
+        ...verifiedAttributes,
+        ...declaredAttributes,
+      ].map(unsafeBrandId<AttributeId>);
+
+      if (newAttributes.length === 0) {
+        throw unchangedAttributes(
+          eserviceTemplateId,
+          eserviceTemplateVersionId
+        );
+      }
+
+      const updatedEServiceTemplateVersion: EServiceTemplateVersion = {
+        ...eserviceTemplateVersion,
+        attributes: await parseAndCheckAttributes(seed, readModelService),
+      };
+
+      const updatedEServiceTemplate = replaceEServiceTemplateVersion(
+        eserviceTemplate.data,
+        updatedEServiceTemplateVersion
+      );
+
+      await repository.createEvent(
+        toCreateEventEServiceTemplateVersionAttributesUpdated(
+          eserviceTemplateId,
+          eserviceTemplate.metadata.version,
+          eserviceTemplateVersionId,
+          newAttributes,
+          updatedEServiceTemplate,
+          correlationId
+        )
+      );
+
+      return updatedEServiceTemplate;
+    },
+  };
+}
+
+async function parseAndCheckAttributes(
+  attributesSeed: eserviceTemplateApi.AttributesSeed,
+  readModelService: ReadModelService
+): Promise<EserviceAttributes> {
+  const certifiedAttributes = attributesSeed.certified;
+  const declaredAttributes = attributesSeed.declared;
+  const verifiedAttributes = attributesSeed.verified;
+
+  const attributesSeeds = [
+    ...certifiedAttributes.flat(),
+    ...declaredAttributes.flat(),
+    ...verifiedAttributes.flat(),
+  ];
+
+  if (attributesSeeds.length > 0) {
+    const attributesSeedsIds: AttributeId[] = attributesSeeds.map((attr) =>
+      unsafeBrandId(attr.id)
+    );
+    const attributes = await readModelService.getAttributesByIds(
+      attributesSeedsIds
+    );
+    const attributesIds = attributes.map((attr) => attr.id);
+    for (const attributeSeedId of attributesSeedsIds) {
+      if (!attributesIds.includes(unsafeBrandId(attributeSeedId))) {
+        throw attributeNotFound(attributeSeedId);
+      }
+    }
+  }
+
+  return {
+    certified: certifiedAttributes.map((a) =>
+      a.map((a) => ({
+        ...a,
+        id: unsafeBrandId(a.id),
+      }))
+    ),
+    // eslint-disable-next-line sonarjs/no-identical-functions
+    declared: declaredAttributes.map((a) =>
+      a.map((a) => ({
+        ...a,
+        id: unsafeBrandId(a.id),
+      }))
+    ),
+    // eslint-disable-next-line sonarjs/no-identical-functions
+    verified: verifiedAttributes.map((a) =>
+      a.map((a) => ({
+        ...a,
+        id: unsafeBrandId(a.id),
+      }))
+    ),
   };
 }
 

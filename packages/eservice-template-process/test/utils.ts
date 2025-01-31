@@ -8,10 +8,12 @@ import {
 } from "pagopa-interop-commons-test";
 import { inject, afterEach } from "vitest";
 import {
+  Attribute,
   EServiceTemplate,
   EServiceTemplateEvent,
   EServiceTemplateId,
   toEServiceTemplateV2,
+  toReadModelAttribute,
 } from "pagopa-interop-models";
 import { readModelServiceBuilder } from "../src/services/readModelService.js";
 import { eserviceTemplateServiceBuilder } from "../src/services/eserviceTemplateService.js";
@@ -26,6 +28,7 @@ export const { cleanup, readModelRepository, postgresDB, fileManager } =
 afterEach(cleanup);
 
 export const eserviceTemplates = readModelRepository.eserviceTemplates;
+export const attributes = readModelRepository.attributes;
 
 export const readModelService = readModelServiceBuilder(readModelRepository);
 
@@ -58,6 +61,10 @@ export const addOneEServiceTemplate = async (
 ): Promise<void> => {
   await writeEServiceInEventstore(eserviceTemplate);
   await writeInReadmodel(eserviceTemplate, eserviceTemplates);
+};
+
+export const addOneAttribute = async (attribute: Attribute): Promise<void> => {
+  await writeInReadmodel(toReadModelAttribute(attribute), attributes);
 };
 
 export const readLastEserviceTemplateEvent = async (
